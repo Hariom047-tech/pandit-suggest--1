@@ -4,6 +4,7 @@ node_modules/
 # env files
 .env
 .env.local
+.env.test
 
 # submitted contact/enquiry/newsletter data (dev store — see backend/src/utils/store.js)
 backend/src/data/submissions/*.jsonl

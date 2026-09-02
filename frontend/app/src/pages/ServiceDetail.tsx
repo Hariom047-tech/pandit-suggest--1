@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Icon } from "../lib/icons";
 import { useService, useServices, usePandits, useTemples } from "../hooks/useData";
 import { normService, normServices, normPandits, normTemples } from "../lib/normalize";
@@ -12,7 +12,6 @@ import { PanditCard } from "../components/ui/PanditCard";
 import { TempleCard } from "../components/ui/TempleCard";
 import { ServiceCard } from "../components/ui/ServiceCard";
 import { EmptyState } from "../components/ui/ReviewCard";
-import { useEnquiryModal } from "../components/ui/EnquiryModal";
 import { SacredBackground } from "../components/ui/SacredBackground";
 import { Seo } from "../lib/Seo";
 import { useStructuredData, breadcrumbSchema, serviceSchema, faqPageSchema, organizationSchema, websiteSchema, webPageSchema, serviceId } from "../lib/structuredData";
@@ -23,7 +22,6 @@ const TAB_KEYS: readonly Tab[] = ["overview", "samagri", "pandits", "reviews"];
 
 export default function ServiceDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { data: rawService, loading, error } = useService(id || "");
   const { data: rawServices } = useServices();
   // 600: "limit" was never a real API param (silently ignored, falling back
@@ -44,7 +42,6 @@ export default function ServiceDetail() {
   const allPandits = useMemo(() => normPandits(rawPandits), [rawPandits]);
   const temples = useMemo(() => normTemples(rawTemplesForService), [rawTemplesForService]);
 
-  const openEnquiry = useEnquiryModal();
   // URL-backed, not component memory — see useUrlTab. This is the actual fix
   // for the "Pandits tab → refresh → back to Overview" bug: activeTab used
   // to live only in useState, which a full reload always destroys, and
@@ -225,16 +222,6 @@ export default function ServiceDetail() {
                     <span className="sd-hero__hl-icon">👨‍🦳</span>
                     <span>Verified Vedic Pandits</span>
                   </div>
-                </div>
-
-                <div className="sd-hero__cta-wrap">
-                  <button
-                    className="sd-hero__cta"
-                    onClick={() => pandits.length > 0 ? navigate(`/services/${s.id}/pandits`) : openEnquiry({ service: s.id })}
-                  >
-                    🙏 Connect with Pandit
-                  </button>
-                  <p className="sd-hero__cta-sub">{s.pandits} verified pandits available near you</p>
                 </div>
               </div>
             </div>

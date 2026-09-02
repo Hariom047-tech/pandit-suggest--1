@@ -102,11 +102,6 @@ export default function Services() {
                     {t("services.heroCheck3")}
                   </li>
                 </ul>
-                <div className="sp-hero__cta">
-                  <Link to="/pandits" className="btn btn-gold btn-lg btn-pill">
-                    {t("services.heroCta")} <Icon name="arrow-right" size={18} />
-                  </Link>
-                </div>
               </div>
               <div className="sp-hero__img-wrap">
                 <img src="https://media.panditsuggest.com/static/pandit-hero.webp" alt="Pandit performing puja" className="sp-hero__img" />

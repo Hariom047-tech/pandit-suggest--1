@@ -217,4 +217,77 @@ function panditMeta(pandit) {
   };
 }
 
-module.exports = { homeMeta, templeMeta, serviceMeta, panditMeta, absoluteUrl };
+/** Static directory/utility pages (no DB lookup, no per-request params) —
+ *  same title/description text as each page's own <Seo> call
+ *  (Services.tsx/Temples.tsx/Pandits.tsx/AiRecommender.tsx/HowItWorks.tsx),
+ *  copied verbatim rather than re-derived, so the server-injected and
+ *  client-rendered tags can never drift on wording. Services/Temples/Pandits
+ *  emit no structuredData — mirrors the client exactly, which emits none for
+ *  these three either (docs/SEO_ARCHITECTURE.md §8: "no change to list/
+ *  utility pages"); inventing schema here just to raise a count would violate
+ *  "structured data must match visible content". */
+function servicesMeta() {
+  const title = 'All Puja & Havan Services — Book a Pandit';
+  const description = '33+ traditional rituals, from daily aarti to Griha Pravesh, Rudrabhishek and Satyanarayan Katha — with samagri lists and verified Pandits who perform each service.';
+  return { title, description, canonicalPath: '/services', ogImage: DEFAULT_OG_IMAGE, structuredData: [] };
+}
+
+function templesMeta() {
+  const title = 'Temples Across India — Puja, Havan & Pandits';
+  const description = 'Browse temples across India by city and deity. See available puja and havan services at each temple, and connect directly with verified Pandits associated with it.';
+  return { title, description, canonicalPath: '/temples', ogImage: DEFAULT_OG_IMAGE, structuredData: [] };
+}
+
+function panditsMeta() {
+  const title = 'Find a Pandit — Verified Profiles Across India';
+  const description = 'Search verified Pandits by city, service and language. Compare profiles, ratings and experience, then contact directly on WhatsApp or call — no middleman, no commission.';
+  return { title, description, canonicalPath: '/pandits', ogImage: DEFAULT_OG_IMAGE, structuredData: [] };
+}
+
+/** Mirrors AiRecommender.tsx's <Seo>/useStructuredData call, including the
+ *  same AI_FAQS array (kept in sync by hand — small, rarely-changed, and
+ *  duplicating the "structured data must match visible content" rule this
+ *  whole file already follows for services.faqs above). */
+function aiRecommenderMeta() {
+  const path = '/ai-recommender';
+  const title = 'AI Pooja Guide — Which Puja Do I Need?';
+  const description = 'Describe your situation in Hindi or English and get a traditional ritual recommendation, with the verified Pandits who perform it.';
+  const AI_FAQS = [
+    { q: 'Is this a chatbot booking a pandit for me?', a: 'No — it only suggests relevant services and Pandits. You still contact and arrange everything directly.' },
+    { q: 'How are suggestions chosen?', a: "From PanditSuggest's own catalogue of services and Pandit profiles — nothing is invented or sourced from outside the platform." },
+    { q: 'Does it guarantee results from a puja?', a: 'No. Traditional significance is explained honestly; no outcome is ever promised.' },
+  ];
+  return {
+    title, description, canonicalPath: path, ogImage: DEFAULT_OG_IMAGE,
+    structuredData: [
+      organizationSchema(),
+      websiteSchema(),
+      webPageSchema({ path, name: title, aboutId: `${absoluteUrl(path)}#faq` }),
+      {
+        '@type': 'FAQPage', '@id': `${absoluteUrl(path)}#faq`,
+        mainEntity: AI_FAQS.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+      },
+    ],
+  };
+}
+
+/** Mirrors HowItWorks.tsx's <Seo>/useStructuredData call. */
+function howItWorksMeta() {
+  const path = '/how-it-works';
+  const title = 'How PanditSuggest Works';
+  const description = 'Four steps to find and contact a verified Pandit directly — no booking fee, no assigned stranger, no middleman.';
+  return {
+    title, description, canonicalPath: path, ogImage: DEFAULT_OG_IMAGE,
+    structuredData: [
+      organizationSchema(),
+      websiteSchema(),
+      webPageSchema({ path, name: title }),
+      breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'How It Works', path }]),
+    ],
+  };
+}
+
+module.exports = {
+  homeMeta, templeMeta, serviceMeta, panditMeta, absoluteUrl,
+  servicesMeta, templesMeta, panditsMeta, aiRecommenderMeta, howItWorksMeta,
+};

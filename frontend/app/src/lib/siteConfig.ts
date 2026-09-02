@@ -15,7 +15,7 @@ export const siteConfig = {
   // Never let a staging/local override leak into a production build — only
   // trusted there, where it's used purely as a fallback if the env var is
   // somehow unset.
-  url: (isProd ? undefined : envSiteUrl) || "https://panditsuggest.com",
+  url: (isProd ? undefined : envSiteUrl) || "https://www.panditsuggest.com",
   defaultTitle: "PanditSuggest — Connect with Trusted Pandits Across India",
   defaultDescription:
     "Browse temples across India, view verified Pandit profiles and contact them directly on WhatsApp or call. No middleman, no commission on your puja.",

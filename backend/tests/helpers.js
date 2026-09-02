@@ -1,6 +1,12 @@
 const http = require('node:http');
 const crypto = require('node:crypto');
 const { Pool } = require('pg');
+// Guarantees .env.test has been loaded before superConnectionString below
+// reads process.env — see config/db.js's identical require for the full
+// explanation (loadEnv, not the full env module, for the same reason).
+// This file's own require of ../src/config/db happens further down, too
+// late to help the superPool construction above it.
+require('../src/config/loadEnv');
 
 /**
  * A privileged connection for test FIXTURE SETUP only — never for anything
@@ -19,11 +25,19 @@ const { Pool } = require('pg');
  * verified, a token's clock running out) without needing to drive the actual
  * flow that produces it. Code under test never uses this connection.
  */
-const superPool = new Pool({
-  connectionString: process.env.SUPER_DATABASE_URL
-    || (process.env.DATABASE_URL || '').replace('panditconnect_app:panditconnect_app_dev', 'panditconnect:panditconnect')
-    || 'postgresql://panditconnect:panditconnect@localhost:5433/panditconnect',
-});
+const { assertSafeForTests } = require('../src/config/testDbGuard');
+
+const superConnectionString = process.env.SUPER_DATABASE_URL
+  || (process.env.DATABASE_URL || '').replace('panditconnect_app:panditconnect_app_dev', 'panditconnect:panditconnect')
+  || 'postgresql://panditconnect:panditconnect@localhost:5433/panditconnect';
+
+// Bypasses RLS (see the class comment above) — the single most dangerous
+// connection in this file to ever point at production. Checked
+// independently of config/db.js's own guard since this pool is constructed
+// separately and every test file pulls it in via this module.
+assertSafeForTests(superConnectionString, 'SUPER_DATABASE_URL (tests/helpers.js)');
+
+const superPool = new Pool({ connectionString: superConnectionString });
 const superQuery = (text, params) => superPool.query(text, params);
 
 /**

@@ -9,7 +9,7 @@
     "dev": "node --watch src/server.js",
     "seed": "node scripts/sync-seed-data.js && node scripts/generate-seed-sql.js",
     "db:init": "node scripts/init-db.js",
-    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "test": "NODE_ENV=test node --test --test-concurrency=1 tests/*.test.js",
     "test:leads": "node --test tests/qualified-leads.test.js",
     "test:pandit-auth": "node --test tests/pandit-auth.test.js",
     "test:admin-create": "node --test tests/admin-pandit-create.test.js",

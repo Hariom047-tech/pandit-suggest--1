@@ -20,4 +20,4 @@ Disallow: /search
 
 Allow: /
 
-Sitemap: https://panditsuggest.com/sitemap.xml
+Sitemap: https://www.panditsuggest.com/sitemap.xml

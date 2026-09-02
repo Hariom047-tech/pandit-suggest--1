@@ -22,8 +22,8 @@ test('homeMeta', () => {
 
   // @id/@graph linking (docs/SEO_ARCHITECTURE.md §14): each node is stably
   // identified and cross-references the others, not three disconnected objects.
-  assert.equal(org['@id'], 'https://panditsuggest.com/#organization');
-  assert.equal(site['@id'], 'https://panditsuggest.com/#website');
+  assert.equal(org['@id'], 'https://www.panditsuggest.com/#organization');
+  assert.equal(site['@id'], 'https://www.panditsuggest.com/#website');
   assert.deepEqual(site.publisher, { '@id': org['@id'] });
   assert.deepEqual(page.isPartOf, { '@id': site['@id'] });
   assert.deepEqual(page.about, { '@id': org['@id'] });
@@ -98,7 +98,7 @@ test('templeMeta', async (t) => {
     const page = meta.structuredData.find((n) => n['@type'] === 'WebPage');
     const place = meta.structuredData.find((n) => n['@type'] === 'PlaceOfWorship');
     assert.deepEqual(page.about, { '@id': place['@id'] });
-    assert.equal(place['@id'], 'https://panditsuggest.com/temples/kashi-vishwanath#place');
+    assert.equal(place['@id'], 'https://www.panditsuggest.com/temples/kashi-vishwanath#place');
   });
 });
 
@@ -204,8 +204,8 @@ test('panditMeta', async (t) => {
     const meta = seoMeta.panditMeta(base);
     const site = meta.structuredData.find((n) => n['@type'] === 'WebSite');
     const profile = meta.structuredData.find((n) => n['@type'] === 'ProfilePage');
-    assert.equal(profile['@id'], 'https://panditsuggest.com/pandits/ramesh-sharma#profilepage');
-    assert.equal(profile.mainEntity['@id'], 'https://panditsuggest.com/pandits/ramesh-sharma#person');
+    assert.equal(profile['@id'], 'https://www.panditsuggest.com/pandits/ramesh-sharma#profilepage');
+    assert.equal(profile.mainEntity['@id'], 'https://www.panditsuggest.com/pandits/ramesh-sharma#person');
     assert.deepEqual(profile.isPartOf, { '@id': site['@id'] });
     // Pandit pages deliberately have no separate generic WebPage node —
     // ProfilePage already is one (schema.org subtype) — see

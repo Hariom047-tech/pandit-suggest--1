@@ -1,7 +1,32 @@
 const { Pool } = require('pg');
+// Guarantees .env/.env.test has been loaded before reading process.env.
+// DATABASE_URL below, regardless of which file required config/db.js first —
+// without this, a test file that requires tests/helpers.js (which requires
+// this module) before anything else triggers dotenv left DATABASE_URL unset
+// here, which used to silently fall through to the hardcoded default below.
+// That default happens to be the production database name, so an unset
+// DATABASE_URL and a misconfigured one were indistinguishable — exactly the
+// gap testDbGuard.js exists to close, so this module must never read
+// DATABASE_URL before dotenv has had a chance to run.
+//
+// Deliberately requires ./loadEnv, NOT the full ./env — this module only
+// needs the dotenv side-effect, not ./env's OTHER required() checks
+// (ADMIN_SECRET_PATH, ENCRYPTION_KEY), which are unrelated to database
+// connectivity. Pulling in the full module broke a rate-limiter test that
+// deliberately simulates an unconfigured production environment (caught
+// live: "unset NODE_ENV behaves like production" started throwing on an
+// unrelated missing var the moment this file transitively reached it via
+// middleware/security.js -> utils/securityLog.js -> config/db.js).
+require('./loadEnv');
+const { assertSafeForTests } = require('./testDbGuard');
 
 const connectionString = process.env.DATABASE_URL
   || 'postgresql://panditconnect_app:panditconnect_app_dev@localhost:5433/panditconnect';
+
+// See testDbGuard.js: NODE_ENV=test connecting to the real "panditconnect"
+// database has actually happened (it left ~250 fake rows live in
+// production) — this is the fail-safe so it can't happen silently again.
+assertSafeForTests(connectionString, 'DATABASE_URL (config/db.js)');
 
 const pool = new Pool({ connectionString });
 

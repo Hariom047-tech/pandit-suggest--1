@@ -42,6 +42,7 @@ async function listIndexableUrls() {
       SELECT p.slug, p.updated_at
         FROM pandits p JOIN users u ON u.id = p.user_id
        WHERE u.status = 'active' AND p.deleted_at IS NULL AND u.deleted_at IS NULL
+         AND p.is_paused = FALSE
          AND p.verification_status = 'verified'
          AND (
            LENGTH(TRIM(COALESCE(p.bio, ''))) >= 40

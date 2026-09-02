@@ -163,11 +163,6 @@ export default function Pandits() {
                   {t("pandits.heroCheck3")}
                 </li>
               </ul>
-              <div className="sp-hero__cta">
-                <a href="#panditGrid" className="btn btn-gold btn-lg btn-pill">
-                  {t("pandits.heroCta")} <Icon name="arrow-right" size={18} />
-                </a>
-              </div>
             </div>
             <div className="sp-hero__img-wrap">
               <img src="https://media.panditsuggest.com/static/pandit-hero.webp" alt="Verified Pandit" className="sp-hero__img" />

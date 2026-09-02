@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('./loadEnv');
 
 // Throw at startup if a required secret is absent — better to crash loudly
 // than silently fall back to a committed placeholder value.
@@ -28,7 +28,7 @@ module.exports = {
   // routes/sitemap.routes.js) — mirrors frontend/app/src/lib/siteConfig.ts's
   // same fallback, so both halves of the app agree on the canonical domain
   // even if this var is never set.
-  publicSiteUrl: (process.env.PUBLIC_SITE_URL || 'https://panditsuggest.com').replace(/\/$/, ''),
+  publicSiteUrl: (process.env.PUBLIC_SITE_URL || 'https://www.panditsuggest.com').replace(/\/$/, ''),
   // Obscurity only, never the actual defense — see docs/ADMIN.md.
   // REQUIRED: no fallback — startup fails if not set, preventing silent exposure.
   adminSecretPath: process.env.NODE_ENV === 'test'

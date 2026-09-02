@@ -7,7 +7,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const app = require('../src/app');
-const { requestRaw, superQuery } = require('./helpers');
+const { requestRaw, superQuery, makePandit, withAdminContext } = require('./helpers');
+const adminPanditsRepo = require('../src/repositories/admin/pandits.repository');
 
 test('GET /api/sitemap.xml', async (t) => {
   const server = app.listen(0);
@@ -79,5 +80,21 @@ test('GET /api/sitemap.xml', async (t) => {
     );
     const fresh = await requestRaw(server, 'GET', '/api/sitemap.xml');
     assert.equal(fresh.text.includes(`/temples/${slug}`), false);
+  });
+
+  await t.test('a paused pandit (is_paused=TRUE) is excluded — regression for the sitemap listing a URL that 404s on the actual page', async () => {
+    // pandits.repository.js's getBySlug()/list()/findIdBySlug() all gate on
+    // p.is_paused = FALSE (migration 32); the sitemap query didn't, so a
+    // paused pandit could be listed here while their own page 404s. Real bio
+    // so this fixture passes the content-length gate and isolates is_paused
+    // as the only variable under test.
+    const p = await makePandit({ extra: { bio: 'A real bio, long enough to pass the thin-content gate on its own.' } });
+    let fresh = await requestRaw(server, 'GET', '/api/sitemap.xml');
+    assert.equal(fresh.text.includes(`/pandits/${p.slug}`), true, 'sanity check: visible before pausing');
+
+    await withAdminContext((q) => adminPanditsRepo.setPaused(q, p.pandit.id, true, 'test pause'));
+
+    fresh = await requestRaw(server, 'GET', '/api/sitemap.xml');
+    assert.equal(fresh.text.includes(`/pandits/${p.slug}`), false);
   });
 });

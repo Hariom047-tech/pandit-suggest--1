@@ -119,4 +119,46 @@ test('GET /api/_render/*', async (t) => {
     assert.equal(res.status, 200);
     assert.match(res.text, /<meta name="robots" content="noindex, follow">/);
   });
+
+  // The 5 static directory/utility pages — no DB lookup, so no NOT_FOUND
+  // branch is possible; each just needs its own title/canonical/description
+  // present, matching the copy each page's own client-side <Seo> call uses
+  // (backend/src/utils/seoMeta.js's servicesMeta/templesMeta/panditsMeta/
+  // aiRecommenderMeta/howItWorksMeta).
+  const staticPages = [
+    { path: '/api/_render/services-list', titleFragment: 'Puja &amp; Havan Services', canonicalPath: '/services' },
+    { path: '/api/_render/temples-list', titleFragment: 'Temples Across India', canonicalPath: '/temples' },
+    { path: '/api/_render/pandits-list', titleFragment: 'Find a Pandit', canonicalPath: '/pandits' },
+    { path: '/api/_render/ai-recommender', titleFragment: 'AI Pooja Guide', canonicalPath: '/ai-recommender' },
+    { path: '/api/_render/how-it-works', titleFragment: 'How PanditSuggest Works', canonicalPath: '/how-it-works' },
+  ];
+  for (const page of staticPages) {
+    await t.test(`static page ${page.canonicalPath}: raw response has title/description/canonical`, async () => {
+      const res = await requestRaw(server, 'GET', page.path);
+      assert.equal(res.status, 200);
+      assert.ok(res.text.includes(page.titleFragment), `expected title to include "${page.titleFragment}"`);
+      assert.match(res.text, /<meta name="description" content="[^"]{20,}"/);
+      assert.match(res.text, new RegExp(`<link rel="canonical" href="https?://[^"]+${page.canonicalPath.replace(/\//g, '\\/')}">`));
+      // the fallback text must never become the metadata Google sees
+      assert.equal(res.text.includes('Yeh section load nahi ho paya'), false);
+    });
+  }
+
+  await t.test('ai-recommender: FAQPage JSON-LD matches the visible AI_FAQS content', async () => {
+    const res = await requestRaw(server, 'GET', '/api/_render/ai-recommender');
+    assert.match(res.text, /"@type":"FAQPage"/);
+    assert.ok(res.text.includes('Is this a chatbot booking a pandit for me?'));
+  });
+
+  await t.test('how-it-works: BreadcrumbList JSON-LD present', async () => {
+    const res = await requestRaw(server, 'GET', '/api/_render/how-it-works');
+    assert.match(res.text, /"@type":"BreadcrumbList"/);
+  });
+
+  await t.test('services/temples/pandits list pages: no fabricated structured data (they emit none client-side either)', async () => {
+    for (const path of ['/api/_render/services-list', '/api/_render/temples-list', '/api/_render/pandits-list']) {
+      const res = await requestRaw(server, 'GET', path);
+      assert.equal(res.text.includes('id="ld-json"'), false, `${path} should not inject a JSON-LD block`);
+    }
+  });
 });

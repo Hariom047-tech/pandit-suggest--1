@@ -58,7 +58,11 @@
 
 .astro-card__name-row {
   display: flex;
-  align-items: center;
+  /* flex-start, not center: .astro-card__name reserves height for 2 lines
+     even when the name is one line (see its min-height), so centering here
+     would center the verified badge against that full reserved box and
+     leave it sitting below a one-line name instead of beside it. */
+  align-items: flex-start;
   gap: 6px;
   margin-bottom: 4px;
 }
@@ -74,10 +78,19 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: var(--lh-snug);
+  /* Reserve space for 2 lines always, so a one-line name doesn't leave the
+     header shorter than a row-mate whose name wraps — everything stacked
+     below (tags, stats, footer) would otherwise sit at a different height
+     from card to card in the same grid row. */
+  min-height: calc(var(--fs-700) * var(--lh-snug) * 2);
 }
 .astro-card__verified {
   color: #10b981; /* green */
   display: flex;
+  /* Optical nudge: the row aligns to flex-start (name-row comment above),
+     which lines the badge up with the top of the name's line box, not the
+     glyphs' own vertical center within that line box — this closes the gap. */
+  margin-top: 3px;
 }
 
 .astro-card__meta-short {
@@ -511,7 +524,7 @@ a.card:hover .svc-ico--emoji {
   .grid-2up-mobile .astro-card__avatar { width: 48px; height: 48px; margin: 0 auto; }
   .grid-2up-mobile .astro-card__header-info { width: 100%; display: flex; flex-direction: column; align-items: center; }
   .grid-2up-mobile .astro-card__name-row { justify-content: center; gap: 4px; width: 100%; }
-  .grid-2up-mobile .astro-card__name { font-size: var(--fs-300); white-space: normal; line-height: var(--lh-tight); text-align: center; }
+  .grid-2up-mobile .astro-card__name { font-size: var(--fs-300); white-space: normal; line-height: var(--lh-tight); text-align: center; min-height: calc(var(--fs-300) * var(--lh-tight) * 2); }
   .grid-2up-mobile .astro-card__meta-short { font-size: var(--fs-50); text-align: center; }
   .grid-2up-mobile .astro-card__tags { padding: 0 4px; gap: 4px; margin-bottom: 6px; }
   .grid-2up-mobile .astro-card__tag { font-size: var(--fs-50); padding: 2px 5px; text-align: center; }
@@ -568,7 +581,7 @@ a.card:hover .svc-ico--emoji {
 @media (min-width: 621px) {
   .pandit-results-grid .astro-card__header { padding: 14px 14px 10px; gap: 10px; }
   .pandit-results-grid .astro-card__avatar { width: 48px; height: 48px; }
-  .pandit-results-grid .astro-card__name { font-size: var(--fs-400); line-height: var(--lh-snug); }
+  .pandit-results-grid .astro-card__name { font-size: var(--fs-400); line-height: var(--lh-snug); min-height: calc(var(--fs-400) * var(--lh-snug) * 2); }
   .pandit-results-grid .astro-card__meta-short,
   .pandit-results-grid .astro-card__location { font-size: var(--fs-100); }
   .pandit-results-grid .astro-card__tags { padding: 0 14px; gap: 5px; margin-bottom: 10px; }
@@ -590,7 +603,7 @@ a.card:hover .svc-ico--emoji {
 @media (min-width: 621px) and (max-width: 900px) {
   .pandit-results-grid .astro-card__header { padding: 12px 10px 8px; gap: 8px; }
   .pandit-results-grid .astro-card__avatar { width: 42px; height: 42px; }
-  .pandit-results-grid .astro-card__name { font-size: var(--fs-300); line-height: var(--lh-snug); }
+  .pandit-results-grid .astro-card__name { font-size: var(--fs-300); line-height: var(--lh-snug); min-height: calc(var(--fs-300) * var(--lh-snug) * 2); }
   .pandit-results-grid .astro-card__meta-short,
   .pandit-results-grid .astro-card__location { font-size: var(--fs-50); }
 }

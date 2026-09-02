@@ -67,6 +67,15 @@ function withShell(buildMeta) {
 
 const home = withShell(async () => seoMeta.homeMeta());
 
+// Static directory/utility pages — no DB lookup, no NOT_FOUND branch
+// possible (the route only exists if the page exists), same withShell
+// fail-safe contract as the 4 entity shapes above.
+const servicesList = withShell(async () => seoMeta.servicesMeta());
+const templesList = withShell(async () => seoMeta.templesMeta());
+const panditsList = withShell(async () => seoMeta.panditsMeta());
+const aiRecommender = withShell(async () => seoMeta.aiRecommenderMeta());
+const howItWorks = withShell(async () => seoMeta.howItWorksMeta());
+
 const temple = withShell(async (req) => {
   const { market } = browsingMarketFor(req, typeof req.query.country === 'string' ? req.query.country : null);
   const t = await templesRepo.getBySlug(req.params.slug, market);
@@ -83,4 +92,4 @@ const pandit = withShell(async (req) => {
   return p ? seoMeta.panditMeta(p) : NOT_FOUND;
 });
 
-module.exports = { home, temple, service, pandit };
+module.exports = { home, temple, service, pandit, servicesList, templesList, panditsList, aiRecommender, howItWorks };

@@ -12,4 +12,13 @@ router.get('/_render/temples/:slug', asyncHandler(ctrl.temple));
 router.get('/_render/services/:slug', asyncHandler(ctrl.service));
 router.get('/_render/pandits/:slug', asyncHandler(ctrl.pandit));
 
+// Static directory/utility pages — no DB lookup, same metadata for every
+// request, so no NOT_FOUND branch is possible for these (unlike the 4
+// entity shapes above).
+router.get('/_render/services-list', asyncHandler(ctrl.servicesList));
+router.get('/_render/temples-list', asyncHandler(ctrl.templesList));
+router.get('/_render/pandits-list', asyncHandler(ctrl.panditsList));
+router.get('/_render/ai-recommender', asyncHandler(ctrl.aiRecommender));
+router.get('/_render/how-it-works', asyncHandler(ctrl.howItWorks));
+
 module.exports = router;

@@ -222,9 +222,6 @@ export function Header() {
             <Icon name="x" />
           </button>
         </div>
-        <div className="row" style={{ marginTop: 16 }}>
-          <LangSwitch />
-        </div>
         <nav className="drawer-links">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === "/"} className={({ isActive }) => (isActive ? "is-active" : "")} onClick={() => setOpen(false)}>
