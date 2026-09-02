@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { adminApi } from "../lib/adminApi";
+import { adminApi, ADMIN_BASE } from "../lib/adminApi";
 
 interface UserProfile {
   id: string; email: string | null; phone: string | null; full_name: string; status: string;
@@ -62,7 +62,7 @@ export default function AdminUserDetail() {
           <h2 style={{ fontFamily: "var(--font-head)", fontSize: "1.4rem" }}>{profile.full_name}</h2>
           <p>{profile.email ? `${profile.email} · ` : ""}Joined {new Date(profile.created_at).toLocaleDateString("en-IN")}</p>
         </div>
-        <Link to="/admin-panel/users" className="btn btn-outline btn-sm">← Back to Users</Link>
+        <Link to={`${ADMIN_BASE}/users`} className="btn btn-outline btn-sm">← Back to Users</Link>
       </div>
 
       <div className="admin-panel" style={{ marginBottom: 18 }}>
@@ -103,7 +103,7 @@ export default function AdminUserDetail() {
                       <tr key={e.id}>
                         <td className="muted-cell">{new Date(e.timestamp).toLocaleString("en-IN")}</td>
                         <td>{EVENT_LABEL[e.eventType] || e.eventType}</td>
-                        <td>{e.pandit ? <Link to={`/admin-panel/pandits/${e.pandit.slug}/analytics`}>{e.pandit.name}</Link> : "—"}</td>
+                        <td>{e.pandit ? <Link to={`${ADMIN_BASE}/pandits/${e.pandit.slug}/analytics`}>{e.pandit.name}</Link> : "—"}</td>
                         <td className="muted-cell">{[e.location.city, e.location.market].filter(Boolean).join(" · ") || "Unknown"}</td>
                         <td className="muted-cell">{e.sourceSurface || "—"}</td>
                         <td>{e.qualifiedLeadId ? <span className="admin-pill admin-pill--green">Qualified</span> : "—"}</td>

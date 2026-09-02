@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { adminApi, qs, type Paged } from "../lib/adminApi";
+import { adminApi, qs, ADMIN_BASE, type Paged } from "../lib/adminApi";
 import { Pager } from "../../components/ui/Pager";
 
 interface UserRow {
@@ -65,7 +65,7 @@ export default function AdminUsers() {
           <h2 style={{ fontFamily: "var(--font-head)", fontSize: "1.4rem" }}>Users</h2>
           <p>Devotees/customers only — Pandits have their own section, admin accounts live under Admin Users.</p>
         </div>
-        <Link to="/admin-panel/admin-users" className="btn btn-outline btn-sm">Admin Users →</Link>
+        <Link to={`${ADMIN_BASE}/admin-users`} className="btn btn-outline btn-sm">Admin Users →</Link>
       </div>
 
       {error && <div className="admin-login__error" style={{ marginBottom: 18 }}>{error}</div>}
@@ -92,7 +92,7 @@ export default function AdminUsers() {
               <tbody>
                 {rows.data.map((u) => (
                   <tr key={u.id}>
-                    <td><Link to={`/admin-panel/users/${u.id}`} style={{ color: "inherit", fontWeight: 700 }}>{u.full_name}</Link></td>
+                    <td><Link to={`${ADMIN_BASE}/users/${u.id}`} style={{ color: "inherit", fontWeight: 700 }}>{u.full_name}</Link></td>
                     <td className="muted-cell">{u.email}</td>
                     <td className="muted-cell">
                       {u.phone

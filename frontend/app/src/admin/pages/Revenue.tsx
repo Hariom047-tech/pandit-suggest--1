@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { adminApi, qs } from "../lib/adminApi";
+import { adminApi, qs, ADMIN_BASE } from "../lib/adminApi";
 import { Icon } from "../../lib/icons";
 import { Pager } from "../../components/ui/Pager";
 
@@ -136,7 +136,7 @@ export default function AdminRevenue() {
                   return (
                     <Link
                       key={tier}
-                      to={`/admin-panel/subscriptions?tier=${tier}&activeOnly=true`}
+                      to={`${ADMIN_BASE}/subscriptions?tier=${tier}&activeOnly=true`}
                       className="admin-stat-card admin-stat-card--link"
                     >
                       <div className="row-between">

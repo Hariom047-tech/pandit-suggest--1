@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { adminApi, qs } from "../lib/adminApi";
+import { adminApi, qs, ADMIN_BASE } from "../lib/adminApi";
 import "../../pandit/pandit.css";
 import { FieldExplorer, SeriesChart, type PivotDimension, type PivotMeasure } from "../../pandit/components/pivot";
 import { PeriodDropdown, DONUT_COLORS, shortDate } from "../../pandit/components/charts";
@@ -201,7 +201,7 @@ export default function AdminPanditAnalytics() {
             )}
           </p>
         </div>
-        {pandit && <Link to={`/admin-panel/pandits/${pandit.slug}`} className="btn btn-outline btn-sm">Edit profile →</Link>}
+        {pandit && <Link to={`${ADMIN_BASE}/pandits/${pandit.slug}`} className="btn btn-outline btn-sm">Edit profile →</Link>}
       </div>
 
       <div className="admin-toolbar" style={{ marginBottom: 18 }}>

@@ -1,19 +1,38 @@
 /* Admin API client — every request goes to /api/<ADMIN_SECRET_PATH>/...
    carrying the admin bearer token.
 
-   SECURITY MODEL (C3 fix):
-   - The FRONTEND route to the admin panel is now a FIXED path: /admin-panel
-     It is no longer a "secret" URL — URL obscurity was never real security.
+   SECURITY MODEL:
    - The REAL gate is password + TOTP enforced by requireAdmin on the backend,
-     regardless of how the URL was discovered.
+     regardless of how the URL was discovered. Nothing below changes that.
    - ADMIN_SECRET_PATH is used only as the BACKEND API prefix, injected at
      runtime via the server environment — it is NOT baked into the JS bundle.
    - On the client, we call a tiny bootstrap endpoint to get the API prefix
-     so the bundle never contains the secret path. */
+     so the bundle never contains the secret path.
 
-/** Fixed browser route for the admin panel — no longer a secret URL.
- *  Real access control is backend TOTP (requireAdmin middleware). */
-export const ADMIN_BASE = "/admin-panel";
+   On ADMIN_BASE below: this is a browser route in a client-rendered SPA, so
+   its value IS compiled into the JS bundle — anyone who downloads and greps
+   the bundle can find it. It is therefore NOT a secret, and must never be
+   treated as an access control. It exists purely to keep the panel out of the
+   way of automated scanners, which probe well-known paths (/admin, /wp-admin,
+   /admin-panel) rather than reading bundles. Those guesses now return a plain
+   404 in the browser instead of a login form. (The honeypot in
+   backend/src/middleware/honeypot.js logs the same names, but only under /api
+   — browser paths never reach Express, as that file's own comment explains.)
+
+   Deliberately NOT listed in robots.txt: that file is public, so a Disallow
+   line there would publish this path to the world. nginx sends
+   X-Robots-Tag: noindex on this location instead (docker/nginx/*.conf).
+
+   The one control that is actually strong is the IP allow-list already stubbed
+   out in those same nginx files — uncomment it to make the panel unreachable
+   from the internet entirely. */
+
+/** Browser route for the admin panel. Obscurity only — see the note above.
+ *  Real access control is backend TOTP (requireAdmin middleware).
+ *  Every internal admin link builds off this constant, so changing it here
+ *  moves the whole panel; only App.tsx's <Route> and the nginx location
+ *  blocks need to be kept in sync by hand. */
+export const ADMIN_BASE = "/ambitious-person";
 
 /** Runtime-resolved API base — fetched once from /api/admin-config endpoint
  *  so the secret path never appears in the compiled JS bundle.

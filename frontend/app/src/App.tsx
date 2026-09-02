@@ -6,7 +6,8 @@ import { EnquiryModalProvider } from "./components/ui/EnquiryModal";
 import { AuthProvider } from "./lib/Auth";
 import { I18nProvider } from "./lib/i18n";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-// ADMIN_BASE is now a fixed string in adminApi.ts ("/admin-panel") — no secret path in the bundle.
+// The admin panel's browser route lives in adminApi.ts's ADMIN_BASE; the
+// backend API prefix is still resolved at runtime and never bundled.
 import Home from "./pages/Home";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 
@@ -76,9 +77,13 @@ export default function App() {
           <ErrorBoundary>
             <Suspense fallback={<RouteFallback />}>
               <Routes>
-            {/* Admin panel is at a fixed /admin-panel route.
-                Security is backend TOTP (requireAdmin) — not URL obscurity. */}
-            <Route path="admin-panel/*" element={<AdminApp />} />
+            {/* Kept in sync by hand with ADMIN_BASE in admin/lib/adminApi.ts
+                (which every internal admin link builds off) and with the
+                matching nginx location block. Obscurity only — the value is
+                compiled into the bundle like any other route; the real gate is
+                backend TOTP (requireAdmin). See adminApi.ts for the full note.
+                The obvious /admin-panel guess now returns a plain 404. */}
+            <Route path="ambitious-person/*" element={<AdminApp />} />
             {/* Pandit dashboard lives outside the public Layout: it has its own
                 sidebar shell. The public /dashboard route below is left in place
                 so existing links keep working. */}
