@@ -97,13 +97,38 @@ function withShell(buildMeta, buildBootstrap) {
  * the images the visitor is actually looking at.
  */
 async function homeBootstrap() {
-  const [homeHero, siteImages] = await Promise.all([
+  const [homeHero, siteImages, services] = await Promise.all([
     homeHeroRepo.listPublic(),
     siteImagesRepo.getPublicMap(),
+    servicesRepo.list({}),
   ]);
   return {
-    data: { homeHero, siteImages },
+    // `services` is shaped exactly like GET /api/services' body, because the
+    // client primes it under that path — a payload that merely resembled the
+    // endpoint would desync the moment either side changed.
+    data: { homeHero, siteImages, services: { data: services, meta: { total: services.length } } },
     preload: homeHero.map((h) => h.image_url),
+  };
+}
+
+/**
+ * The directory pages (/pandits, /temples, /services) each open on one hero
+ * image from a site-image slot. Same treatment as the homepage hero: the URL
+ * travels in the HTML with a preload, so it is not discovered at the end of
+ * HTML -> bundle -> GET /api/site-images.
+ *
+ * Their listings are deliberately NOT embedded. A directory's rows are what
+ * the visitor came to filter and page through, they change per query, and
+ * they are far larger than a hero URL — inlining them would slow down the
+ * very HTML the hero is waiting on.
+ */
+function directoryBootstrap(heroSlot) {
+  return async () => {
+    const siteImages = await siteImagesRepo.getPublicMap();
+    return {
+      data: { siteImages },
+      preload: [siteImages[heroSlot]?.url],
+    };
   };
 }
 
@@ -112,9 +137,9 @@ const home = withShell(async () => seoMeta.homeMeta(), homeBootstrap);
 // Static directory/utility pages — no DB lookup, no NOT_FOUND branch
 // possible (the route only exists if the page exists), same withShell
 // fail-safe contract as the 4 entity shapes above.
-const servicesList = withShell(async () => seoMeta.servicesMeta());
-const templesList = withShell(async () => seoMeta.templesMeta());
-const panditsList = withShell(async () => seoMeta.panditsMeta());
+const servicesList = withShell(async () => seoMeta.servicesMeta(), directoryBootstrap('services.hero'));
+const templesList = withShell(async () => seoMeta.templesMeta(), directoryBootstrap('temples.hero'));
+const panditsList = withShell(async () => seoMeta.panditsMeta(), directoryBootstrap('pandits.hero'));
 const aiRecommender = withShell(async () => seoMeta.aiRecommenderMeta());
 const howItWorks = withShell(async () => seoMeta.howItWorksMeta());
 

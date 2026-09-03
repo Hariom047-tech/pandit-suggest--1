@@ -29,6 +29,8 @@ interface BootstrapPayload {
   homeHero?: unknown;
   /** GET /api/site-images — admin-managed page image slots. */
   siteImages?: unknown;
+  /** GET /api/services — the homepage service tiles. */
+  services?: unknown;
 }
 
 declare global {
@@ -50,6 +52,7 @@ function hydrate() {
   if (!payload) return;
   if (payload.homeHero) primeCache("/home-hero", payload.homeHero);
   if (payload.siteImages) primeCache("/site-images", payload.siteImages);
+  if (payload.services) primeCache("/services", payload.services);
 }
 
 hydrate();

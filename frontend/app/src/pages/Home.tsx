@@ -68,6 +68,14 @@ export default function Home() {
   const { t } = useLang();
   const siteImg = useSiteImages();
   const trustImg = siteImg.src("home.trust");
+  /**
+   * A service with no image of its own falls back to the admin-managed tile
+   * slot. Without this the tile rendered <img> with no src at all, which a
+   * browser draws as the raw alt text over the gradient — which is what the
+   * homepage was showing for every service an admin had not given a photo.
+   */
+  const serviceTileImg = (s: { img?: string; name: string }) =>
+    s.img || siteImg.src(s.name.toLowerCase().includes("havan") ? "services.fallback_havan" : "services.fallback_puja");
   const epujaBg = siteImg.src("home.epuja_bg");
   const reviewsBg = siteImg.src("home.reviews_bg");
   const fairScores = useFairRanking();
@@ -182,7 +190,9 @@ export default function Home() {
                 {(featuredServices.length ? featuredServices : services.slice(0, 6))
                   .map((s) => (
                     <Link to={`/services/${s.id}`} key={s.id} className="hp-service-tile regular">
-                      <img src={s.img} alt={s.name} className="hp-service-tile__img" loading="lazy" />
+                      {serviceTileImg(s) && (
+                        <img src={serviceTileImg(s)} alt={s.name} className="hp-service-tile__img" loading="lazy" />
+                      )}
                       <div className="hp-service-tile__overlay" />
                       <div className="hp-service-tile__content">
                         <h3 className="hp-service-tile__title">{s.name}</h3>
