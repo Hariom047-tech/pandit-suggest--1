@@ -417,7 +417,7 @@
 .ohp-hero {
   position: relative;
   background: linear-gradient(135deg, #fff8e7 0%, #f4e3bd 50%, #f0d9a0 100%);
-  padding: 80px 0 60px; text-align: center; overflow: hidden;
+  padding: var(--section-y) 0 calc(var(--section-y) * .8); text-align: center; overflow: hidden;
   border-bottom: 3px solid var(--gold);
 }
 .ohp-hero-bg {
@@ -446,7 +446,7 @@
 
 /* ═══════ HOW IT WORKS — white ═══════ */
 .ohp-steps-wrap {
-  background: #ffffff; padding: 64px 0; text-align: center;
+  background: #ffffff; padding: var(--section-y) 0; text-align: center;
   border-bottom: 1px solid var(--border-soft);
 }
 .ohp-steps-wrap .ornament { margin-bottom: 40px; }
@@ -484,7 +484,7 @@
 /* ═══════ POPULAR PUJAS — cream ═══════ */
 .ohp-pujas-wrap {
   background: linear-gradient(180deg, #fffcf5 0%, #fff8e7 100%);
-  padding: 64px 0;
+  padding: var(--section-y) 0;
   text-align: center;
   border-bottom: 1px solid var(--border-soft);
 }
@@ -603,7 +603,7 @@
 
 /* ═══════ SANKALP — white ═══════ */
 .ohp-sankalp-wrap {
-  background: #ffffff; padding: 64px 0; text-align: center;
+  background: #ffffff; padding: var(--section-y) 0; text-align: center;
   border-bottom: 1px solid var(--border-soft);
 }
 .ohp-sankalp-card {
@@ -637,7 +637,7 @@
 /* ═══════ WHAT YOU RECEIVE — cream ═══════ */
 .ohp-receive-wrap {
   background: linear-gradient(180deg, #fffcf5 0%, #fff8e7 100%);
-  padding: 64px 0; text-align: center;
+  padding: var(--section-y) 0; text-align: center;
 }
 .ohp-receive-wrap .ornament { margin-bottom: 40px; }
 .ohp-receive-row {
@@ -667,11 +667,8 @@
   .ohp-puja-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 620px) {
-  .ohp-hero { padding: 56px 0 42px; }
   .ohp-hero-title { font-size: var(--fs-800); }
-  .ohp-steps-wrap { padding: 44px 0; }
   .ohp-step-circle { width: 58px; height: 58px; font-size: var(--fs-800); }
-  .ohp-pujas-wrap { padding: 44px 0; }
   .ohp-puja-grid {
     gap: 10px;
     grid-template-columns: repeat(2, 1fr);
@@ -684,10 +681,8 @@
   .ohp-puja-desc { display: none; }
   .ohp-puja-meta { display: none; }
   .ohp-puja-btn { padding: 6px 14px; font-size: var(--fs-200); min-width: 80px; }
-  .ohp-sankalp-wrap { padding: 44px 0; }
   .ohp-sankalp-card { padding: 28px 20px 24px; }
   .ohp-sankalp-grid { grid-template-columns: 1fr; }
-  .ohp-receive-wrap { padding: 44px 0; }
   .ohp-receive-row { gap: 16px; }
   .ohp-receive-item { width: 95px; }
   .ohp-receive-icon { width: 48px; height: 48px; }
@@ -708,7 +703,7 @@
   position: relative;
   background: var(--gold-soft);
   overflow: hidden;
-  padding: 80px 0;
+  padding: var(--section-y) 0;
 }
 
 .hp-reviews-bg {

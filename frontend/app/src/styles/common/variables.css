@@ -19,6 +19,17 @@
   --r-xl: 26px;
   --r-pill: 999px;
 
+  /* --- Vertical rhythm ---
+     The space a full-width band puts above and below its own content.
+
+     Deliberately smaller than it looks: two stacked sections each apply it,
+     so the visible gap at every boundary is TWICE this number. At the old
+     hard-coded 84px that meant a 168px hole between every pair of sections
+     on desktop — enough to read as a broken page rather than as breathing
+     room. Every band on the site derives its vertical padding from here, so
+     the rhythm is one edit, not thirty. */
+  --section-y: 48px;
+
   /* --- Layout --- */
   --shell: 1240px;
   --header-h: 78px;

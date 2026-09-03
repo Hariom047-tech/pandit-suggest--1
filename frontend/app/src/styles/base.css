@@ -37,9 +37,9 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 /* --------------------------------------------------------------- layout --- */
 .shell { width: 100%; max-width: var(--shell); margin: 0 auto; padding: 0 24px; }
-.section { padding: 84px 0; position: relative; }
+.section { padding: var(--section-y) 0; position: relative; }
 .section--cream { background: var(--ivory); }
-.section--tight { padding: 56px 0; }
+.section--tight { padding: calc(var(--section-y) * .7) 0; }
 .grid { display: grid; gap: 26px; }
 .g-2 { grid-template-columns: repeat(2, 1fr); }
 .g-3 { grid-template-columns: repeat(3, 1fr); }
@@ -1557,7 +1557,8 @@ body.modal-open .contact-bar { display: none; }
   .banner-card .row { gap: 6px; }
   .banner-card .meta-line { font-size: var(--fs-200); }
   .banner-card .divider-v { height: 14px; }
-  .section { padding: 60px 0; }
+  /* Rhythm tightens with the viewport; every band follows --section-y. */
+  :root { --section-y: 36px; }
   .cta-band { padding: 32px 26px; }
   /* Keep brand on ONE row — reduce size + gap on small headers */
   .header-inner { gap: 10px; }
