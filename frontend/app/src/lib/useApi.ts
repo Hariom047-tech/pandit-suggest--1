@@ -17,6 +17,24 @@ interface CacheEntry<T> { data: T; ts: number; }
 const cache = new Map<string, CacheEntry<unknown>>();
 const DEFAULT_TTL = 60_000;               // 60 s
 
+/** A cache entry still inside its TTL, or undefined. */
+function readCache<T>(path: string | null, cacheTtl: number, noCache: boolean): T | undefined {
+  if (!path || noCache || cacheTtl <= 0) return undefined;
+  const hit = cache.get(path) as CacheEntry<T> | undefined;
+  return hit && Date.now() - hit.ts < cacheTtl ? hit.data : undefined;
+}
+
+/**
+ * Puts a value into the cache without a network request.
+ *
+ * Used by lib/bootstrap.ts to hand useApi the data the server already
+ * embedded in the HTML — the hook then has it on its FIRST render, so the
+ * hero images paint with no request and no skeleton. See that file.
+ */
+export function primeCache<T>(path: string, data: T) {
+  cache.set(path, { data, ts: Date.now() });
+}
+
 export interface UseApiOptions {
   /** Set false to skip fetching (useful for dependent queries). */
   enabled?: boolean;
@@ -38,23 +56,25 @@ export function useApi<T>(
   opts: UseApiOptions = {},
 ): UseApiResult<T> {
   const { enabled = true, cacheTtl = DEFAULT_TTL, noCache = false } = opts;
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Seeded from the cache SYNCHRONOUSLY, not in the effect below. A cache hit
+  // applied in useEffect still leaves the first render empty, and the browser
+  // may well paint that empty frame — which is exactly the skeleton flash the
+  // homepage hero used to show even when the data was already in hand.
+  const seeded = readCache<T>(path, cacheTtl, noCache);
+  const [data, setData] = useState<T | null>(seeded ?? null);
+  const [loading, setLoading] = useState(seeded === undefined);
   const [error, setError] = useState<string | null>(null);
   const seqRef = useRef(0);                // prevents stale writes
 
   const fetchData = useCallback(() => {
     if (!path || !enabled) { setLoading(false); return; }
 
-    // check cache
-    if (!noCache && cacheTtl > 0) {
-      const hit = cache.get(path) as CacheEntry<T> | undefined;
-      if (hit && Date.now() - hit.ts < cacheTtl) {
-        setData(hit.data);
-        setLoading(false);
-        setError(null);
-        return;
-      }
+    const hit = readCache<T>(path, cacheTtl, noCache);
+    if (hit !== undefined) {
+      setData(hit);
+      setLoading(false);
+      setError(null);
+      return;
     }
 
     const seq = ++seqRef.current;

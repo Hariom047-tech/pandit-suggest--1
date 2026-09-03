@@ -13,6 +13,12 @@
          See docs/SEO_ARCHITECTURE.md. -->
     <meta name="theme-color" content="#d4a017" />
     <link rel="icon" href="/assets/img/logo-new.png" type="image/png" />
+    <!-- Every photo on the site (hero circles, temple covers, service tiles)
+         comes from this CloudFront distribution. Opening the connection now
+         means the DNS lookup and TLS handshake are already done by the time
+         the first <img> URL is known, instead of being paid serially in
+         front of it. -->
+    <link rel="preconnect" href="https://media.panditsuggest.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Noto Sans/Serif Devanagari cover the Hindi UI (लॉगिन इन fonts above

@@ -277,15 +277,18 @@ export default function Search() {
                               src={s.img.replace('.jpg', '_new.jpg')} // use new generated images if available
                               alt={s.name}
                               className="search-card__img search-card__img--rounded"
-                              onError={(e) => { (e.target as HTMLImageElement).src = serviceFallback(s.name); }}
+                              onError={(e) => {
+                                const fb = serviceFallback(s.name);
+                                if (fb) (e.target as HTMLImageElement).src = fb;
+                              }}
                             />
-                          ) : (
+                          ) : serviceFallback(s.name) ? (
                             <img
                               src={serviceFallback(s.name)}
                               alt={s.name}
                               className="search-card__img search-card__img--rounded"
                             />
-                          )}
+                          ) : null}
                           <div className="search-card__body">
                             <h3 className="search-card__title">{s.name}</h3>
                             <p className="search-card__sub">{s.tag}</p>

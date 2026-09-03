@@ -10,6 +10,10 @@ import { useApi } from "./useApi";
  * uploaded through Admin Panel -> Page Images now, stored in S3 like every
  * other upload, and read from GET /api/site-images.
  *
+ * No URL for any of them survives in this bundle, by design: if the API is
+ * unreachable the images are absent, the same way the temples and pandits
+ * themselves are. An image is data, not markup.
+ *
  * The slot keys here mirror backend/src/config/siteImageSlots.js — that file
  * is the catalog, this one is the client half of the same contract.
  */
@@ -33,32 +37,6 @@ export interface SiteImage { url: string; alt: string }
 export type SiteImageMap = Partial<Record<SiteImageSlot, SiteImage>>;
 
 /**
- * What a slot shows until an admin uploads into it.
- *
- * These are the URLs that were previously hardcoded across the pages, kept
- * in exactly one place: the site looks identical before the first upload,
- * and a slot an admin later clears falls back here rather than rendering a
- * hole. They point at the CDN (media.panditsuggest.com), never at a file on
- * the web server's own disk.
- */
-const CDN_STATIC = "https://media.panditsuggest.com/static";
-
-export const SITE_IMAGE_DEFAULTS: Record<SiteImageSlot, string> = {
-  "home.trust": `${CDN_STATIC}/pandit-hero.webp`,
-  "home.epuja_bg": `${CDN_STATIC}/epuja-illustration.webp`,
-  "home.reviews_bg": `${CDN_STATIC}/review-bg.webp`,
-  "pandits.hero": `${CDN_STATIC}/pandit-hero.webp`,
-  "temples.hero": `${CDN_STATIC}/temple-hero.webp`,
-  "services.hero": `${CDN_STATIC}/pandit-hero.webp`,
-  "services.cat_life": `${CDN_STATIC}/cat-life.webp`,
-  "services.cat_daily": `${CDN_STATIC}/cat-daily.webp`,
-  "services.cat_festival": `${CDN_STATIC}/cat-festival.webp`,
-  "services.cat_shanti": `${CDN_STATIC}/cat-shanti.webp`,
-  "services.fallback_puja": `${CDN_STATIC}/puja-new.webp`,
-  "services.fallback_havan": `${CDN_STATIC}/havan-new.webp`,
-};
-
-/**
  * The whole map, cached for five minutes like the other editorial reads
  * (home hero, public settings). One request serves every slot on the page —
  * a per-slot hook would fire a dozen of them.
@@ -68,8 +46,15 @@ export function useSiteImages() {
 
   return useMemo(() => {
     const map = data || {};
-    /** The URL for a slot: admin upload if there is one, built-in default otherwise. */
-    const src = (slot: SiteImageSlot) => map[slot]?.url || SITE_IMAGE_DEFAULTS[slot];
+    /**
+     * The URL for a slot, or undefined when the database has no row for it.
+     *
+     * There is deliberately no built-in default: the whole point is that
+     * every page image is data, so a slot with no row renders nothing at all
+     * rather than a URL baked into this bundle. Callers must therefore treat
+     * a missing image as "draw no <img>", not as "draw a broken one".
+     */
+    const src = (slot: SiteImageSlot): string | undefined => map[slot]?.url;
     /** Admin-supplied alt text, falling back to the caller's own wording. */
     const alt = (slot: SiteImageSlot, fallback = "") => map[slot]?.alt || fallback;
     return { src, alt };

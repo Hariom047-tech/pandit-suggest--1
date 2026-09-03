@@ -18,6 +18,7 @@ const PER_PAGE = 9;
 export default function Temples() {
   const { t } = useLang();
   const siteImg = useSiteImages();
+  const heroImg = siteImg.src("temples.hero");
   const [params] = useSearchParams();
   const [query] = useState(params.get("q") || "");
   const [cityFilter, setCityFilter] = useState<string[]>(params.get("city") ? [params.get("city")!] : []);
@@ -110,10 +111,14 @@ export default function Temples() {
                 </a>
               </div>
             </div>
-            <div className="sp-hero__img-wrap">
-              <img src={siteImg.src("temples.hero")} alt={siteImg.alt("temples.hero", "Sacred Temple")} className="sp-hero__img" />
-              <div className="sp-hero__glow" />
-            </div>
+            {/* The glow is a halo painted behind the photo — with no photo
+                to sit behind, the whole block is dropped. */}
+            {heroImg && (
+              <div className="sp-hero__img-wrap">
+                <img src={heroImg} alt={siteImg.alt("temples.hero", "Sacred Temple")} className="sp-hero__img" />
+                <div className="sp-hero__glow" />
+              </div>
+            )}
           </div>
         </div>
 

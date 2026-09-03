@@ -31,6 +31,7 @@ export default function Services() {
   /** A service with no image of its own gets the havan or the generic tile. */
   const serviceFallback = (name: string) =>
     siteImg.src(name.toLowerCase().includes("havan") ? "services.fallback_havan" : "services.fallback_puja");
+  const heroImg = siteImg.src("services.hero");
   const { data: rawServices } = useServices();
   const services = useMemo(() => normServices(rawServices), [rawServices]);
 
@@ -123,10 +124,14 @@ export default function Services() {
                   </li>
                 </ul>
               </div>
-              <div className="sp-hero__img-wrap">
-                <img src={siteImg.src("services.hero")} alt={siteImg.alt("services.hero", "Pandit performing puja")} className="sp-hero__img" />
-                <div className="sp-hero__glow" />
-              </div>
+              {/* The glow is a halo painted behind the photo — with no photo
+                  to sit behind, the whole block is dropped. */}
+              {heroImg && (
+                <div className="sp-hero__img-wrap">
+                  <img src={heroImg} alt={siteImg.alt("services.hero", "Pandit performing puja")} className="sp-hero__img" />
+                  <div className="sp-hero__glow" />
+                </div>
+              )}
             </div>
           </div>
 
@@ -213,13 +218,21 @@ export default function Services() {
                     className="sp-all-card"
                     key={s.id}
                   >
-                    <img
-                      src={s.img ? s.img.replace('.jpg', '_new.jpg') : serviceFallback(s.name)}
-                      alt={s.name}
-                      className="sp-all-card__img"
-                      loading="lazy"
-                      onError={(e) => { (e.target as HTMLImageElement).src = serviceFallback(s.name); }}
-                    />
+                    {/* With no image of its own and no fallback slot filled,
+                        the card renders text on its gradient overlay rather
+                        than a broken <img>. */}
+                    {(s.img ? s.img.replace('.jpg', '_new.jpg') : serviceFallback(s.name)) && (
+                      <img
+                        src={s.img ? s.img.replace('.jpg', '_new.jpg') : serviceFallback(s.name)}
+                        alt={s.name}
+                        className="sp-all-card__img"
+                        loading="lazy"
+                        onError={(e) => {
+                          const fb = serviceFallback(s.name);
+                          if (fb) (e.target as HTMLImageElement).src = fb;
+                        }}
+                      />
+                    )}
                     <div className="sp-all-card__overlay" />
                     {s.onlineAvailable && <span className="sp-online-badge">🌐 Online</span>}
                     <div className="sp-all-card__bottom">

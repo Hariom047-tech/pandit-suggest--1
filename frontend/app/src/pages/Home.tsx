@@ -67,6 +67,9 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
 export default function Home() {
   const { t } = useLang();
   const siteImg = useSiteImages();
+  const trustImg = siteImg.src("home.trust");
+  const epujaBg = siteImg.src("home.epuja_bg");
+  const reviewsBg = siteImg.src("home.reviews_bg");
   const fairScores = useFairRanking();
   const { data: rawFaqs } = useFaqs();
   const displayFaqs = rawFaqs || [];
@@ -192,17 +195,22 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="hp-trust-art" aria-hidden="true">
-                <div className="hp-trust-art__frame">
-                  <img
-                    src={siteImg.src("home.trust")}
-                    alt=""
-                    className="hp-trust-art__img"
-                    loading="lazy"
-                    width={420} height={420}
-                  />
+              {/* The frame is a decorative ring around the photo, so it goes
+                  with the photo when the slot is empty rather than sitting
+                  there as an empty circle. */}
+              {trustImg && (
+                <div className="hp-trust-art" aria-hidden="true">
+                  <div className="hp-trust-art__frame">
+                    <img
+                      src={trustImg}
+                      alt=""
+                      className="hp-trust-art__img"
+                      loading="lazy"
+                      width={420} height={420}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="grid g-4 hp-whatis-grid" style={{ marginTop: 40 }}>
@@ -294,10 +302,12 @@ export default function Home() {
 
         {/* ——— HERO HEADER ——— */}
         <div className="ohp-hero">
-          <div
-            className="ohp-hero-bg"
-            style={{ "--site-img-epuja": `url('${siteImg.src("home.epuja_bg")}')` } as CSSProperties}
-          />
+          {epujaBg && (
+            <div
+              className="ohp-hero-bg"
+              style={{ "--site-img-epuja": `url('${epujaBg}')` } as CSSProperties}
+            />
+          )}
           <div className="shell ohp-hero-inner">
             <InViewFade>
               <span className="eyebrow">{t("ohp.eyebrow")}</span>
@@ -443,10 +453,12 @@ export default function Home() {
       {/* ============================ ADVANCED TESTIMONIALS CAROUSEL ============================ */}
       <section className="hp-reviews-section">
         {/* The 3D transparent Pandit background */}
-        <div
-          className="hp-reviews-bg"
-          style={{ "--site-img-reviews": `url('${siteImg.src("home.reviews_bg")}')` } as CSSProperties}
-        />
+        {reviewsBg && (
+          <div
+            className="hp-reviews-bg"
+            style={{ "--site-img-reviews": `url('${reviewsBg}')` } as CSSProperties}
+          />
+        )}
         
         <div className="hp-reviews-header">
           <h2 className="section-title">{t("home.testimonialsTitle")}</h2>

@@ -23,6 +23,7 @@ const DEFAULT_PER_PAGE = 30;
 export default function Pandits() {
   const { t } = useLang();
   const siteImg = useSiteImages();
+  const heroImg = siteImg.src("pandits.hero");
   const [params] = useSearchParams();
   const preSvc = params.get("service") || "";
   const [query, setQuery] = useState(params.get("q") || "");
@@ -166,10 +167,14 @@ export default function Pandits() {
                 </li>
               </ul>
             </div>
-            <div className="sp-hero__img-wrap">
-              <img src={siteImg.src("pandits.hero")} alt={siteImg.alt("pandits.hero", "Verified Pandit")} className="sp-hero__img" />
-              <div className="sp-hero__glow" />
-            </div>
+            {/* The glow is a halo painted behind the photo — with no photo
+                to sit behind, the whole block is dropped. */}
+            {heroImg && (
+              <div className="sp-hero__img-wrap">
+                <img src={heroImg} alt={siteImg.alt("pandits.hero", "Verified Pandit")} className="sp-hero__img" />
+                <div className="sp-hero__glow" />
+              </div>
+            )}
           </div>
         </div>
 

@@ -64,4 +64,36 @@ function injectSeo(html, meta, siteUrl, siteName) {
   return html.replace('</head>', `${tags.join('\n')}\n</head>`);
 }
 
-module.exports = { injectSeo };
+/**
+ * Embeds page data the client would otherwise have to fetch, plus a
+ * <link rel="preload"> for the images that data names.
+ *
+ * The homepage hero's images were the end of a serial chain — HTML, then the
+ * JS bundle, then GET /api/home-hero, and only then could the browser start
+ * downloading an image that was sitting on CloudFront the whole time. The
+ * preload links move that download to HTML-parse time (before the bundle is
+ * even compiled), and the inlined payload means React's first render already
+ * has the URLs, so there is no skeleton frame and no request at all.
+ *
+ * @param {string}   html
+ * @param {object}   data          becomes window.__PS_BOOTSTRAP__ (see
+ *                                 frontend/app/src/lib/bootstrap.ts)
+ * @param {string[]} [preloadUrls] above-the-fold images only — preloading
+ *                   something below the fold competes with the images the
+ *                   visitor can actually see, which is worse than not
+ *                   preloading at all.
+ */
+function injectBootstrap(html, data, preloadUrls = []) {
+  const tags = preloadUrls
+    .filter(Boolean)
+    .map((url, i) => `<link rel="preload" as="image" href="${esc(url)}"${i === 0 ? ' fetchpriority="high"' : ''}>`);
+
+  // Same <-escape as the JSON-LD block above: a "</script>" substring inside
+  // any string value (an admin-typed alt text) must not close this tag early.
+  const json = JSON.stringify(data).replace(/</g, '\\u003c');
+  tags.push(`<script>window.__PS_BOOTSTRAP__=${json}</script>`);
+
+  return html.replace('</head>', `${tags.join('\n')}\n</head>`);
+}
+
+module.exports = { injectSeo, injectBootstrap };
