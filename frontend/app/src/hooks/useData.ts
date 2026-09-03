@@ -384,8 +384,24 @@ export function usePublicSettings() {
   return useApi<PublicSettings>("/settings", { cacheTtl: 300_000 });
 }
 
-export function useFaqs() {
-  return useApi<ApiFaq[]>("/faqs", { cacheTtl: 300_000 });
+/**
+ * FAQs for one scope (db/25-universal-faqs.sql's entity_type).
+ *
+ * The scope is explicit because the admin panel makes it explicit: an admin
+ * filing a FAQ under "Home page" means it to appear on the home page and
+ * nowhere else. The endpoint defaults to GLOBAL when asked for nothing,
+ * which is why the home page — which asked for nothing — silently showed
+ * none of its own FAQs no matter how many were published.
+ *
+ * @param entityType "GLOBAL" (default), "HOME", "TEMPLE", "SERVICE", "PANDIT"
+ * @param entityId   required only for the per-entity scopes
+ */
+export function useFaqs(entityType?: string, entityId?: string) {
+  const qs = new URLSearchParams();
+  if (entityType) qs.set("entityType", entityType);
+  if (entityId) qs.set("entityId", entityId);
+  const suffix = qs.toString();
+  return useApi<ApiFaq[]>(`/faqs${suffix ? `?${suffix}` : ""}`, { cacheTtl: 300_000 });
 }
 
 export function usePlans() {

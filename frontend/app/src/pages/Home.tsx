@@ -71,7 +71,7 @@ export default function Home() {
   const epujaBg = siteImg.src("home.epuja_bg");
   const reviewsBg = siteImg.src("home.reviews_bg");
   const fairScores = useFairRanking();
-  const { data: rawFaqs } = useFaqs();
+  const { data: rawFaqs } = useFaqs("HOME");
   const displayFaqs = rawFaqs || [];
   useStructuredData([
     organizationSchema(),
