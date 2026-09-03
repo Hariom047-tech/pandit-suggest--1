@@ -6,6 +6,7 @@
  * the data layer and the rest of the UI just works.
  */
 
+import { PLACEHOLDER } from "./format";
 import type { Pandit, Temple, Service, Review, BlogPost } from "../data/types";
 import type {
   ApiPandit, ApiTemple, ApiService, ApiReview, ApiBlogPost,
@@ -76,7 +77,9 @@ export function normPandit(p: ApiPandit): Pandit {
     tradition: (p as any).tradition || "",
     respondsWithin: (p as any).responds_within || "",
     acceptsOnline: Boolean((p as any).accepts_online),
-    img: p.img || p.profile_photo_url || "/assets/img/pandits/default.jpg",
+    // PLACEHOLDER.pandit, not "/assets/img/pandits/default.jpg" — that file
+    // has never existed, so a pandit with no photo rendered a broken image.
+    img: p.img || p.profile_photo_url || PLACEHOLDER.pandit,
     // Extra fields the frontend might want
     ...(p.video_intro_url ? { videoUrl: p.video_intro_url } : {}),
     ...(p.slug ? { slug: p.slug } : {}),
@@ -103,7 +106,9 @@ export function normTemple(t: ApiTemple): Temple {
     lat: num(t.lat ?? t.latitude),
     lng: num(t.lng ?? t.longitude),
     services: toArr((t as any).services),
-    img: t.img || t.cover_image_url || t.thumbnail_url || "/assets/img/temples/default.jpg",
+    // Same as the pandit fallback above: the "default.jpg" this used to name
+    // was never shipped.
+    img: t.img || t.cover_image_url || t.thumbnail_url || PLACEHOLDER.temple,
     about: t.about || t.description || t.short_description || "",
     history: (t as any).history || t.history || "",
     significance: (t as any).significance || "",

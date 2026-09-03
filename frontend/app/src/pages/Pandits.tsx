@@ -14,6 +14,7 @@ import { StarRow } from "../components/ui/StarRating";
 import { SacredBackground } from "../components/ui/SacredBackground";
 import { HeroTicker } from "../components/ui/HeroTicker";
 import { Seo } from "../lib/Seo";
+import { useSiteImages } from "../lib/siteImages";
 
 // Falls back to this while /settings hasn't loaded yet or the admin has
 // never set pandits_per_page — matches the backend's own default.
@@ -21,6 +22,7 @@ const DEFAULT_PER_PAGE = 30;
 
 export default function Pandits() {
   const { t } = useLang();
+  const siteImg = useSiteImages();
   const [params] = useSearchParams();
   const preSvc = params.get("service") || "";
   const [query, setQuery] = useState(params.get("q") || "");
@@ -165,7 +167,7 @@ export default function Pandits() {
               </ul>
             </div>
             <div className="sp-hero__img-wrap">
-              <img src="https://media.panditsuggest.com/static/pandit-hero.webp" alt="Verified Pandit" className="sp-hero__img" />
+              <img src={siteImg.src("pandits.hero")} alt={siteImg.alt("pandits.hero", "Verified Pandit")} className="sp-hero__img" />
               <div className="sp-hero__glow" />
             </div>
           </div>

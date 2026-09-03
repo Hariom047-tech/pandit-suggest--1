@@ -43,6 +43,7 @@ async function applyPendingMigrations() {
     if (!await columnExists(client, 'services', 'is_online_available')) missing.push('services.is_online_available');
     if (!await columnExists(client, 'temple_media', 'show_in_hero')) missing.push('temple_media.show_in_hero');
     if (!await tableExists(client, 'home_hero_images')) missing.push('home_hero_images table');
+    if (!await tableExists(client, 'site_images')) missing.push('site_images table');
 
     if (missing.length > 0) {
       console.error('\n[MIGRATION REQUIRED] The following database objects are missing:');

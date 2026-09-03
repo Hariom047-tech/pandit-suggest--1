@@ -50,6 +50,7 @@ const NAV: { group: string; items: { to: string; label: string; icon: string; en
       { to: `${ADMIN_BASE}/analytics`, label: "Analytics", icon: "bar-chart" },
       { to: `${ADMIN_BASE}/distribution`, label: "Distribution Controls", icon: "sliders" },
       { to: `${ADMIN_BASE}/home`, label: "Home Page", icon: "home" },
+      { to: `${ADMIN_BASE}/page-images`, label: "Page Images", icon: "image" },
       { to: `${ADMIN_BASE}/security`, label: "Security", icon: "shield-check" },
       { to: `${ADMIN_BASE}/settings`, label: "Settings", icon: "settings" },
     ],

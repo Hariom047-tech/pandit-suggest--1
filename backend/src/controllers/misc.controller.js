@@ -1,5 +1,6 @@
 const repo = require('../repositories/misc.repository');
 const heroRepo = require('../repositories/homeHero.repository');
+const siteImagesRepo = require('../repositories/siteImages.repository');
 const servicesRepo = require('../repositories/services.repository');
 const settingsRepo = require('../repositories/admin/settings.repository');
 const { query } = require('../config/db');
@@ -9,6 +10,12 @@ const stats = async (req, res) => res.json(await repo.stats());
 const taxonomy = async (req, res) => res.json(await repo.taxonomy());
 /** GET /api/home-hero — the three homepage hero images, admin-chosen. */
 const homeHero = async (req, res) => res.json(await heroRepo.listPublic());
+
+/** GET /api/site-images — admin-uploaded page images keyed by slot, e.g.
+ *  `{ "pandits.hero": { url, alt } }`. Slots an admin has not filled are
+ *  simply absent; the frontend falls back to its built-in default for those
+ *  (frontend/app/src/lib/siteImages.ts). */
+const siteImages = async (req, res) => res.json(await siteImagesRepo.getPublicMap());
 
 /** GET /api/settings — the subset of platform_settings safe to read without
  *  admin auth. Add a key here only once it's meant for the public site; the
@@ -60,4 +67,4 @@ async function recommend(req, res) {
 }
 
 module.exports = {
-  homeHero, publicSettings, plans, stats, taxonomy, blogList, blogById, recommend };
+  homeHero, siteImages, publicSettings, plans, stats, taxonomy, blogList, blogById, recommend };

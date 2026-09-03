@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { HeroAstrotalk } from "../components/hero/HeroAstrotalk";
 import { SacredBackground } from "../components/ui/SacredBackground";
@@ -15,6 +15,7 @@ import { useLang } from "../lib/i18n";
 import "../styles/home-sections.css";
 import { serviceEmoji } from "../lib/serviceEmoji";
 import { Seo } from "../lib/Seo";
+import { useSiteImages } from "../lib/siteImages";
 import { useStructuredData, organizationSchema, websiteSchema, webPageSchema, organizationId, faqPageSchema } from "../lib/structuredData";
 
 /**
@@ -65,6 +66,7 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
 
 export default function Home() {
   const { t } = useLang();
+  const siteImg = useSiteImages();
   const fairScores = useFairRanking();
   const { data: rawFaqs } = useFaqs();
   const displayFaqs = rawFaqs || [];
@@ -193,7 +195,7 @@ export default function Home() {
               <div className="hp-trust-art" aria-hidden="true">
                 <div className="hp-trust-art__frame">
                   <img
-                    src="https://media.panditsuggest.com/static/pandit-hero.webp"
+                    src={siteImg.src("home.trust")}
                     alt=""
                     className="hp-trust-art__img"
                     loading="lazy"
@@ -292,7 +294,10 @@ export default function Home() {
 
         {/* ——— HERO HEADER ——— */}
         <div className="ohp-hero">
-          <div className="ohp-hero-bg" />
+          <div
+            className="ohp-hero-bg"
+            style={{ "--site-img-epuja": `url('${siteImg.src("home.epuja_bg")}')` } as CSSProperties}
+          />
           <div className="shell ohp-hero-inner">
             <InViewFade>
               <span className="eyebrow">{t("ohp.eyebrow")}</span>
@@ -438,7 +443,10 @@ export default function Home() {
       {/* ============================ ADVANCED TESTIMONIALS CAROUSEL ============================ */}
       <section className="hp-reviews-section">
         {/* The 3D transparent Pandit background */}
-        <div className="hp-reviews-bg" />
+        <div
+          className="hp-reviews-bg"
+          style={{ "--site-img-reviews": `url('${siteImg.src("home.reviews_bg")}')` } as CSSProperties}
+        />
         
         <div className="hp-reviews-header">
           <h2 className="section-title">{t("home.testimonialsTitle")}</h2>

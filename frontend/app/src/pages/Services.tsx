@@ -8,9 +8,29 @@ import { SacredBackground } from "../components/ui/SacredBackground";
 import { HeroTicker } from "../components/ui/HeroTicker";
 import { useLang } from "../lib/i18n";
 import { Seo } from "../lib/Seo";
+import { useSiteImages, type SiteImageSlot } from "../lib/siteImages";
+
+/**
+ * Category tile fallbacks, used only until a category carries its own image
+ * (Admin -> Services -> Categories). A category slug with no slot here — a
+ * new one an admin adds — falls back to the generic puja tile rather than to
+ * a guessed `cat-<slug>.webp` URL that would 404.
+ */
+const CATEGORY_SLOTS: Record<string, SiteImageSlot> = {
+  life: "services.cat_life",
+  daily: "services.cat_daily",
+  festival: "services.cat_festival",
+  shanti: "services.cat_shanti",
+};
 
 export default function Services() {
   const { t } = useLang();
+  const siteImg = useSiteImages();
+  const categoryImage = (slug: string, own?: string | null) =>
+    own || siteImg.src(CATEGORY_SLOTS[slug] || "services.fallback_puja");
+  /** A service with no image of its own gets the havan or the generic tile. */
+  const serviceFallback = (name: string) =>
+    siteImg.src(name.toLowerCase().includes("havan") ? "services.fallback_havan" : "services.fallback_puja");
   const { data: rawServices } = useServices();
   const services = useMemo(() => normServices(rawServices), [rawServices]);
 
@@ -32,17 +52,17 @@ export default function Services() {
       return apiCategories.map((c) => ({
         cat: c.slug,
         label: c.name,
-        img: c.image_url || `https://media.panditsuggest.com/static/cat-${c.slug}.webp`,
+        img: categoryImage(c.slug, c.image_url),
         pandits: c.pandit_count,
         services: c.service_count,
         tagline: c.tagline,
       }));
     }
     return [
-      { cat: "life", label: t("services.catLife"), img: "https://media.panditsuggest.com/static/cat-life.webp", pandits: 0, services: 0, tagline: null },
-      { cat: "daily", label: t("services.catDaily"), img: "https://media.panditsuggest.com/static/cat-daily.webp", pandits: 0, services: 0, tagline: null },
-      { cat: "festival", label: t("services.catFestival"), img: "https://media.panditsuggest.com/static/cat-festival.webp", pandits: 0, services: 0, tagline: null },
-      { cat: "shanti", label: t("services.catShanti"), img: "https://media.panditsuggest.com/static/cat-shanti.webp", pandits: 0, services: 0, tagline: null },
+      { cat: "life", label: t("services.catLife"), img: categoryImage("life"), pandits: 0, services: 0, tagline: null },
+      { cat: "daily", label: t("services.catDaily"), img: categoryImage("daily"), pandits: 0, services: 0, tagline: null },
+      { cat: "festival", label: t("services.catFestival"), img: categoryImage("festival"), pandits: 0, services: 0, tagline: null },
+      { cat: "shanti", label: t("services.catShanti"), img: categoryImage("shanti"), pandits: 0, services: 0, tagline: null },
     ];
   }, [apiCategories, t]);
   const [query] = useState("");
@@ -104,7 +124,7 @@ export default function Services() {
                 </ul>
               </div>
               <div className="sp-hero__img-wrap">
-                <img src="https://media.panditsuggest.com/static/pandit-hero.webp" alt="Pandit performing puja" className="sp-hero__img" />
+                <img src={siteImg.src("services.hero")} alt={siteImg.alt("services.hero", "Pandit performing puja")} className="sp-hero__img" />
                 <div className="sp-hero__glow" />
               </div>
             </div>
@@ -194,11 +214,11 @@ export default function Services() {
                     key={s.id}
                   >
                     <img
-                      src={s.img ? s.img.replace('.jpg', '_new.jpg') : (s.name.toLowerCase().includes('havan') ? 'https://media.panditsuggest.com/static/havan-new.webp' : 'https://media.panditsuggest.com/static/puja-new.webp')}
+                      src={s.img ? s.img.replace('.jpg', '_new.jpg') : serviceFallback(s.name)}
                       alt={s.name}
                       className="sp-all-card__img"
                       loading="lazy"
-                      onError={(e) => { (e.target as HTMLImageElement).src = s.name.toLowerCase().includes('havan') ? 'https://media.panditsuggest.com/static/havan-new.webp' : 'https://media.panditsuggest.com/static/puja-new.webp'; }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = serviceFallback(s.name); }}
                     />
                     <div className="sp-all-card__overlay" />
                     {s.onlineAvailable && <span className="sp-online-badge">🌐 Online</span>}

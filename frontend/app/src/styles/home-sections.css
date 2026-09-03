@@ -422,7 +422,10 @@
 }
 .ohp-hero-bg {
   position: absolute; inset: 0;
-  background-image: url('https://media.panditsuggest.com/static/epuja-illustration.webp');
+  /* Admin-managed (Admin Panel -> Page Images, slot home.epuja_bg). Home.tsx
+     sets --site-img-epuja on the element; the url() here is the fallback used
+     until /api/site-images answers, and if the slot is empty. */
+  background-image: var(--site-img-epuja, url('https://media.panditsuggest.com/static/epuja-illustration.webp'));
   background-size: cover; background-position: center;
   opacity: 0.12; mix-blend-mode: multiply; pointer-events: none;
 }
@@ -710,7 +713,9 @@
 .hp-reviews-bg {
   position: absolute;
   inset: 0;
-  background-image: url('https://media.panditsuggest.com/static/review-bg.webp');
+  /* Admin-managed (Admin Panel -> Page Images, slot home.reviews_bg) — see
+     the note on .ohp-hero-bg above. */
+  background-image: var(--site-img-reviews, url('https://media.panditsuggest.com/static/review-bg.webp'));
   background-size: cover;
   background-position: center;
   mix-blend-mode: multiply;

@@ -11,11 +11,13 @@ import { SacredBackground } from "../components/ui/SacredBackground";
 import { HeroTicker } from "../components/ui/HeroTicker";
 import { useLang } from "../lib/i18n";
 import { Seo } from "../lib/Seo";
+import { useSiteImages } from "../lib/siteImages";
 
 const PER_PAGE = 9;
 
 export default function Temples() {
   const { t } = useLang();
+  const siteImg = useSiteImages();
   const [params] = useSearchParams();
   const [query] = useState(params.get("q") || "");
   const [cityFilter, setCityFilter] = useState<string[]>(params.get("city") ? [params.get("city")!] : []);
@@ -109,7 +111,7 @@ export default function Temples() {
               </div>
             </div>
             <div className="sp-hero__img-wrap">
-              <img src="https://media.panditsuggest.com/static/temple-hero.webp" alt="Sacred Temple" className="sp-hero__img" />
+              <img src={siteImg.src("temples.hero")} alt={siteImg.alt("temples.hero", "Sacred Temple")} className="sp-hero__img" />
               <div className="sp-hero__glow" />
             </div>
           </div>

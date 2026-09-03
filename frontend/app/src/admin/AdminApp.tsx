@@ -26,6 +26,7 @@ import AdminSubscriptions from "./pages/Subscriptions";
 import AdminPayments from "./pages/Payments";
 import AdminRevenue from "./pages/Revenue";
 import HomeSettings from "./pages/HomeSettings";
+import SiteImages from "./pages/SiteImages";
 import "./admin.css";
 
 export default function AdminApp() {
@@ -56,6 +57,7 @@ export default function AdminApp() {
           <Route path="payments" element={<AdminPayments />} />
           <Route path="revenue" element={<AdminRevenue />} />
           <Route path="home" element={<HomeSettings />} />
+          <Route path="page-images" element={<SiteImages />} />
           <Route path="security" element={<AdminSecurity />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>

@@ -10,6 +10,7 @@ import { usePandits, useTemples, useServices } from "../hooks/useData";
 import { normPandits, normTemples, normServices } from "../lib/normalize";
 import "../styles/search.css";
 import { Seo } from "../lib/Seo";
+import { useSiteImages } from "../lib/siteImages";
 
 const POPULAR_SEARCHES = [
   "Griha Pravesh",
@@ -23,6 +24,10 @@ const POPULAR_SEARCHES = [
 ];
 
 export default function Search() {
+  const siteImg = useSiteImages();
+  /** Same admin-managed tile fallbacks the /services grid uses. */
+  const serviceFallback = (name: string) =>
+    siteImg.src(name.toLowerCase().includes("havan") ? "services.fallback_havan" : "services.fallback_puja");
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get("q") || "";
   const [query, setQuery] = useState(q);
@@ -272,11 +277,11 @@ export default function Search() {
                               src={s.img.replace('.jpg', '_new.jpg')} // use new generated images if available
                               alt={s.name}
                               className="search-card__img search-card__img--rounded"
-                              onError={(e) => { (e.target as HTMLImageElement).src = s.name.toLowerCase().includes('havan') ? 'https://media.panditsuggest.com/static/havan-new.webp' : 'https://media.panditsuggest.com/static/puja-new.webp'; }}
+                              onError={(e) => { (e.target as HTMLImageElement).src = serviceFallback(s.name); }}
                             />
                           ) : (
                             <img
-                              src={s.name.toLowerCase().includes('havan') ? 'https://media.panditsuggest.com/static/havan-new.webp' : 'https://media.panditsuggest.com/static/puja-new.webp'}
+                              src={serviceFallback(s.name)}
                               alt={s.name}
                               className="search-card__img search-card__img--rounded"
                             />
