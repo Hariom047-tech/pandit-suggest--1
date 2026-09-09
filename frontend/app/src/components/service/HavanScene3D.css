@@ -106,109 +106,121 @@
 }
 
 /* ─────────── The fire ─────────── */
+/* A real box, sized as a fraction of the artwork, with its base sitting on
+ * the kund. Everything inside is a percentage of THIS box, so the flame keeps
+ * its proportion to the kund whether the card is 320px or 520px wide. The
+ * previous version sized tongues in absolute pixels against a fluid image,
+ * which is why the fire looked wrong at most widths. */
 .hs3__fire {
   position: absolute;
   left: var(--hs3-fx);
   top: var(--hs3-fy);
-  width: 0;
-  height: 0;
-  transform: translateZ(46px);
+  width: 26%;
+  aspect-ratio: 1 / 1.5;
+  transform: translate(-50%, -100%) translateZ(46px);
 }
 
-/* Everything inside is positioned from the kund's mouth. */
 .hs3__fire > span {
   position: absolute;
-  left: 0;
   bottom: 0;
+  left: 50%;
   display: block;
 }
 
 .hs3__fire-base {
-  width: 132px;
-  height: 46px;
-  margin-left: -66px;
+  width: 96%;
+  height: 20%;
+  transform: translateX(-50%);
   border-radius: 50%;
-  filter: blur(10px);
+  filter: blur(9px);
   background: radial-gradient(
     ellipse at center,
-    rgba(255, 190, 90, 0.85) 0%,
-    rgba(255, 140, 40, 0.45) 45%,
+    rgba(255, 190, 90, 0.8) 0%,
+    rgba(255, 140, 40, 0.4) 46%,
     rgba(240, 100, 20, 0) 72%
   );
   animation: hs3-basepulse 2s ease-out infinite;
 }
 
 @keyframes hs3-basepulse {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  38% { transform: scale(1.14); opacity: 1; }
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.78; }
+  38% { transform: translateX(-50%) scale(1.12); opacity: 1; }
 }
 
-/* A tongue: born at the kund, rising, narrowing, fading — the shape change is
-   what makes it read as gas rather than a moving sticker. */
+/* A tongue narrows as it climbs and drifts sideways — that taper is what
+ * reads as flame. The earlier version pumped its whole body up and down at a
+ * fixed size, which is a mechanical motion no fire makes. */
 .hs3__tongue {
   width: var(--w);
   height: var(--h);
-  margin-left: calc(var(--x) - var(--w) / 2);
-  border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
+  margin-left: var(--x);
   transform-origin: 50% 100%;
+  border-radius: 50% 50% 46% 46% / 66% 66% 34% 34%;
   opacity: 0;
   animation-name: hs3-tongue;
   animation-iteration-count: infinite;
-  animation-timing-function: cubic-bezier(0.32, 0, 0.5, 1);
+  animation-timing-function: cubic-bezier(0.4, 0.05, 0.55, 0.95);
 }
 
 .hs3__tongue--a {
-  background: linear-gradient(to top, #ff6a00 0%, #ff9d21 42%, #ffc94d 74%, rgba(255, 226, 150, 0) 100%);
+  background: linear-gradient(to top, #ff7a10 0%, #ffa32c 44%, #ffcb5c 76%, rgba(255, 226, 150, 0) 100%);
 }
 .hs3__tongue--b {
-  background: linear-gradient(to top, #f4560a 0%, #ff8c14 46%, #ffd15c 80%, rgba(255, 232, 170, 0) 100%);
+  background: linear-gradient(to top, #f96a12 0%, #ff9822 48%, #ffd268 82%, rgba(255, 232, 170, 0) 100%);
 }
 .hs3__tongue--c {
-  background: linear-gradient(to top, #ff8f1f 0%, #ffc247 52%, #ffe9a6 84%, rgba(255, 245, 210, 0) 100%);
+  background: linear-gradient(to top, #ff9c2c 0%, #ffc85a 54%, #ffeab0 86%, rgba(255, 245, 210, 0) 100%);
 }
 
 @keyframes hs3-tongue {
-  0% { transform: translateY(6%) scale(0.55, 0.5) skewX(0deg); opacity: 0; }
-  18% { opacity: 0.95; }
-  50% { transform: translateY(-42%) scale(1, 1.06) skewX(-4deg); opacity: 0.85; }
-  78% { transform: translateY(-78%) scale(0.7, 0.86) skewX(5deg); opacity: 0.4; }
-  100% { transform: translateY(-104%) scale(0.36, 0.6) skewX(0deg); opacity: 0; }
+  0% {
+    transform: translate(-50%, 4%) scale(0.9, 0.42);
+    opacity: 0;
+  }
+  20% { opacity: 0.8; }
+  55% {
+    transform: translate(calc(-50% + var(--sway)), -40%) scale(0.78, 1);
+    opacity: 0.66;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--sway) * 1.7), -88%) scale(0.36, 0.74);
+    opacity: 0;
+  }
 }
 
-/* The hot core — smaller, brighter, barely blurred. */
+/* The hot core, steady at the base — fire is brightest where it is fed. */
 .hs3__core {
-  width: 34px;
-  height: 58px;
-  margin-left: -17px;
-  border-radius: 50% 50% 44% 44% / 64% 64% 36% 36%;
-  filter: blur(4px);
-  background: linear-gradient(to top, #fff2c4 0%, #ffdf7d 48%, rgba(255, 246, 214, 0) 100%);
+  width: 21%;
+  height: 34%;
   transform-origin: 50% 100%;
-  animation: hs3-core 0.85s ease-in-out infinite alternate;
+  border-radius: 50% 50% 44% 44% / 66% 66% 34% 34%;
+  filter: blur(4px);
+  background: linear-gradient(to top, #fff4cf 0%, #ffe08a 50%, rgba(255, 246, 214, 0) 100%);
+  animation: hs3-core 1.15s ease-in-out infinite alternate;
 }
 
 @keyframes hs3-core {
-  0% { transform: scale(1, 0.94); opacity: 0.85; }
-  100% { transform: scale(0.92, 1.12); opacity: 1; }
+  0% { transform: translate(-50%, 0) scale(1, 0.92); opacity: 0.8; }
+  100% { transform: translate(-50%, 0) scale(0.9, 1.1); opacity: 0.98; }
 }
 
 /* The surge when an offering lands. */
 .hs3__flare {
-  width: 108px;
-  height: 108px;
-  margin-left: -54px;
+  width: 150%;
+  aspect-ratio: 1;
+  height: auto;
+  transform-origin: 50% 76%;
   border-radius: 50%;
-  filter: blur(14px);
-  background: radial-gradient(circle, rgba(255, 226, 150, 0.9) 0%, rgba(255, 170, 60, 0.3) 52%, rgba(255, 150, 40, 0) 74%);
-  transform-origin: 50% 80%;
+  filter: blur(13px);
+  background: radial-gradient(circle, rgba(255, 226, 150, 0.75) 0%, rgba(255, 170, 60, 0.24) 52%, rgba(255, 150, 40, 0) 74%);
   animation: hs3-flare 2s ease-out infinite;
 }
 
 @keyframes hs3-flare {
-  0% { transform: scale(0.72); opacity: 0.28; }
-  38% { transform: scale(1.16); opacity: 0.78; }
-  72% { transform: scale(0.84); opacity: 0.34; }
-  100% { transform: scale(0.72); opacity: 0.28; }
+  0% { transform: translate(-50%, 24%) scale(0.72); opacity: 0.24; }
+  38% { transform: translate(-50%, 24%) scale(1.1); opacity: 0.66; }
+  72% { transform: translate(-50%, 24%) scale(0.84); opacity: 0.3; }
+  100% { transform: translate(-50%, 24%) scale(0.72); opacity: 0.24; }
 }
 
 /* ─────────── The aahuti ─────────── */
@@ -310,9 +322,12 @@
   .hs3__flare { animation: none; }
   .hs3__tongue {
     animation: none;
-    opacity: 0.9;
-    transform: translateY(-40%) scale(1, 1);
+    opacity: 0.75;
+    transform: translate(calc(-50% + var(--sway)), -34%) scale(0.8, 1);
   }
+  .hs3__fire-base { transform: translateX(-50%); }
+  .hs3__core { transform: translate(-50%, 0); }
+  .hs3__flare { transform: translate(-50%, 24%) scale(0.95); opacity: 0.4; }
   .hs3__ember,
   .hs3__smoke,
   .hs3__offering { display: none; }

@@ -36,22 +36,30 @@ import "./HavanScene3D.css";
  * without touching this file.
  */
 
-/** Flame tongues. Durations share no common factor, so the fire never visibly loops. */
+/**
+ * Flame tongues — three, not five: a real havan flame is one body of fire with
+ * a couple of licks off it, and five overlapping tongues read as a bonfire.
+ *
+ * Every measurement is a PERCENTAGE of the fire box, which is itself a
+ * percentage of the artwork. Absolute pixels were the main reason this looked
+ * wrong: the image is fluid, so a 46px tongue was huge next to a 320px phone
+ * render and small next to a 520px one. Now the fire keeps its proportion to
+ * the kund at every width.
+ *
+ * Durations share no common factor, so the fire never visibly loops. `sway`
+ * drifts each tongue sideways as it rises, in alternating directions.
+ */
 const TONGUES = [
-  { x: -18, w: 46, h: 92, blur: 9, dur: 2.3, delay: 0, hue: "a" },
-  { x: 14, w: 40, h: 104, blur: 8, dur: 1.9, delay: 0.7, hue: "b" },
-  { x: -4, w: 54, h: 120, blur: 11, dur: 2.7, delay: 1.3, hue: "a" },
-  { x: 24, w: 34, h: 82, blur: 7, dur: 1.7, delay: 0.4, hue: "c" },
-  { x: -28, w: 32, h: 76, blur: 7, dur: 2.1, delay: 1.8, hue: "c" },
+  { x: -5, w: 44, h: 54, blur: 7, dur: 2.6, delay: 0, sway: 5, hue: "a" },
+  { x: 7, w: 33, h: 66, blur: 6, dur: 2.15, delay: 0.9, sway: -6, hue: "b" },
+  { x: -1, w: 25, h: 41, blur: 5, dur: 1.85, delay: 1.6, sway: 4, hue: "c" },
 ];
 
 const EMBERS = [
-  { x: -22, r: 3, dur: 3.6, delay: 0 },
+  { x: -22, r: 2.5, dur: 3.6, delay: 0 },
   { x: 10, r: 2, dur: 4.4, delay: 0.8 },
-  { x: -6, r: 3.5, dur: 4.0, delay: 1.6 },
-  { x: 22, r: 2.4, dur: 4.8, delay: 2.3 },
-  { x: -32, r: 2, dur: 4.2, delay: 3.0 },
-  { x: 32, r: 2.8, dur: 3.8, delay: 1.1 },
+  { x: -6, r: 3, dur: 4.0, delay: 1.6 },
+  { x: 22, r: 2.2, dur: 4.8, delay: 2.3 },
 ];
 
 const SMOKE = [
@@ -143,9 +151,10 @@ export function HavanScene3D({ src, alt }: { src: string; alt: string }) {
               className={`hs3__tongue hs3__tongue--${t.hue}`}
               style={{
                 // @ts-expect-error -- custom properties are valid style values
-                "--x": `${t.x}px`,
-                "--w": `${t.w}px`,
-                "--h": `${t.h}px`,
+                "--x": `${t.x}%`,
+                "--w": `${t.w}%`,
+                "--h": `${t.h}%`,
+                "--sway": `${t.sway}%`,
                 filter: `blur(${t.blur}px)`,
                 animationDuration: `${t.dur}s`,
                 animationDelay: `${t.delay}s`,

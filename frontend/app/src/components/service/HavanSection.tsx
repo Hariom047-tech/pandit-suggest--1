@@ -5,6 +5,8 @@ import { CountUp } from "../ui/CountUp";
 import { HavanFireScene } from "./HavanFireScene";
 import { HavanScene3D } from "./HavanScene3D";
 import { useSiteImages } from "../../lib/siteImages";
+import { useLang } from "../../lib/i18n";
+import { localizeHavan } from "../../data/havanStructure";
 import type { AnushthanTier, HavanStructure, HavanTier } from "../../data/havanStructure";
 
 /**
@@ -72,6 +74,7 @@ function Dial({
 }
 
 function HavanTierCard({ tier, index, total, peak }: { tier: HavanTier; index: number; total: number; peak: number }) {
+  const { t } = useLang();
   const isTop = index === total - 1;
   return (
     <motion.article
@@ -81,26 +84,26 @@ function HavanTierCard({ tier, index, total, peak }: { tier: HavanTier; index: n
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.55, delay: index * 0.13, ease: [0.22, 1, 0.36, 1] }}
     >
-      {isTop && <span className="sd-havan-tier__ribbon">Most elaborate</span>}
+      {isTop && <span className="sd-havan-tier__ribbon">{t("havanTab.mostElaborate")}</span>}
 
       <Dial fill={tier.jadiButi / peak} delay={index * 0.13 + 0.2} dashed={tier.jadiButi === 0}>
         {tier.jadiButi === 0 ? (
           <>
             <span className="sd-dial__glyph">🪔</span>
-            <span className="sd-dial__unit">standard</span>
+            <span className="sd-dial__unit">{t("havanTab.standard")}</span>
           </>
         ) : (
           <>
             <span className="sd-dial__value">
               <CountUp raw={String(tier.jadiButi)} />
             </span>
-            <span className="sd-dial__unit">jadi-buti</span>
+            <span className="sd-dial__unit">{t("havanTab.jadiButi")}</span>
           </>
         )}
       </Dial>
 
       {/* The rung, spelled out — three dots filled to this tier's position. */}
-      <div className="sd-havan-tier__rungs" role="img" aria-label={`Tier ${index + 1} of ${total}`}>
+      <div className="sd-havan-tier__rungs" role="img" aria-label={t("havanTab.tierOf", { i: index + 1, n: total })}>
         {Array.from({ length: total }, (_, i) => (
           <span key={i} className={`sd-havan-tier__rung${i <= index ? " is-on" : ""}`} />
         ))}
@@ -117,7 +120,7 @@ function HavanTierCard({ tier, index, total, peak }: { tier: HavanTier; index: n
       <p className="sd-havan-tier__desc">{tier.description}</p>
 
       <div className="sd-havan-tier__includes">
-        <span className="sd-havan-tier__includes-label">Includes</span>
+        <span className="sd-havan-tier__includes-label">{t("havanTab.includes")}</span>
         <ul className="sd-chips">
           {tier.includes.map((x) => (
             <li className="sd-chip" key={x}>
@@ -131,6 +134,7 @@ function HavanTierCard({ tier, index, total, peak }: { tier: HavanTier; index: n
 }
 
 function AnushthanStep({ tier, index, total, peak }: { tier: AnushthanTier; index: number; total: number; peak: number }) {
+  const { t } = useLang();
   return (
     <motion.div
       className="sd-anush-step"
@@ -173,9 +177,9 @@ function AnushthanStep({ tier, index, total, peak }: { tier: AnushthanTier; inde
             <span className="sd-anush-card__japa">
               <CountUp raw={tier.japaLabel} />
             </span>
-            <span className="sd-anush-card__japa-unit">mantra japa</span>
+            <span className="sd-anush-card__japa-unit">{t("havanTab.mantraJapa")}</span>
           </div>
-          <span className="sd-anush-card__plus">+ Havan</span>
+          <span className="sd-anush-card__plus">{t("havanTab.plusHavan")}</span>
         </div>
 
         <h4 className="sd-anush-card__title">{tier.name}</h4>
@@ -215,7 +219,11 @@ export function HavanSection({
   /** Drives the closing CTA's label; the CTA is dropped when nobody lists it. */
   panditCount: number;
 }) {
-  const { deity, havan, anushthan } = structure;
+  const { t, lang } = useLang();
+  // Field by field, so a gap in the Hindi leaves English prose rather than a
+  // blank card — the same contract as services.content_hi on this page.
+  const local = localizeHavan(structure, lang);
+  const { deity, havan, anushthan } = local;
   /**
    * The scene at the head of the tab.
    *
@@ -241,8 +249,8 @@ export function HavanSection({
         {sceneImg ? <HavanScene3D src={sceneImg} alt={sceneAlt} /> : <HavanFireScene />}
         <div className="sd-havan-intro__copy">
           <span className="sd-havan-intro__eyebrow">{deity}</span>
-          <h2 className="sd-havan-intro__title">Havan &amp; Anushthan</h2>
-          <p className="sd-havan-intro__text">{structure.intro}</p>
+          <h2 className="sd-havan-intro__title">{t("havanTab.title")}</h2>
+          <p className="sd-havan-intro__text">{local.intro}</p>
         </div>
       </div>
 
@@ -251,13 +259,11 @@ export function HavanSection({
         <header className="sd-havan-block__head">
           <span className="sd-havan-block__icon">🔥</span>
           <div>
-            <h3 className="sd-havan-block__title">Havan Categories</h3>
-            <p className="sd-havan-block__sub">
-              {havan.length} types · graded by jadi-buti
-            </p>
+            <h3 className="sd-havan-block__title">{t("havanTab.havanHeading")}</h3>
+            <p className="sd-havan-block__sub">{t("havanTab.havanSub", { n: havan.length })}</p>
           </div>
         </header>
-        <p className="sd-havan-block__intro">{structure.havanIntro}</p>
+        <p className="sd-havan-block__intro">{local.havanIntro}</p>
 
         <div className="sd-havan-tiers">
           {havan.map((tier, i) => (
@@ -272,13 +278,11 @@ export function HavanSection({
         <header className="sd-havan-block__head">
           <span className="sd-havan-block__icon">📿</span>
           <div>
-            <h3 className="sd-havan-block__title">Anushthan Categories</h3>
-            <p className="sd-havan-block__sub">
-              {anushthan.length} tiers · graded by japa count
-            </p>
+            <h3 className="sd-havan-block__title">{t("havanTab.anushthanHeading")}</h3>
+            <p className="sd-havan-block__sub">{t("havanTab.anushthanSub", { n: anushthan.length })}</p>
           </div>
         </header>
-        <p className="sd-havan-block__intro">{structure.anushthanIntro}</p>
+        <p className="sd-havan-block__intro">{local.anushthanIntro}</p>
 
         <div className="sd-anush-steps">
           {anushthan.map((tier, i) => (
@@ -291,38 +295,38 @@ export function HavanSection({
       <section className="sd-havan-matrix">
         <h3 className="sd-havan-matrix__title">
           <span className="sd-card__title-icon">📋</span>
-          At a glance
+          {t("havanTab.glance")}
         </h3>
         <div className="sd-havan-matrix__scroll">
           <table className="sd-havan-matrix__table">
             <thead>
               <tr>
-                <th scope="col">Category</th>
-                <th scope="col">Service</th>
-                <th scope="col">Primary difference</th>
+                <th scope="col">{t("havanTab.colCategory")}</th>
+                <th scope="col">{t("havanTab.colService")}</th>
+                <th scope="col">{t("havanTab.colDifference")}</th>
               </tr>
             </thead>
             <tbody>
-              {havan.map((t, i) => (
-                <tr key={t.id}>
+              {havan.map((row, i) => (
+                <tr key={row.id}>
                   {i === 0 && (
                     <th scope="rowgroup" rowSpan={havan.length} className="sd-havan-matrix__group">
-                      {deity} <span>&rsaquo;</span> Havan
+                      {deity} <span>&rsaquo;</span> {t("havanTab.groupHavan")}
                     </th>
                   )}
-                  <td>{t.name}</td>
-                  <td className="sd-havan-matrix__diff">{t.cardLabel}</td>
+                  <td>{row.name}</td>
+                  <td className="sd-havan-matrix__diff">{row.cardLabel}</td>
                 </tr>
               ))}
-              {anushthan.map((t, i) => (
-                <tr key={t.id}>
+              {anushthan.map((row, i) => (
+                <tr key={row.id}>
                   {i === 0 && (
                     <th scope="rowgroup" rowSpan={anushthan.length} className="sd-havan-matrix__group">
-                      {deity} <span>&rsaquo;</span> Anushthan
+                      {deity} <span>&rsaquo;</span> {t("havanTab.groupAnushthan")}
                     </th>
                   )}
-                  <td>{t.japaLabel} Mantra Japa</td>
-                  <td className="sd-havan-matrix__diff">+ Havan</td>
+                  <td>{t("havanTab.japaRow", { n: row.japaLabel })}</td>
+                  <td className="sd-havan-matrix__diff">{t("havanTab.plusHavan")}</td>
                 </tr>
               ))}
             </tbody>
@@ -334,14 +338,13 @@ export function HavanSection({
       {panditCount > 0 && (
         <div className="sd-havan-cta">
           <div>
-            <h3 className="sd-havan-cta__title">Not sure which one fits your sankalp?</h3>
+            <h3 className="sd-havan-cta__title">{t("havanTab.ctaTitle")}</h3>
             <p className="sd-havan-cta__text">
-              {panditCount} verified {panditCount === 1 ? "Pandit Ji" : "Pandit Jis"} perform this puja and can
-              advise on the right tier for your situation.
+              {t(panditCount === 1 ? "havanTab.ctaTextOne" : "havanTab.ctaTextMany", { n: panditCount })}
             </p>
           </div>
           <Link className="btn btn-gold" to={`/services/${serviceId}/pandits`}>
-            Talk to a Pandit Ji <Icon name="arrow-right" size={16} />
+            {t("havanTab.ctaButton")} <Icon name="arrow-right" size={16} />
           </Link>
         </div>
       )}

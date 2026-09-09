@@ -56,6 +56,24 @@ export interface HavanStructure {
   havan: HavanTier[];
   anushthanIntro: string;
   anushthan: AnushthanTier[];
+  /** Hindi rendering, applied field by field — see localizeHavan. */
+  hi?: HavanStructureHi;
+}
+
+/**
+ * The Hindi half, deliberately all-optional and row-aligned.
+ *
+ * Same shape as services.content_hi on the service page: a translation can be
+ * missing a field, and the reader should get English for that one field
+ * rather than a blank card. Rows line up by index with the English arrays.
+ */
+export interface HavanStructureHi {
+  deity?: string;
+  intro?: string;
+  havanIntro?: string;
+  anushthanIntro?: string;
+  havan?: Partial<Pick<HavanTier, "name" | "subtitle" | "cardLabel" | "keyFeature" | "description" | "includes">>[];
+  anushthan?: Partial<Pick<AnushthanTier, "name" | "summary" | "includes">>[];
 }
 
 const BAGLAMUKHI: HavanStructure = {
@@ -177,6 +195,80 @@ const BAGLAMUKHI: HavanStructure = {
       ],
     },
   ],
+
+  hi: {
+    deity: "मां बगलामुखी",
+    intro:
+      "मां बगलामुखी दो रूपों में की जाती है — हवन, जो अग्नि में अर्पित जड़ी-बूटियों के अनुसार निर्धारित होता है, और अनुष्ठान, जो अग्नि प्रज्वलित करने से पूर्व पूर्ण किए गए मंत्र जप की संख्या पर आधारित होता है। अपने संकल्प के अनुसार पंक्ति चुनें।",
+    havanIntro:
+      "तीनों एक ही मां बगलामुखी हवन हैं। अंतर केवल सामग्री का है: आहुति के समय कितने प्रकार की विशेष जड़ी-बूटियाँ अर्पित की जाती हैं।",
+    havan: [
+      {
+        name: "सामान्य हवन",
+        subtitle: "मानक हवन सामग्री",
+        cardLabel: "मानक सामग्री",
+        keyFeature: "कोई अतिरिक्त विशेष जड़ी-बूटी प्रयोग नहीं होती।",
+        description:
+          "मानक हवन सामग्री से किया जाने वाला पारंपरिक मां बगलामुखी हवन — सामान्य शांति, सकारात्मकता, रक्षा, पारिवारिक कल्याण तथा सामान्य बाधाओं के निवारण हेतु।",
+        includes: ["संकल्प", "मां बगलामुखी पूजा", "मंत्र जाप", "मानक हवन सामग्री", "हवन", "पूर्णाहुति", "आरती"],
+      },
+      {
+        name: "विशेष हवन",
+        subtitle: "21 प्रकार की विशेष जड़ी-बूटी",
+        cardLabel: "21 विशेष जड़ी-बूटी",
+        keyFeature: "हवन में 21 प्रकार की विशेष जड़ी-बूटियाँ प्रयोग होती हैं।",
+        description:
+          "महत्वपूर्ण व्यक्तिगत, व्यावसायिक, व्यापारिक, कानूनी अथवा रक्षा-संबंधी संकल्प हेतु विशेष मां बगलामुखी हवन।",
+        includes: [
+          "संकल्प",
+          "मां बगलामुखी पूजा",
+          "मंत्र जाप",
+          "नियमित हवन सामग्री",
+          "21 प्रकार की विशेष जड़ी-बूटी",
+          "विशेष हवन",
+          "पूर्णाहुति",
+          "आरती",
+        ],
+      },
+      {
+        name: "महा विशेष हवन",
+        subtitle: "36 प्रकार की विशेष जड़ी-बूटी",
+        cardLabel: "36 विशेष जड़ी-बूटी",
+        keyFeature: "हवन में 36 प्रकार की विशेष जड़ी-बूटियाँ प्रयोग होती हैं।",
+        description:
+          "बड़े अथवा जटिल संकल्प, गंभीर बाधाओं, रक्षा, व्यापार, व्यवसाय या अन्य महत्वपूर्ण उद्देश्यों हेतु विस्तृत मां बगलामुखी हवन।",
+        includes: [
+          "विस्तृत संकल्प",
+          "मां बगलामुखी पूजा",
+          "मंत्र जाप",
+          "नियमित हवन सामग्री",
+          "36 प्रकार की विशेष जड़ी-बूटी",
+          "महा विशेष हवन",
+          "विशेष पूर्णाहुति",
+          "आरती",
+        ],
+      },
+    ],
+    anushthanIntro:
+      "अनुष्ठान एक विस्तृत मां बगलामुखी साधना है, जो निश्चित मंत्र-जप संख्या पर आधारित होती है, और जिसके पश्चात हवन एवं समापन विधि सम्पन्न की जाती है।",
+    anushthan: [
+      {
+        name: "36,000 मंत्र जप अनुष्ठान",
+        summary: "36,000 मां बगलामुखी मंत्र जप + हवन",
+        includes: ["संकल्प", "मां बगलामुखी पूजा", "मंत्र जप", "हवन", "पूर्णाहुति", "आरती", "समापन विधि"],
+      },
+      {
+        name: "1,25,000 मंत्र जप महा अनुष्ठान",
+        summary: "1,25,000 मां बगलामुखी मंत्र जप + हवन",
+        includes: ["संकल्प", "मां बगलामुखी पूजा", "मंत्र जप", "हवन", "पूर्णाहुति", "आरती", "समापन विधि"],
+      },
+      {
+        name: "5,25,000 मंत्र जप महा अनुष्ठान",
+        summary: "5,25,000 मां बगलामुखी मंत्र जप + हवन",
+        includes: ["संकल्प", "मां बगलामुखी पूजा", "मंत्र जप", "हवन", "पूर्णाहुति", "आरती", "समापन विधि"],
+      },
+    ],
+  },
 };
 
 /**
@@ -203,4 +295,39 @@ export function getHavanStructure(
   if (!service) return null;
   const haystack = `${service.id || ""} ${service.name || ""}`;
   return REGISTRY.find((r) => r.test.test(haystack))?.structure ?? null;
+}
+
+/** Drops absent/blank keys, so a missing translation falls back per field. */
+function present<T extends object>(over: T | undefined): Partial<T> {
+  if (!over) return {};
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(over)) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === "string" && !v.trim()) continue;
+    if (Array.isArray(v) && !v.length) continue;
+    out[k] = v;
+  }
+  return out as Partial<T>;
+}
+
+/**
+ * The structure as the reader's language, English elsewhere.
+ *
+ * Applied field by field rather than swapping whole objects: a half-finished
+ * translation should leave English prose in the gaps, never blank cards. The
+ * numbers (jadiButi, japa, japaLabel) are never translated — they drive the
+ * dials, and "1,25,000" is already the Indian grouping in both languages.
+ */
+export function localizeHavan(s: HavanStructure, lang: string): HavanStructure {
+  if (lang !== "hi" || !s.hi) return s;
+  const hi = s.hi;
+  return {
+    ...s,
+    deity: hi.deity || s.deity,
+    intro: hi.intro || s.intro,
+    havanIntro: hi.havanIntro || s.havanIntro,
+    anushthanIntro: hi.anushthanIntro || s.anushthanIntro,
+    havan: s.havan.map((t, i) => ({ ...t, ...present(hi.havan?.[i]) })),
+    anushthan: s.anushthan.map((t, i) => ({ ...t, ...present(hi.anushthan?.[i]) })),
+  };
 }
