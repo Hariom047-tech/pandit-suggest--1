@@ -852,9 +852,10 @@
   position: relative;
   overflow: hidden;
   display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  padding: 26px 26px 24px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 10px 26px 26px;
   border-radius: var(--r-xl);
   background: linear-gradient(135deg, #fffdf5 0%, #fff5dc 55%, #fffbf0 100%);
   border: 1.5px solid rgba(212, 160, 23, 0.24);
@@ -871,16 +872,8 @@
   animation: sd-glow-pulse 3s ease-in-out infinite;
 }
 
-.sd-havan-intro__kund {
-  font-size: 2.6rem;
-  line-height: 1;
-  flex: none;
-  position: relative;
-  z-index: 1;
-  animation: sd-flicker 2.5s ease-in-out infinite;
-}
-
-.sd-havan-intro > div { position: relative; z-index: 1; }
+.sd-havan-intro .hfs,
+.sd-havan-intro__copy { position: relative; z-index: 1; }
 
 .sd-havan-intro__eyebrow {
   display: inline-block;
@@ -1499,9 +1492,8 @@
 @media (max-width: 640px) {
   .sd-havan { gap: 20px; }
   .sd-havan-intro {
-    flex-direction: column;
-    gap: 10px;
-    padding: 20px 18px 18px;
+    gap: 2px;
+    padding: 6px 18px 20px;
   }
   .sd-havan-intro__title { font-size: var(--fs-900); }
   .sd-havan-block,
@@ -1523,7 +1515,6 @@
    already governed by the reader's motion preference through it. */
 @media (prefers-reduced-motion: reduce) {
   .sd-havan-intro__glow,
-  .sd-havan-intro__kund,
   .sd-havan-block__icon,
   .sd-anush-bead,
   .sd-anush-bead__ring { animation: none; }

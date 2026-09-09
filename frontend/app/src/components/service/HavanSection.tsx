@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Icon } from "../../lib/icons";
 import { CountUp } from "../ui/CountUp";
+import { HavanFireScene } from "./HavanFireScene";
 import type { AnushthanTier, HavanStructure, HavanTier } from "../../data/havanStructure";
 
 /**
@@ -221,8 +222,8 @@ export function HavanSection({
       {/* ── Intro band ── */}
       <div className="sd-havan-intro">
         <div className="sd-havan-intro__glow" />
-        <span className="sd-havan-intro__kund">🔥</span>
-        <div>
+        <HavanFireScene />
+        <div className="sd-havan-intro__copy">
           <span className="sd-havan-intro__eyebrow">{deity}</span>
           <h2 className="sd-havan-intro__title">Havan &amp; Anushthan</h2>
           <p className="sd-havan-intro__text">{structure.intro}</p>

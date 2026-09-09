@@ -1,0 +1,205 @@
+/* ============================================================
+   HAVAN FIRE SCENE — the animated kund at the head of the Havan tab.
+
+   Every animation here is `transform` or `opacity` only. Both are
+   compositor properties, so the whole scene animates off the main
+   thread: no layout, no paint, no JS frame loop. That is the entire
+   performance strategy, and it is why this can run continuously on a
+   low-end phone without draining the battery or dropping the scroll.
+
+   Timing contract (do not change one number in isolation):
+     · each pandit runs one 8s cycle, offset 2s apart (see SEATS)
+     · a droplet lands at ~0.76s into its own cycle
+     · the flare and ripple run a 2s cycle peaking at ~0.76s
+   so an offering lands on every flare, with no clock in JS.
+   ============================================================ */
+
+.hfs {
+  width: 100%;
+  /* The scene is decorative; the copy beneath it carries the meaning. */
+  pointer-events: none;
+}
+
+.hfs__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Cap the height on wide screens — past this the figures just get big
+     and the band starts to push the actual content below the fold. */
+  max-height: 320px;
+  overflow: visible;
+}
+
+/* ─────────────── The fire ─────────────── */
+
+/* fill-box keeps every flame pivoting on its own base rather than on the
+   SVG viewport's origin, which is what makes them rise instead of shear. */
+.hfs-flame {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation-name: hfs-flicker;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+
+/* Four different durations, none a multiple of another, so the layers drift
+   in and out of phase and the fire never visibly repeats. */
+.hfs-flame--outer { animation-duration: 1.31s; }
+.hfs-flame--mid { animation-duration: 1.07s; animation-direction: alternate; }
+.hfs-flame--inner { animation-duration: 0.83s; }
+.hfs-flame--core { animation-duration: 0.67s; animation-direction: alternate; }
+
+@keyframes hfs-flicker {
+  0% { transform: scale(1, 1); }
+  25% { transform: scale(0.97, 1.06) translateY(-1px); }
+  50% { transform: scale(1.03, 0.96); }
+  75% { transform: scale(0.98, 1.04) translateY(-2px); }
+  100% { transform: scale(1, 1); }
+}
+
+/* The glow the fire throws, breathing with the flames. */
+.hfs-glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hfs-glow-breathe 3.7s ease-in-out infinite;
+}
+
+@keyframes hfs-glow-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.09); opacity: 1; }
+}
+
+/* ─────────────── The offering ─────────────── */
+
+/* Arm pivots at the shoulder: the limb path's bbox begins exactly there,
+   so fill-box + 0% 0% needs no hand-tuned origin. */
+.hfs-arm {
+  transform-box: fill-box;
+  transform-origin: 0% 0%;
+  animation: hfs-aahuti 8s ease-in-out infinite;
+}
+
+@keyframes hfs-aahuti {
+  0%, 4% { transform: rotate(-8deg); }
+  7% { transform: rotate(16deg); }
+  12% { transform: rotate(-8deg); }
+  100% { transform: rotate(-8deg); }
+}
+
+.hfs-limb {
+  fill: none;
+  stroke: #a55a28;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+/* The ghee: released at the top of the arm's reach, arcing to the kund.
+   --hfs-dx/--hfs-dy are set per seat in the component, because each seat is
+   a different distance (and, when mirrored, a different direction) away. */
+.hfs-drop {
+  fill: #ffd982;
+  opacity: 0;
+  animation: hfs-drop 8s ease-in infinite;
+}
+
+@keyframes hfs-drop {
+  0%, 6.5% { transform: translate(0, 0); opacity: 0; }
+  7% { transform: translate(0, 0); opacity: 1; }
+  9.5% { transform: translate(var(--hfs-dx), var(--hfs-dy)); opacity: 0.9; }
+  10.5%, 100% { transform: translate(var(--hfs-dx), var(--hfs-dy)); opacity: 0; }
+}
+
+/* The flare a landing offering causes — 2s, so it meets every seat's turn. */
+.hfs-flare {
+  fill: #ffdf8f;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: hfs-flare 2s ease-out infinite;
+}
+
+@keyframes hfs-flare {
+  0% { transform: scale(0.9); opacity: 0.3; }
+  38% { transform: scale(1.3); opacity: 0.72; }
+  70% { transform: scale(0.95); opacity: 0.36; }
+  100% { transform: scale(0.9); opacity: 0.3; }
+}
+
+/* Svaha — the ripple that spreads from the mouth of the kund. */
+.hfs-ripple {
+  fill: none;
+  stroke: #ffc555;
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: hfs-ripple 2s ease-out infinite;
+}
+
+@keyframes hfs-ripple {
+  0%, 30% { transform: scale(0.5); opacity: 0; }
+  42% { opacity: 0.55; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* ─────────────── Embers & smoke ─────────────── */
+.hfs-ember {
+  fill: #ffc247;
+  opacity: 0;
+  animation-name: hfs-ember;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+}
+
+@keyframes hfs-ember {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  15% { opacity: 0.9; }
+  70% { opacity: 0.5; }
+  100% { transform: translate(6px, -104px) scale(0.3); opacity: 0; }
+}
+
+.hfs-smoke {
+  fill: #b99a6b;
+  opacity: 0;
+  animation-name: hfs-smoke;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+}
+
+@keyframes hfs-smoke {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  25% { opacity: 0.16; }
+  100% { transform: translateY(-128px) scale(1.7); opacity: 0; }
+}
+
+/* ─────────────── The kund & the pandits ─────────────── */
+.hfs-shadow { fill: rgba(120, 82, 30, 0.16); }
+.hfs-plinth { fill: #6d3a15; }
+.hfs-kund-rim { fill: #c2793a; }
+.hfs-kund-mouth { fill: #4a2409; }
+.hfs-kund-line { stroke: rgba(70, 36, 10, 0.35); stroke-width: 1.5; fill: none; }
+
+.hfs-base { fill: #e0952c; }
+.hfs-torso { fill: #8a4a22; }
+.hfs-shawl { fill: #fdf3e0; opacity: 0.92; }
+.hfs-head { fill: #a5673a; }
+.hfs-tuft { fill: none; stroke: #4a2b17; stroke-width: 3; stroke-linecap: round; }
+
+/* ─────────────── Motion preference ─────────────── */
+/* Freeze, don't hide: the scene still reads as a lit havan with four
+   pandits — it simply stops moving. */
+@media (prefers-reduced-motion: reduce) {
+  .hfs-flame,
+  .hfs-glow,
+  .hfs-arm,
+  .hfs-drop,
+  .hfs-flare,
+  .hfs-ripple,
+  .hfs-ember,
+  .hfs-smoke {
+    animation: none;
+  }
+  .hfs-flare { opacity: 0.4; }
+  .hfs-drop,
+  .hfs-ember,
+  .hfs-smoke { opacity: 0; }
+}
