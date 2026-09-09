@@ -833,3 +833,699 @@
 .sd-online-pandit:hover { border-color: #7fb7e8; }
 .sd-online-pandit img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
 @media (max-width: 600px) { .sd-online-card { padding: 14px; } }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HAVAN TAB — havan & anushthan tier ladders
+   Shares the Sacred Journey timeline's vocabulary (cream panels,
+   golden badge + drawn connector, staggered reveal) so the Havan
+   tab reads as the same page as Overview rather than a bolt-on.
+   ═══════════════════════════════════════════════════════════════ */
+.sd-havan {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+/* ── Intro band ── */
+.sd-havan-intro {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 26px 26px 24px;
+  border-radius: var(--r-xl);
+  background: linear-gradient(135deg, #fffdf5 0%, #fff5dc 55%, #fffbf0 100%);
+  border: 1.5px solid rgba(212, 160, 23, 0.24);
+  box-shadow: 0 10px 40px rgba(212, 160, 23, 0.08);
+}
+
+.sd-havan-intro__glow {
+  position: absolute;
+  top: -80px; right: -60px;
+  width: 240px; height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 160, 23, 0.22) 0%, transparent 70%);
+  pointer-events: none;
+  animation: sd-glow-pulse 3s ease-in-out infinite;
+}
+
+.sd-havan-intro__kund {
+  font-size: 2.6rem;
+  line-height: 1;
+  flex: none;
+  position: relative;
+  z-index: 1;
+  animation: sd-flicker 2.5s ease-in-out infinite;
+}
+
+.sd-havan-intro > div { position: relative; z-index: 1; }
+
+.sd-havan-intro__eyebrow {
+  display: inline-block;
+  font-family: var(--font-head);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+  margin-bottom: 4px;
+}
+
+.sd-havan-intro__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-1000);
+  font-weight: var(--fw-extrabold);
+  color: var(--text);
+  margin: 0 0 8px;
+  line-height: var(--lh-snug);
+}
+
+.sd-havan-intro__text {
+  font-size: var(--fs-500);
+  line-height: var(--lh-relaxed);
+  color: var(--text-2);
+  margin: 0;
+  max-width: 68ch;
+}
+
+/* ── Block (one ladder) ── */
+.sd-havan-block {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 22px 22px;
+  border-radius: var(--r-xl);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(212, 160, 23, 0.14);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  backdrop-filter: blur(8px);
+}
+
+.sd-havan-block--anush {
+  background: linear-gradient(160deg, #fffdf5 0%, #fff9e8 55%, #fffcf2 100%);
+  border-color: rgba(212, 160, 23, 0.2);
+}
+
+.sd-havan-block__bg {
+  position: absolute;
+  bottom: -60px; left: -50px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 160, 23, 0.1), transparent 70%);
+  pointer-events: none;
+}
+
+.sd-havan-block__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.sd-havan-block__icon {
+  font-size: 2.1rem;
+  line-height: 1;
+  filter: drop-shadow(0 3px 8px rgba(212, 160, 23, 0.35));
+  animation: sd-flicker 2.5s ease-in-out infinite;
+}
+
+.sd-havan-block__title {
+  font-family: var(--font-head);
+  font-size: var(--fs-800);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 0 0 2px;
+}
+
+.sd-havan-block__sub {
+  font-size: var(--fs-200);
+  color: var(--gold-deep);
+  font-weight: var(--fw-semibold);
+  margin: 0;
+  opacity: 0.85;
+}
+
+.sd-havan-block__intro {
+  position: relative;
+  z-index: 1;
+  font-size: var(--fs-400);
+  line-height: var(--lh-relaxed);
+  color: var(--text-2);
+  margin: 0 0 22px;
+  max-width: 72ch;
+}
+
+/* ── Proportion dial (shared by both ladders) ── */
+.sd-dial {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  flex: none;
+}
+
+.sd-dial__svg {
+  width: 100%;
+  height: 100%;
+  /* Start the arc at 12 o'clock rather than 3 o'clock. */
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.sd-dial__track,
+.sd-dial__dashed,
+.sd-dial__fill {
+  fill: none;
+  stroke-width: 7;
+}
+
+.sd-dial__track { stroke: rgba(212, 160, 23, 0.14); }
+
+.sd-dial__dashed {
+  stroke: rgba(212, 160, 23, 0.45);
+  stroke-dasharray: 4 9;
+  stroke-linecap: round;
+}
+
+.sd-dial__fill {
+  stroke: var(--gold);
+  stroke-linecap: round;
+  filter: drop-shadow(0 2px 8px rgba(212, 160, 23, 0.45));
+}
+
+.sd-dial__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  text-align: center;
+}
+
+/* CountUp ships with .stat-num (1.9rem, display:block) — resized here to sit
+   inside the ring instead of overflowing it. */
+.sd-dial__value .stat-num {
+  font-family: var(--font-head);
+  font-size: var(--fs-1000);
+  font-weight: var(--fw-extrabold);
+  line-height: 1;
+  color: var(--gold-deep);
+}
+
+.sd-dial__glyph {
+  font-size: var(--fs-1000);
+  line-height: 1;
+}
+
+.sd-dial__unit {
+  font-size: var(--fs-50);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: var(--text-2);
+  opacity: 0.75;
+}
+
+/* ── Havan tier cards ── */
+.sd-havan-tiers {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.sd-havan-tier {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 24px 18px 20px;
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(212, 160, 23, 0.16);
+  backdrop-filter: blur(6px);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.sd-havan-tier::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #d4a017, #f0c040, #d4a017);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+
+.sd-havan-tier:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 38px rgba(212, 160, 23, 0.16);
+  border-color: rgba(212, 160, 23, 0.35);
+}
+
+.sd-havan-tier--top {
+  background: linear-gradient(180deg, #fffdf6 0%, rgba(255, 255, 255, 0.9) 60%);
+  border-color: rgba(212, 160, 23, 0.34);
+  box-shadow: 0 8px 30px rgba(212, 160, 23, 0.12);
+}
+
+.sd-havan-tier__ribbon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--gold-grad);
+  color: var(--text-inverse);
+  font-family: var(--font-head);
+  font-size: var(--fs-50);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  box-shadow: var(--sh-gold);
+}
+
+/* Rung indicator — how far up the ladder this tier sits. */
+.sd-havan-tier__rungs {
+  display: flex;
+  gap: 5px;
+}
+
+.sd-havan-tier__rung {
+  width: 18px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(212, 160, 23, 0.2);
+}
+
+.sd-havan-tier__rung.is-on { background: var(--gold); }
+
+.sd-havan-tier__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-700);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 0;
+}
+
+.sd-havan-tier__subtitle {
+  font-family: var(--font-head);
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+  color: var(--gold-deep);
+  margin: -4px 0 0;
+}
+
+.sd-havan-tier__key {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  text-align: left;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 9px 12px;
+  border-radius: var(--r-md);
+  background: rgba(212, 160, 23, 0.08);
+  border: 1px solid rgba(212, 160, 23, 0.18);
+  font-size: var(--fs-300);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+  color: var(--text);
+}
+
+.sd-havan-tier__key-icon {
+  color: var(--gold);
+  font-size: var(--fs-100);
+  line-height: 1.5;
+  flex: none;
+}
+
+.sd-havan-tier__desc {
+  font-size: var(--fs-300);
+  line-height: var(--lh-relaxed);
+  color: var(--text-2);
+  margin: 0;
+  text-align: left;
+}
+
+.sd-havan-tier__includes {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(212, 160, 23, 0.14);
+  text-align: left;
+}
+
+.sd-havan-tier__includes-label {
+  display: block;
+  font-family: var(--font-head);
+  font-size: var(--fs-50);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--gold-deep);
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+/* ── Includes chips ── */
+.sd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sd-chip {
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--white);
+  border: 1px solid var(--border);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-medium);
+  color: var(--text-2);
+  line-height: var(--lh-normal);
+}
+
+.sd-chips--sm .sd-chip { font-size: var(--fs-50); padding: 3px 9px; }
+
+/* ── Anushthan timeline ── */
+.sd-anush-steps {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sd-anush-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 22px;
+}
+
+.sd-anush-step:last-child { padding-bottom: 0; }
+
+.sd-anush-connector {
+  position: absolute;
+  left: 21px;
+  top: 44px;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #d4a017 0%, rgba(212, 160, 23, 0.15) 100%);
+  z-index: 0;
+}
+
+/* Mala bead */
+.sd-anush-bead {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d4a017 0%, #f0c040 50%, #b8860b 100%);
+  color: var(--text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 16px rgba(212, 160, 23, 0.4);
+  animation: sd-badge-pulse 2.5s ease-in-out infinite;
+}
+
+.sd-anush-bead__ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(212, 160, 23, 0.45);
+  animation: sd-ring-spin 8s linear infinite;
+}
+
+.sd-anush-bead__num {
+  font-family: var(--font-head);
+  font-size: var(--fs-500);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+}
+
+.sd-anush-card {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(212, 160, 23, 0.16);
+  border-radius: var(--r-lg);
+  padding: 16px 18px 14px;
+  backdrop-filter: blur(6px);
+  transition: box-shadow 0.22s ease;
+}
+
+.sd-anush-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #d4a017, #f0c040, #d4a017);
+}
+
+.sd-anush-card:hover { box-shadow: 0 8px 28px rgba(212, 160, 23, 0.14); }
+
+.sd-anush-card__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.sd-anush-card__count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sd-anush-card__japa .stat-num {
+  display: inline-block;
+  font-family: var(--font-head);
+  font-size: var(--fs-1000);
+  font-weight: var(--fw-extrabold);
+  line-height: 1;
+  color: var(--gold-deep);
+  /* Tabular figures so the digits do not jitter while counting up. */
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-anush-card__japa-unit {
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-2);
+  opacity: 0.75;
+}
+
+.sd-anush-card__plus {
+  margin-left: auto;
+  padding: 3px 11px;
+  border-radius: var(--r-pill);
+  background: var(--gold-grad);
+  color: var(--text-inverse);
+  font-family: var(--font-head);
+  font-size: var(--fs-100);
+  font-weight: var(--fw-bold);
+  box-shadow: var(--sh-gold);
+}
+
+.sd-anush-card__title {
+  font-family: var(--font-head);
+  font-size: var(--fs-500);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 0 0 3px;
+}
+
+.sd-anush-card__summary {
+  font-size: var(--fs-300);
+  color: var(--text-2);
+  margin: 0;
+  line-height: var(--lh-normal);
+}
+
+/* Japa count drawn to scale against the largest anushthan offered. */
+.sd-anush-card__meter {
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: rgba(212, 160, 23, 0.12);
+  overflow: hidden;
+  margin: 12px 0 12px;
+}
+
+.sd-anush-card__meter-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, #d4a017, #f0c040);
+}
+
+/* ── At-a-glance matrix ── */
+.sd-havan-matrix {
+  padding: 24px 22px 22px;
+  border-radius: var(--r-xl);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(212, 160, 23, 0.14);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.sd-havan-matrix__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-800);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The table is the one element that cannot reflow — it scrolls in its own
+   box so the page body never scrolls sideways on a phone. */
+.sd-havan-matrix__scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sd-havan-matrix__table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: var(--fs-300);
+}
+
+.sd-havan-matrix__table th,
+.sd-havan-matrix__table td {
+  text-align: left;
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(212, 160, 23, 0.12);
+}
+
+.sd-havan-matrix__table thead th {
+  background: var(--gold-grad);
+  color: var(--text-inverse);
+  font-family: var(--font-head);
+  font-size: var(--fs-200);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: none;
+}
+
+.sd-havan-matrix__table thead th:first-child { border-radius: var(--r-sm) 0 0 0; }
+.sd-havan-matrix__table thead th:last-child { border-radius: 0 var(--r-sm) 0 0; }
+
+.sd-havan-matrix__table tbody tr:last-child td,
+.sd-havan-matrix__table tbody tr:last-child th { border-bottom: none; }
+
+.sd-havan-matrix__group {
+  vertical-align: middle;
+  font-family: var(--font-head);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  background: rgba(212, 160, 23, 0.06);
+  border-right: 1px solid rgba(212, 160, 23, 0.12);
+  white-space: nowrap;
+}
+
+.sd-havan-matrix__group span { color: var(--gold-deep); }
+
+.sd-havan-matrix__table td { color: var(--text-2); }
+
+.sd-havan-matrix__diff {
+  font-weight: var(--fw-semibold);
+  color: var(--gold-deep) !important;
+}
+
+/* ── Closing CTA ── */
+.sd-havan-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 24px 26px;
+  border-radius: var(--r-xl);
+  background: linear-gradient(135deg, #fffdf5 0%, #fff5dc 100%);
+  border: 1.5px solid rgba(212, 160, 23, 0.24);
+}
+
+.sd-havan-cta__title {
+  font-family: var(--font-head);
+  font-size: var(--fs-700);
+  font-weight: var(--fw-bold);
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.sd-havan-cta__text {
+  font-size: var(--fs-400);
+  color: var(--text-2);
+  margin: 0;
+  max-width: 56ch;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .sd-havan-tiers { grid-template-columns: 1fr; }
+  .sd-havan-tier {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .sd-havan-tier__name,
+  .sd-havan-tier__subtitle { align-self: flex-start; }
+}
+
+@media (max-width: 640px) {
+  .sd-havan { gap: 20px; }
+  .sd-havan-intro {
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 18px 18px;
+  }
+  .sd-havan-intro__title { font-size: var(--fs-900); }
+  .sd-havan-block,
+  .sd-havan-matrix { padding: 18px 16px 16px; }
+  .sd-havan-block__title { font-size: var(--fs-700); }
+  .sd-dial { width: 96px; height: 96px; }
+  .sd-dial__value .stat-num,
+  .sd-dial__glyph { font-size: var(--fs-900); }
+  .sd-anush-card__japa .stat-num { font-size: var(--fs-900); }
+  .sd-anush-card__plus { margin-left: 0; }
+  .sd-havan-cta {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 18px;
+  }
+}
+
+/* Decorative loops only — the scroll-in reveals are framer-motion's and are
+   already governed by the reader's motion preference through it. */
+@media (prefers-reduced-motion: reduce) {
+  .sd-havan-intro__glow,
+  .sd-havan-intro__kund,
+  .sd-havan-block__icon,
+  .sd-anush-bead,
+  .sd-anush-bead__ring { animation: none; }
+  .sd-havan-tier:hover { transform: none; }
+}

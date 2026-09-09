@@ -13,15 +13,21 @@ import { TempleCard } from "../components/ui/TempleCard";
 import { ServiceCard } from "../components/ui/ServiceCard";
 import { EmptyState } from "../components/ui/ReviewCard";
 import { SacredBackground } from "../components/ui/SacredBackground";
+import { HavanSection } from "../components/service/HavanSection";
+import { getHavanStructure } from "../data/havanStructure";
 import { Seo } from "../lib/Seo";
 import { useStructuredData, breadcrumbSchema, serviceSchema, faqPageSchema, organizationSchema, websiteSchema, webPageSchema, serviceId } from "../lib/structuredData";
 import { isServiceIndexable } from "../lib/indexability";
+import { useLang } from "../lib/i18n";
 
-type Tab = "overview" | "samagri" | "pandits" | "reviews";
+type Tab = "overview" | "havan" | "samagri" | "pandits" | "reviews";
 const TAB_KEYS: readonly Tab[] = ["overview", "samagri", "pandits", "reviews"];
+/** Only for services sold as a havan/anushthan tier ladder — see below. */
+const TAB_KEYS_HAVAN: readonly Tab[] = ["overview", "havan", "samagri", "pandits", "reviews"];
 
 export default function ServiceDetail() {
   const { id } = useParams();
+  const { lang } = useLang();
   const { data: rawService, loading, error } = useService(id || "");
   const { data: rawServices } = useServices();
   // 600: "limit" was never a real API param (silently ignored, falling back
@@ -42,11 +48,20 @@ export default function ServiceDetail() {
   const allPandits = useMemo(() => normPandits(rawPandits), [rawPandits]);
   const temples = useMemo(() => normTemples(rawTemplesForService), [rawTemplesForService]);
 
+  /**
+   * The havan/anushthan tier ladder for this service, or null.
+   *
+   * Most pujas are not sold as tiers, so "havan" is only a valid `?tab=` value
+   * for the ones that are — a service without a ladder falls back to Overview
+   * rather than rendering an empty tab, and never shows the tab button at all.
+   */
+  const havanStructure = useMemo(() => getHavanStructure(s), [s]);
+
   // URL-backed, not component memory — see useUrlTab. This is the actual fix
   // for the "Pandits tab → refresh → back to Overview" bug: activeTab used
   // to live only in useState, which a full reload always destroys, and
   // nothing in this file ever restored it from anywhere.
-  const [activeTab, setActiveTab] = useUrlTab<Tab>(TAB_KEYS, "overview");
+  const [activeTab, setActiveTab] = useUrlTab<Tab>(havanStructure ? TAB_KEYS_HAVAN : TAB_KEYS, "overview");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Fair, market-aware rotation instead of a frozen rating sort — same
@@ -69,10 +84,37 @@ export default function ServiceDetail() {
     });
   }, [allPandits, s, fairScores]);
   const previewPandits = useMemo(() => pandits.slice(0, 6), [pandits]);
+
+  /**
+   * The only rating a service can honestly show.
+   *
+   * `reviewable_type` is pandit | temple | platform — a service is not
+   * reviewable and `services` carries no rating, review or booking column.
+   * The hero and the Reviews tab used to print "4.9", "2,450+ reviews" and
+   * "2,450+ Bookings" as literals: numbers nothing in this system measures,
+   * shown to devotees deciding who to trust with a puja.
+   *
+   * What IS real is the reviews devotees left on the pandits who perform this
+   * puja. Weighted by each pandit's review count so one 5-star pandit with a
+   * single review cannot outvote ten reviews spread across the rest. Zero
+   * reviews yields null, and every caller below then shows nothing rather
+   * than a 0.0 that reads as a bad service.
+   */
+  const panditRating = useMemo(() => {
+    const rated = pandits.filter((p) => p.reviews > 0);
+    const count = rated.reduce((n, p) => n + p.reviews, 0);
+    if (!count) return null;
+    const weighted = rated.reduce((sum, p) => sum + p.rating * p.reviews, 0);
+    return { average: weighted / count, count, pandits: rated.length };
+  }, [pandits]);
   // Exposure reporting must always match exactly what's visible right now —
   // the Overview preview or the full Pandits tab (its own top 6), never
-  // both, never neither.
-  const visiblePandits = activeTab === "pandits" ? pandits.slice(0, 6) : previewPandits;
+  // both, never neither. The Havan tab renders no pandit cards at all, so it
+  // reports none: crediting six pandits with an impression nobody saw would
+  // feed the fair-rotation engine an event that never happened.
+  const visiblePandits = activeTab === "havan"
+    ? []
+    : activeTab === "pandits" ? pandits.slice(0, 6) : previewPandits;
   useReportExposure(visiblePandits.map((p) => p.id), {
     service: s?.id,
     enabled: Boolean(s),
@@ -126,7 +168,7 @@ export default function ServiceDetail() {
    * has admin content, none of the static table is used for it.
    */
   const api = rawService as unknown as {
-    benefits?: { title: string; detail?: string }[];
+    benefits?: { title: string; detail?: string; icon?: string }[];
     process?: { step?: number; title: string; detail?: string; duration?: string }[];
     faqs?: { q: string; a: string }[];
     samagri?: ({ item: string; qty?: string } | string)[];
@@ -138,31 +180,83 @@ export default function ServiceDetail() {
     short_description?: string | null;
     meta_title?: string | null;
     meta_description?: string | null;
+    /** services.content_hi — see migration 0011. Every key optional. */
+    content_hi?: {
+      name?: string; shortDescription?: string; description?: string;
+      estimatedDuration?: string; recommendedMuhurat?: string; onlineNote?: string;
+      metaTitle?: string; metaDescription?: string;
+      benefits?: { title?: string; detail?: string }[];
+      process?: { title?: string; detail?: string; duration?: string }[];
+      faqs?: { q?: string; a?: string }[];
+      samagri?: { item?: string }[];
+    } | null;
   } | null;
 
   const staticMeta = getServiceMeta(s.id);
 
+  /**
+   * The Hindi an admin's save produced (services.content_hi, migration 0011),
+   * used only while the reader has Hindi selected.
+   *
+   * Applied field by field with `|| english` rather than swapping the whole
+   * document: a translation can legitimately be missing a key — the model
+   * skipped it, the field was added after the last save, or a human deleted a
+   * bad rendering — and the reader should get English for that one field
+   * rather than a blank section.
+   */
+  const hi = lang === "hi" ? api?.content_hi ?? null : null;
+  /** Hindi for row i of a list, but only when the two line up. */
+  const hiRow = <T,>(rows: T[] | undefined, i: number): T | undefined =>
+    (Array.isArray(rows) ? rows[i] : undefined);
+
   const benefits = (api?.benefits?.length
-    ? api.benefits.map((b) => ({ icon: "🕉️", title: b.title, detail: b.detail }))
+    // The icon an admin chose for this benefit, falling back to the om only
+    // when none was picked — it used to be hardcoded here, so every benefit
+    // on every service carried the same glyph no matter what it was about.
+    ? api.benefits.map((b, i) => ({
+        icon: b.icon?.trim() || "🕉️",
+        title: hiRow(hi?.benefits, i)?.title || b.title,
+        detail: hiRow(hi?.benefits, i)?.detail || b.detail,
+      }))
     : staticMeta.benefits.map((b) => ({ ...b, detail: undefined as string | undefined })));
 
   const process = (api?.process?.length
-    ? api.process.map((p, i) => ({ step: p.step ?? i + 1, title: p.title, desc: p.detail || "", duration: p.duration }))
+    ? api.process.map((p, i) => ({
+        step: p.step ?? i + 1,
+        title: hiRow(hi?.process, i)?.title || p.title,
+        desc: hiRow(hi?.process, i)?.detail || p.detail || "",
+        duration: hiRow(hi?.process, i)?.duration || p.duration,
+      }))
     : staticMeta.process.map((p) => ({ ...p, duration: undefined as string | undefined })));
 
-  const faqs = api?.faqs?.length ? api.faqs : [];
+  const faqs = api?.faqs?.length
+    ? api.faqs.map((f, i) => ({
+        q: hiRow(hi?.faqs, i)?.q || f.q,
+        a: hiRow(hi?.faqs, i)?.a || f.a,
+      }))
+    : [];
 
   // samagri arrives as [{item, qty}] from the admin editor, but older seeded
   // rows are a plain string[]. Normalise both to a display string.
   const samagriItems: string[] = (api?.samagri?.length
-    ? api.samagri.map((x) => (typeof x === "string" ? x : [x.item, x.qty].filter(Boolean).join(" — ")))
+    ? api.samagri.map((x, i) => {
+        const hiItem = hiRow(hi?.samagri, i)?.item;
+        if (typeof x === "string") return hiItem || x;
+        // The quantity is a number and a unit; it is not translated, so the
+        // Hindi name is joined onto the English quantity rather than dropped.
+        return [hiItem || x.item, x.qty].filter(Boolean).join(" — ");
+      })
     : (s.samagri || []));
 
   const heroImg = api?.image_url || staticMeta.heroImg;
-  const tagline = api?.short_description || staticMeta.tagline;
+  const tagline = hi?.shortDescription || api?.short_description || staticMeta.tagline;
+  const serviceName = hi?.name || s.name;
+  const serviceDesc = hi?.description || s.desc;
+  const onlineNote = hi?.onlineNote || api?.online_note;
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "overview", label: "Overview" },
+    ...(havanStructure ? [{ key: "havan" as Tab, label: "Havan" }] : []),
     { key: "pandits", label: "Pandits" },
     { key: "samagri", label: "Samagri" },
     { key: "reviews", label: "Reviews" },
@@ -190,19 +284,23 @@ export default function ServiceDetail() {
               {/* Left: Image */}
               {heroImg && (
                 <div className="sd-hero__img-wrap">
-                  <img src={heroImg} alt={s.name} className="sd-hero__img" fetchPriority="high" />
+                  <img src={heroImg} alt={serviceName} className="sd-hero__img" fetchPriority="high" />
                   <div className="sd-hero__img-overlay" />
                 </div>
               )}
 
               {/* Right: Info Card */}
               <div className="sd-hero__info">
-                <h1 className="sd-hero__title">{s.name}</h1>
-                <div className="sd-hero__rating">
-                  <span className="sd-hero__star">★</span>
-                  <strong>4.9</strong>
-                  <span className="sd-hero__reviews">(2,450+ reviews)</span>
-                </div>
+                <h1 className="sd-hero__title">{serviceName}</h1>
+                {panditRating && (
+                  <div className="sd-hero__rating">
+                    <span className="sd-hero__star">★</span>
+                    <strong>{panditRating.average.toFixed(1)}</strong>
+                    <span className="sd-hero__reviews">
+                      ({panditRating.count} {panditRating.count === 1 ? "review" : "reviews"})
+                    </span>
+                  </div>
+                )}
                 <p className="sd-hero__tagline">{tagline}</p>
 
                 <div className="sd-hero__highlights">
@@ -264,7 +362,7 @@ export default function ServiceDetail() {
                       <span className="sd-card__title-icon">🕉️</span>
                       Spiritual Significance
                     </h2>
-                    <p className="sd-card__text">{s.desc}</p>
+                    <p className="sd-card__text">{serviceDesc}</p>
                     <p className="sd-card__text" style={{ marginTop: 12 }}>
                       This sacred ceremony has been performed for centuries in the Hindu tradition. It is believed to purify the space, remove negative energies, and invite divine blessings for everyone involved. The mantras chanted during the puja create powerful vibrations that bring peace and positive energy.
                     </p>
@@ -274,7 +372,7 @@ export default function ServiceDetail() {
                   {api?.is_online_available && (
                     <div className="sd-online-card">
                       <h3>🌐 Online puja / havan available</h3>
-                      <p>{api.online_note || "Yeh puja video call par live karvai ja sakti hai — sankalp aapke naam se."}</p>
+                      <p>{onlineNote || "Yeh puja video call par live karvai ja sakti hai — sankalp aapke naam se."}</p>
                       {api.onlinePandits?.length ? (
                         <>
                           <span className="sd-online-card__label">
@@ -454,6 +552,19 @@ export default function ServiceDetail() {
           </section>
         )}
 
+        {/* HAVAN TAB */}
+        {activeTab === "havan" && havanStructure && (
+          <section className="section" style={{ paddingTop: 48, paddingBottom: 40 }}>
+            <div className="shell">
+              <HavanSection
+                structure={havanStructure}
+                serviceId={s.id}
+                panditCount={pandits.length}
+              />
+            </div>
+          </section>
+        )}
+
         {/* SAMAGRI TAB */}
         {activeTab === "samagri" && (
           <section className="section" style={{ paddingTop: 48, paddingBottom: 40 }}>
@@ -461,7 +572,7 @@ export default function ServiceDetail() {
               <div className="sd-card">
                 <h2 className="sd-card__title">
                   <span className="sd-card__title-icon">📿</span>
-                  Required Samagri for {s.name}
+                  Required Samagri for {serviceName}
                 </h2>
                 <p className="muted" style={{ margin: "8px 0 20px" }}>
                   Standard list — confirm with pandit ji who arranges what. Many pandits bring the full kit for a small extra amount.
@@ -484,7 +595,7 @@ export default function ServiceDetail() {
           <section className="section" style={{ paddingTop: 48, paddingBottom: 40 }}>
             <div className="shell">
               <h2 className="section-title" style={{ fontSize: "clamp(1.5rem,2.6vw,2rem)", marginBottom: 32 }}>
-                Pandits who perform {s.name}
+                Pandits who perform {serviceName}
               </h2>
               {pandits.length ? (
                 <>
@@ -506,14 +617,34 @@ export default function ServiceDetail() {
         {activeTab === "reviews" && (
           <section className="section" style={{ paddingTop: 48, paddingBottom: 40 }}>
             <div className="shell" style={{ maxWidth: 660 }}>
+              {/* Real numbers only. The "Bookings" stat is gone rather than
+                  recalculated: this platform does not take bookings — a
+                  devotee contacts the pandit directly — so there has never
+                  been anything behind that figure to count. */}
               <div className="sd-card text-c" style={{ padding: "50px 30px" }}>
-                <div style={{ fontSize: "3rem", marginBottom: 12 }}>⭐</div>
-                <h2 style={{ fontSize: "1.4rem", marginBottom: 8 }}>4.9 out of 5</h2>
-                <p className="muted">Based on 2,450+ devotees who performed {s.name}</p>
+                {panditRating ? (
+                  <>
+                    <div style={{ fontSize: "3rem", marginBottom: 12 }}>⭐</div>
+                    <h2 style={{ fontSize: "1.4rem", marginBottom: 8 }}>
+                      {panditRating.average.toFixed(1)} out of 5
+                    </h2>
+                    <p className="muted">
+                      From {panditRating.count} {panditRating.count === 1 ? "review" : "reviews"} across{" "}
+                      {panditRating.pandits} {panditRating.pandits === 1 ? "pandit" : "pandits"} who perform {serviceName}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: "3rem", marginBottom: 12 }}>🪔</div>
+                    <h2 style={{ fontSize: "1.4rem", marginBottom: 8 }}>No reviews yet</h2>
+                    <p className="muted">
+                      After your puja you can leave the first review for the Pandit Ji who performs it.
+                    </p>
+                  </>
+                )}
                 <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 40 }}>
-                  <div><strong style={{ fontSize: "1.6rem", color: "var(--gold-deep)" }}>{s.pandits}</strong><br /><span className="muted">Pandits</span></div>
+                  <div><strong style={{ fontSize: "1.6rem", color: "var(--gold-deep)" }}>{pandits.length}</strong><br /><span className="muted">Pandits</span></div>
                   <div><strong style={{ fontSize: "1.6rem", color: "var(--gold-deep)" }}>{temples.length}</strong><br /><span className="muted">Temples</span></div>
-                  <div><strong style={{ fontSize: "1.6rem", color: "var(--gold-deep)" }}>2,450+</strong><br /><span className="muted">Bookings</span></div>
                 </div>
               </div>
             </div>
