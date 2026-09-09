@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Icon } from "../../lib/icons";
 import { CountUp } from "../ui/CountUp";
 import { HavanFireScene } from "./HavanFireScene";
+import { HavanScene3D } from "./HavanScene3D";
+import { useSiteImages } from "../../lib/siteImages";
 import type { AnushthanTier, HavanStructure, HavanTier } from "../../data/havanStructure";
 
 /**
@@ -214,6 +216,20 @@ export function HavanSection({
   panditCount: number;
 }) {
   const { deity, havan, anushthan } = structure;
+  /**
+   * The scene at the head of the tab.
+   *
+   * Prefers artwork uploaded for this tab specifically; falls back to the
+   * homepage trust portrait, which is the same subject (a pandit at a kund)
+   * and means the 3D scene works the moment this ships rather than after an
+   * upload. With neither, the drawn SVG scene stands in — never a broken
+   * <img>, per the site-images contract.
+   */
+  const { src, alt } = useSiteImages();
+  const sceneImg = src("services.havan_scene") || src("home.trust");
+  const sceneAlt = sceneImg
+    ? alt("services.havan_scene", alt("home.trust", `Pandit performing ${deity} havan`))
+    : "";
   const havanPeak = maxOf(havan, (t) => t.jadiButi);
   const japaPeak = maxOf(anushthan, (t) => t.japa);
 
@@ -222,7 +238,7 @@ export function HavanSection({
       {/* ── Intro band ── */}
       <div className="sd-havan-intro">
         <div className="sd-havan-intro__glow" />
-        <HavanFireScene />
+        {sceneImg ? <HavanScene3D src={sceneImg} alt={sceneAlt} /> : <HavanFireScene />}
         <div className="sd-havan-intro__copy">
           <span className="sd-havan-intro__eyebrow">{deity}</span>
           <h2 className="sd-havan-intro__title">Havan &amp; Anushthan</h2>

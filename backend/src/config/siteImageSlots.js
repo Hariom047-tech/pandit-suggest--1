@@ -44,6 +44,16 @@ const SITE_IMAGE_SLOTS = [
     ],
   },
   {
+    group: 'Service detail',
+    slots: [
+      {
+        key: 'services.havan_scene',
+        label: 'Havan scene subject',
+        hint: 'The pandit-and-kund artwork behind the animated fire on a service page\'s Havan tab. Portrait or square, 900px or wider, transparent PNG if possible. The flames are drawn and animated over this image, so artwork WITHOUT fire composites best.',
+      },
+    ],
+  },
+  {
     group: 'Directory pages',
     slots: [
       {

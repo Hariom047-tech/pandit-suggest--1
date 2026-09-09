@@ -1,0 +1,319 @@
+/* ============================================================
+   HAVAN SCENE 3D — photoreal subject, real animated fire, parallax depth.
+
+   Tuning points (override on .hs3 for a different artwork):
+     --hs3-fx / --hs3-fy   where the kund's fire sits in the image
+     --hs3-hx / --hs3-hy   where the pandit's hand releases the offering
+   Defaults are measured against the current trust-portrait render.
+
+   Timing contract: the offering falls and the fire flares on one shared 2s
+   cycle. Change one and you must change the other.
+   ============================================================ */
+
+.hs3 {
+  --hs3-fx: 47%;
+  --hs3-fy: 66%;
+  --hs3-hx: 39%;
+  --hs3-hy: 46%;
+  /* Written by the pointer handler; 0 on touch, where the drift carries it. */
+  --hs3-px: 0;
+  --hs3-py: 0;
+
+  width: 100%;
+  perspective: 900px;
+}
+
+.hs3__stage {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin-inline: auto;
+  transform-style: preserve-3d;
+  /* Pointer tilt rides on top of the ambient drift below. */
+  transform: rotateY(calc(var(--hs3-px) * 5deg)) rotateX(calc(var(--hs3-py) * -4deg));
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: hs3-drift 22s ease-in-out infinite;
+}
+
+/* A slow camera move, so the parallax between layers is visible even when
+   nothing is pointing at the card — which is every phone. */
+@keyframes hs3-drift {
+  0%, 100% { transform: rotateY(-2.2deg) rotateX(0.8deg) translateZ(0); }
+  33% { transform: rotateY(1.6deg) rotateX(-1deg) translateZ(6px); }
+  66% { transform: rotateY(2.2deg) rotateX(0.6deg) translateZ(2px); }
+}
+
+/* Pointer input wins while it is present: the tilt transform on .hs3__stage
+   would otherwise be overwritten by the drift animation. */
+.hs3__stage:hover { animation-play-state: paused; }
+
+.hs3__subject {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: translateZ(0);
+}
+
+/* ─────────── Warm ambience behind the subject ─────────── */
+.hs3__halo {
+  position: absolute;
+  left: var(--hs3-fx);
+  top: var(--hs3-fy);
+  width: 78%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) translateZ(-70px);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 176, 64, 0.42) 0%,
+    rgba(255, 150, 40, 0.18) 42%,
+    rgba(255, 140, 30, 0) 70%
+  );
+  animation: hs3-halo 3.7s ease-in-out infinite;
+}
+
+@keyframes hs3-halo {
+  0%, 100% { transform: translate(-50%, -50%) translateZ(-70px) scale(1); opacity: 0.85; }
+  50% { transform: translate(-50%, -50%) translateZ(-70px) scale(1.1); opacity: 1; }
+}
+
+/* Light thrown back onto the subject — sits in front of the image, behind the
+   flames, so the pandit reads as lit by the fire rather than pasted on. */
+.hs3__light {
+  position: absolute;
+  left: var(--hs3-fx);
+  top: var(--hs3-fy);
+  width: 62%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -60%) translateZ(24px);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 206, 120, 0.34) 0%,
+    rgba(255, 180, 80, 0.12) 45%,
+    rgba(255, 170, 60, 0) 72%
+  );
+  animation: hs3-lightpulse 2s ease-out infinite;
+}
+
+/* Shares the 2s offering cycle: the subject brightens as the ghee lands. */
+@keyframes hs3-lightpulse {
+  0% { opacity: 0.55; }
+  38% { opacity: 1; }
+  70% { opacity: 0.62; }
+  100% { opacity: 0.55; }
+}
+
+/* ─────────── The fire ─────────── */
+.hs3__fire {
+  position: absolute;
+  left: var(--hs3-fx);
+  top: var(--hs3-fy);
+  width: 0;
+  height: 0;
+  transform: translateZ(46px);
+}
+
+/* Everything inside is positioned from the kund's mouth. */
+.hs3__fire > span {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: block;
+}
+
+.hs3__fire-base {
+  width: 132px;
+  height: 46px;
+  margin-left: -66px;
+  border-radius: 50%;
+  filter: blur(10px);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 190, 90, 0.85) 0%,
+    rgba(255, 140, 40, 0.45) 45%,
+    rgba(240, 100, 20, 0) 72%
+  );
+  animation: hs3-basepulse 2s ease-out infinite;
+}
+
+@keyframes hs3-basepulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  38% { transform: scale(1.14); opacity: 1; }
+}
+
+/* A tongue: born at the kund, rising, narrowing, fading — the shape change is
+   what makes it read as gas rather than a moving sticker. */
+.hs3__tongue {
+  width: var(--w);
+  height: var(--h);
+  margin-left: calc(var(--x) - var(--w) / 2);
+  border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation-name: hs3-tongue;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.32, 0, 0.5, 1);
+}
+
+.hs3__tongue--a {
+  background: linear-gradient(to top, #ff6a00 0%, #ff9d21 42%, #ffc94d 74%, rgba(255, 226, 150, 0) 100%);
+}
+.hs3__tongue--b {
+  background: linear-gradient(to top, #f4560a 0%, #ff8c14 46%, #ffd15c 80%, rgba(255, 232, 170, 0) 100%);
+}
+.hs3__tongue--c {
+  background: linear-gradient(to top, #ff8f1f 0%, #ffc247 52%, #ffe9a6 84%, rgba(255, 245, 210, 0) 100%);
+}
+
+@keyframes hs3-tongue {
+  0% { transform: translateY(6%) scale(0.55, 0.5) skewX(0deg); opacity: 0; }
+  18% { opacity: 0.95; }
+  50% { transform: translateY(-42%) scale(1, 1.06) skewX(-4deg); opacity: 0.85; }
+  78% { transform: translateY(-78%) scale(0.7, 0.86) skewX(5deg); opacity: 0.4; }
+  100% { transform: translateY(-104%) scale(0.36, 0.6) skewX(0deg); opacity: 0; }
+}
+
+/* The hot core — smaller, brighter, barely blurred. */
+.hs3__core {
+  width: 34px;
+  height: 58px;
+  margin-left: -17px;
+  border-radius: 50% 50% 44% 44% / 64% 64% 36% 36%;
+  filter: blur(4px);
+  background: linear-gradient(to top, #fff2c4 0%, #ffdf7d 48%, rgba(255, 246, 214, 0) 100%);
+  transform-origin: 50% 100%;
+  animation: hs3-core 0.85s ease-in-out infinite alternate;
+}
+
+@keyframes hs3-core {
+  0% { transform: scale(1, 0.94); opacity: 0.85; }
+  100% { transform: scale(0.92, 1.12); opacity: 1; }
+}
+
+/* The surge when an offering lands. */
+.hs3__flare {
+  width: 108px;
+  height: 108px;
+  margin-left: -54px;
+  border-radius: 50%;
+  filter: blur(14px);
+  background: radial-gradient(circle, rgba(255, 226, 150, 0.9) 0%, rgba(255, 170, 60, 0.3) 52%, rgba(255, 150, 40, 0) 74%);
+  transform-origin: 50% 80%;
+  animation: hs3-flare 2s ease-out infinite;
+}
+
+@keyframes hs3-flare {
+  0% { transform: scale(0.72); opacity: 0.28; }
+  38% { transform: scale(1.16); opacity: 0.78; }
+  72% { transform: scale(0.84); opacity: 0.34; }
+  100% { transform: scale(0.72); opacity: 0.28; }
+}
+
+/* ─────────── The aahuti ─────────── */
+/* Ghee leaving the hand for the kund, landing exactly as the fire flares.
+ *
+ * The moving element is a stage-sized wrapper, not the droplet itself: a
+ * percentage in translate() resolves against the transformed element's OWN
+ * box, so animating the 7px droplet by "8%" would move it half a pixel. The
+ * wrapper matches the stage, so (fx - hx) is 8% of the stage width — the
+ * actual distance from the hand to the kund, at any card size. */
+.hs3__offering {
+  position: absolute;
+  inset: 0;
+  transform: translateZ(60px);
+  opacity: 0;
+  animation: hs3-offering 2s cubic-bezier(0.55, 0, 0.85, 0.6) infinite;
+}
+
+.hs3__offering::before {
+  content: "";
+  position: absolute;
+  left: var(--hs3-hx);
+  top: var(--hs3-hy);
+  width: 7px;
+  height: 11px;
+  margin: -5px 0 0 -3px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: linear-gradient(to bottom, #fff0bd, #ffbe4d);
+  box-shadow: 0 0 8px rgba(255, 199, 92, 0.9);
+}
+
+@keyframes hs3-offering {
+  0% { transform: translateZ(60px) translate(0, 0); opacity: 0; }
+  8% { opacity: 1; }
+  36% {
+    transform: translateZ(60px)
+      translate(calc(var(--hs3-fx) - var(--hs3-hx)), calc(var(--hs3-fy) - var(--hs3-hy)));
+    opacity: 0.95;
+  }
+  44%, 100% {
+    transform: translateZ(60px)
+      translate(calc(var(--hs3-fx) - var(--hs3-hx)), calc(var(--hs3-fy) - var(--hs3-hy)));
+    opacity: 0;
+  }
+}
+
+/* ─────────── Embers & smoke ─────────── */
+.hs3__ember {
+  position: absolute;
+  left: var(--hs3-fx);
+  top: var(--hs3-fy);
+  width: calc(var(--r) * 2);
+  height: calc(var(--r) * 2);
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffe9a8 0%, #ffb733 65%, rgba(255, 160, 40, 0) 100%);
+  opacity: 0;
+  animation-name: hs3-ember;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+}
+
+@keyframes hs3-ember {
+  0% { transform: translateZ(64px) translate(var(--x), 0) scale(1); opacity: 0; }
+  16% { opacity: 0.95; }
+  70% { opacity: 0.45; }
+  100% { transform: translateZ(64px) translate(calc(var(--x) + 14px), -150px) scale(0.25); opacity: 0; }
+}
+
+.hs3__smoke {
+  position: absolute;
+  left: var(--hs3-fx);
+  top: var(--hs3-fy);
+  width: 74px;
+  height: 74px;
+  margin: -37px 0 0 -37px;
+  border-radius: 50%;
+  filter: blur(13px);
+  background: radial-gradient(circle, rgba(176, 152, 116, 0.5) 0%, rgba(176, 152, 116, 0) 70%);
+  opacity: 0;
+  animation-name: hs3-smoke;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-out;
+}
+
+@keyframes hs3-smoke {
+  0% { transform: translateZ(-30px) translate(var(--x), 0) scale(0.45); opacity: 0; }
+  28% { opacity: 0.3; }
+  100% { transform: translateZ(-30px) translate(calc(var(--x) - 20px), -190px) scale(1.9); opacity: 0; }
+}
+
+/* ─────────── Motion preference ─────────── */
+/* Still a lit havan — it just stops moving. */
+@media (prefers-reduced-motion: reduce) {
+  .hs3__stage { animation: none; transform: none; }
+  .hs3__halo,
+  .hs3__light,
+  .hs3__fire-base,
+  .hs3__core,
+  .hs3__flare { animation: none; }
+  .hs3__tongue {
+    animation: none;
+    opacity: 0.9;
+    transform: translateY(-40%) scale(1, 1);
+  }
+  .hs3__ember,
+  .hs3__smoke,
+  .hs3__offering { display: none; }
+}

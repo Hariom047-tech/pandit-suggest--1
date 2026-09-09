@@ -25,6 +25,7 @@ export type SiteImageSlot =
   | "pandits.hero"
   | "temples.hero"
   | "services.hero"
+  | "services.havan_scene"
   | "services.cat_life"
   | "services.cat_daily"
   | "services.cat_festival"
