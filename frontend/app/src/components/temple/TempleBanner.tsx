@@ -6,6 +6,7 @@ import "swiper/css";
 import "swiper/css/effect-fade";
 import "swiper/css/pagination";
 import { Icon } from "../../lib/icons";
+import { useLang } from "../../lib/i18n";
 import { RatingRow } from "../ui/StarRating";
 import { onImgError } from "../../lib/format";
 import type { Temple } from "../../data/types";
@@ -52,6 +53,10 @@ export function TempleBanner({
   slides?: HeroSlide[];
   onOpenGallery: (index: number) => void;
 }) {
+  // The temple's Hindi name when the reader is in Hindi (migration 0012).
+  const { lang } = useLang();
+  const templeName = (lang === "hi" ? temple.hi?.name : null) || temple.name;
+
   const heroSlides: HeroSlide[] =
     slides && slides.length > 0
       ? slides
@@ -140,7 +145,7 @@ export function TempleBanner({
               ) : (
                 <img
                   src={slide.url}
-                  alt={slide.title || temple.name}
+                  alt={slide.title || templeName}
                   onError={onImgError("hero")}
                   className={`detail-banner__img${isActive ? " detail-banner__img--active" : ""}`}
                   loading={i === 0 ? "eager" : "lazy"}
@@ -177,7 +182,7 @@ export function TempleBanner({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] as const, delay: 0.2 }}
         >
-          <h1>{temple.name}</h1>
+          <h1>{templeName}</h1>
           <div className="row">
             <span className="meta-line"><Icon name="map-pin" size={16} /> {temple.city}, {temple.state}</span>
             <span className="divider-v" />

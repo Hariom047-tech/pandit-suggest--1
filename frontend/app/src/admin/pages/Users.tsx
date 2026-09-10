@@ -14,7 +14,27 @@ interface UserRow {
   city: string | null;
   state: string | null;
   country: string | null;
+  /** CloudFront's guess at the last login, refreshed every time (see
+   *  migrations/0007). Only used when the devotee has typed nothing. */
+  geo_city: string | null;
+  geo_region: string | null;
+  geo_country_name: string | null;
   created_at: string;
+}
+
+/**
+ * What the devotee told us wins; the edge's guess is the fallback.
+ *
+ * The two are kept apart rather than merged into one line, because a guess
+ * presented as a stated address is worse than no address — an admin reading
+ * this column needs to know which one they are looking at before acting on it.
+ */
+function locationCell(u: UserRow): { text: string; approx: boolean } {
+  const typed = [u.city, u.state, u.country].filter(Boolean).join(", ");
+  if (typed) return { text: typed, approx: false };
+  const edge = [u.geo_city, u.geo_region, u.geo_country_name].filter(Boolean).join(", ");
+  if (edge) return { text: edge, approx: true };
+  return { text: "Unknown", approx: false };
 }
 
 export default function AdminUsers() {
@@ -99,7 +119,17 @@ export default function AdminUsers() {
                         ? <a href={`tel:${u.phone}`} style={{ color: "inherit" }}>{u.phone}</a>
                         : "—"}
                     </td>
-                    <td className="muted-cell">{[u.city, u.state, u.country].filter(Boolean).join(", ") || "Unknown"}</td>
+                    <td className="muted-cell">
+                      {(() => {
+                        const loc = locationCell(u);
+                        return (
+                          <span title={loc.approx ? "Detected at last login (CloudFront) — not entered by the user" : undefined}>
+                            {loc.text}
+                            {loc.approx && <span style={{ opacity: 0.6, marginLeft: 4 }}>~</span>}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td><span className={`admin-pill ${u.status === "active" ? "admin-pill--green" : "admin-pill--red"}`}>{u.status}</span></td>
                     <td className="row" style={{ gap: 6 }}>
                       {u.status === "active" && (

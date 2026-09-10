@@ -1,23 +1,26 @@
-import { Fragment } from "react";
-import { useLang } from "../../lib/i18n";
-
-/** Scrolling live-activity ticker — matches the Home page's hero ticker */
+/**
+ * Live-activity ticker.
+ *
+ * DISABLED — renders nothing.
+ *
+ * It scrolled four hardcoded lines presented as real, timestamped activity:
+ *
+ *   "Rahul from Mumbai booked Satyanarayan Pooja with Pt. Ram Naresh · just now"
+ *   "Neha from Hyderabad contacted Acharya Prem · 2 min ago"
+ *   "Vikram from Delhi booked Griha Pravesh with Pt. Sharma · 5 min ago"
+ *   "Priya from Pune left a 5-star review for Pt. Mishra · 12 min ago"
+ *
+ * None of it ever happened. The production database holds zero users, zero
+ * pandits, zero bookings and zero reviews, so every one of those bookings,
+ * contacts and 5-star reviews is fabricated social proof shown to real
+ * visitors — on a platform that takes payments. That is a trust problem, not a
+ * styling one, and it does not become true once there are real users either:
+ * the strings are static.
+ *
+ * To bring it back, feed it a real recent-activity endpoint (anonymised —
+ * first name and city only, never a full name or phone) and render nothing
+ * when that endpoint returns an empty list, exactly as it does now.
+ */
 export function HeroTicker() {
-  const { t } = useLang();
-  return (
-    <div className="sp-hero__ticker">
-      <div className="sp-hero__ticker-track">
-        <div className="sp-hero__ticker-content">
-          {[0, 1].map((dup) => (
-            <Fragment key={dup}>
-              <span className="sp-hero__ticker-item"><span className="sp-hero__ticker-dot" /> <span dangerouslySetInnerHTML={{ __html: t("home.ticker1") }} /> <span style={{ color: "#aaa" }}>· {t("home.tickerJustNow")}</span></span>
-              <span className="sp-hero__ticker-item"><span className="sp-hero__ticker-dot sp-hero__ticker-dot--gold" /> <span dangerouslySetInnerHTML={{ __html: t("home.ticker2") }} /> <span style={{ color: "#aaa" }}>· {t("home.ticker2minAgo")}</span></span>
-              <span className="sp-hero__ticker-item"><span className="sp-hero__ticker-dot" /> <span dangerouslySetInnerHTML={{ __html: t("home.ticker3") }} /> <span style={{ color: "#aaa" }}>· {t("home.ticker5minAgo")}</span></span>
-              <span className="sp-hero__ticker-item"><span className="sp-hero__ticker-dot sp-hero__ticker-dot--gold" /> <span dangerouslySetInnerHTML={{ __html: t("home.ticker4") }} /> <span style={{ color: "#aaa" }}>· {t("home.ticker12minAgo")}</span></span>
-            </Fragment>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }

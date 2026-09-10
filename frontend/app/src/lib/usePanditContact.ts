@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { api, type ContactResult } from "./api";
+import { toE164 } from "./format";
 import { useAuth, saveContactIntent } from "./Auth";
 import { useToast } from "../components/ui/Toast";
 
@@ -55,7 +56,13 @@ export function usePanditContact() {
         returnTo: location.pathname + location.search,
       });
       toast("Pandit Ji se contact karne ke liye login karein.");
-      navigate("/login");
+      // The pandit's own profile, NOT location.pathname: the press usually
+      // comes off a card in a long directory or the homepage, and dropping
+      // someone back onto that list after logging in means scrolling for the
+      // pandit they had already chosen. `from` is the mechanism Login already
+      // uses to decide where to go afterwards — it was simply never given
+      // anything here, which is why every guest contact ended on /dashboard.
+      navigate("/login", { state: { from: { pathname: `/pandits/${panditSlug}` } } });
       return;
     }
 
@@ -75,6 +82,20 @@ export function usePanditContact() {
       navigate("/dashboard?verify=mobile");
       return;
     }
+
+    // Safari — iOS especially — only honours window.open from the SYNCHRONOUS
+    // part of a user gesture. Everything above this line is synchronous, so we
+    // are still inside the tap here; everything below awaits the backend first
+    // (deliberately, see the note at the top), and by the time that resolves
+    // the gesture is spent and the popup is blocked with no error of any kind.
+    // So claim the tab now, while it is still allowed, and point it at WhatsApp
+    // once the server has answered. Every early return below has to close it,
+    // or a denied contact leaves a stray blank tab behind.
+    //
+    // No "noopener" in these options on purpose: with it, window.open returns
+    // null and there is no handle left to navigate. The opener is severed
+    // manually before navigating instead.
+    const waTab = action === "whatsapp" ? window.open("", "_blank") : null;
 
     setPendingKey(key);
     let result: ContactResult | null = null;
@@ -98,30 +119,48 @@ export function usePanditContact() {
       } else {
         toast("Abhi contact nahi ho paya. Thodi der baad try karein.");
       }
+      waTab?.close();
       return;
     }
 
     // A pandit pressing their own button gets a clear, harmless message.
     if (result?.reason === "self_contact") {
       toast("Yeh aapki apni profile hai.");
+      waTab?.close();
       return;
     }
 
-    const waNumber = (whatsapp || phone || "").replace(/[^\d]/g, "");
+    // wa.me wants the international number with no "+"; tel: is happiest with
+    // full E.164 too, which also makes the button work for a devotee dialling
+    // from outside India. Both fall back to the raw value if it will not parse,
+    // so an unusual-but-real number is still handed on rather than swallowed.
+    const rawWa = whatsapp || phone || "";
+    const rawTel = phone || whatsapp || "";
+    const waNumber = (toE164(rawWa) || rawWa).replace(/[^\d]/g, "");
+    const telNumber = toE164(rawTel) || rawTel;
     const target = action === "call"
-      ? (phone ? `tel:${phone}` : null)
+      ? (telNumber ? `tel:${telNumber}` : null)
       : (waNumber
           ? `https://wa.me/${waNumber}${waMessage ? `?text=${encodeURIComponent(waMessage)}` : ""}`
           : null);
 
     if (!target) {
       toast("Contact number abhi uplabdh nahi hai.");
+      waTab?.close();
       return;
     }
 
     if (action === "call") {
       window.location.href = target;
+    } else if (waTab) {
+      // Sever the back-reference before navigating — the equivalent of the
+      // "noopener" that could not be passed to window.open above.
+      waTab.opener = null;
+      waTab.location.replace(target);
     } else {
+      // The tab was refused (a blocker, or a non-gesture caller). Try the
+      // direct open anyway: on browsers that allow it this still works, and on
+      // the ones that do not there was never a tab to be had.
       window.open(target, "_blank", "noopener,noreferrer");
     }
   }, [isAuthenticated, isActive, isContactVerified, navigate, location, toast, pendingKey, user?.id]);

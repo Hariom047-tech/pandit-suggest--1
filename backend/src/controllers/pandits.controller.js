@@ -40,6 +40,17 @@ function readRefreshGeneration(req) {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * GET /api/pandits/count — how many real, verified, live pandits exist.
+ *
+ * Exists so the homepage trust badge can state a true number. It used to be
+ * the hardcoded string "1,240+" in HeroAstrotalk.tsx, which was simply not
+ * true and would have stayed untrue as the directory grew.
+ */
+async function count(req, res) {
+  res.json({ trusted: await repo.countTrusted() });
+}
+
 /** GET /api/pandits — filterable, sortable, paginated list.
  *  maxPerPage raised from the 48 default: several pages (the directory,
  *  Search, TempleDetail, ServiceDetail) fetch one bounded batch and then
@@ -416,6 +427,7 @@ async function trackView(req, res) {
 }
 
 module.exports = {
+  count,
   list, getById, inquire,
   distributed, distributionOrder, reportExposure,
   trackClick, trackView,

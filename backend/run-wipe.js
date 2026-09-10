@@ -1,7 +1,9 @@
 const { Client } = require('pg');
 const fs = require('fs');
+const { assertDisposableTarget } = require('./src/config/destructiveGuard');
 
 async function run() {
+  assertDisposableTarget('postgresql://panditconnect_app:panditconnect_app_dev@localhost:5432/panditconnect', 'run-wipe.js');
   const client = new Client('postgresql://panditconnect_app:panditconnect_app_dev@localhost:5432/panditconnect');
   await client.connect();
   try {

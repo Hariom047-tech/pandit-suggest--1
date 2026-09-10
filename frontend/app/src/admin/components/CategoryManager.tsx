@@ -37,6 +37,9 @@ export function CategoryManager() {
     setBusy(true); setError(""); setNotice("");
     try {
       await adminApi.put(`/service-categories/${cat.id}`, {
+        // Only the keys actually being changed are sent: the backend COALESCEs
+        // every column, so an undefined leaves it alone.
+        name: patch.name,
         tagline: patch.tagline,
         // null is meaningful here (un-feature), so it is sent explicitly.
         homeRank: patch.home_rank === undefined ? undefined : patch.home_rank,
@@ -104,7 +107,24 @@ export function CategoryManager() {
                       ? <img src={c.image_url} alt="" style={{ width: 72, height: 48, objectFit: "cover", borderRadius: 6 }} />
                       : <div style={{ width: 72, height: 48, borderRadius: 6, background: "#faf7f0", border: "1px dashed var(--admin-line, #e8d5b7)" }} />}
                   </td>
-                  <td><strong>{c.name}</strong><br /><small style={{ opacity: .6 }}>{c.slug}</small></td>
+                  <td>
+                    {/* Editable, saved on blur like the tagline below. The
+                        slug stays read-only underneath: it is the category's
+                        public address (/services?cat=…), so renaming the
+                        heading must not quietly break every link to it. */}
+                    <input
+                      className="input"
+                      style={{ fontWeight: 600, minWidth: 180 }}
+                      defaultValue={c.name}
+                      aria-label={`Name of ${c.name}`}
+                      onBlur={(e) => {
+                        const next = e.target.value.trim();
+                        if (!next) { e.target.value = c.name; return; }   // never blank it
+                        if (next !== c.name) save(c, { name: next });
+                      }}
+                    />
+                    <small style={{ opacity: .6 }}>{c.slug}</small>
+                  </td>
                   <td>
                     <input
                       className="input" defaultValue={c.tagline || ""} placeholder="Short line under the name"

@@ -19,3 +19,13 @@ Thumbs.db
 # Uploaded media (served from backend/public) — user content, not source.
 backend/public/uploads/**
 !backend/public/uploads/**/.gitkeep
+
+# Database backups (pg_dump output). These contain live user data and
+# credentials-adjacent material — they belong in the encrypted S3 backup
+# bucket, never in git. See docs/DATABASE_BACKUP_RESTORE.md.
+db-backups/
+*.dump
+*.sql.gz
+
+# RDS CA bundle is fetched at deploy time, not vendored.
+certs/rds-global-bundle.pem

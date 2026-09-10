@@ -113,6 +113,31 @@
   --fs-label: var(--fs-300);
 }
 
+/* ── Devanagari needs more vertical room than Latin ──────────────────────
+   A Hindi line carries marks above the शिरोरेखा (ि ी े ै ो ौ ं ँ) and below
+   it (ु ू ृ), so its ink box is taller than a Latin line at the same font
+   size. The values above are tuned for Latin; at 1.1 or 1.25 the top matras
+   of a heading get sliced off wherever the text also sits in an
+   `overflow: hidden` box — which is most cards, since they clamp long names
+   to a fixed number of lines.
+
+   Fixed here, on the tokens, rather than in each component: every heading,
+   card, button and clamp already reads these variables, and the min-heights
+   that reserve space for clamped lines are themselves calc()s over them, so
+   they grow by exactly the same amount and nothing is left half-corrected.
+
+   I18nProvider puts lang="hi" on <html> (lib/i18n/index.tsx), which is what
+   this hangs off — so English is untouched and the switch takes effect the
+   moment a devotee flips it, with no reload. */
+:root:lang(hi) {
+  --lh-tight: 1.4;
+  --lh-snug: 1.5;
+  --lh-normal: 1.55;
+  --lh-relaxed: 1.75;
+  --lh-loose: 1.9;
+}
+
+
 /* --------------------------------------------------------- base elements --- */
 /* Every page inherits these; a component only needs its own rule when it
    deviates from the default, not to restate the default. */

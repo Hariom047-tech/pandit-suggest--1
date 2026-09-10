@@ -96,13 +96,19 @@ async function activateSubscription({ paymentId, subscriptionId, panditId, tier,
     `UPDATE payment_transactions SET status = 'completed', paid_at = NOW(), gateway_payment_id = $2, gateway_signature = $3 WHERE id = $1`,
     [paymentId, gatewayPaymentId, gatewaySignature],
   );
-  const { rows } = await q(
-    `UPDATE pandit_subscriptions SET is_active = TRUE, last_payment_id = $2 WHERE id = $1 RETURNING expires_at`,
-    [subscriptionId, paymentId],
-  );
+  // Deactivate the outgoing entitlement BEFORE activating the incoming one.
+  // uq_subscription_one_active_per_pandit (a partial unique index on
+  // pandit_id WHERE is_active) now enforces "exactly one active subscription
+  // per pandit" in the database rather than by convention, and a unique index
+  // is checked per statement — activating first would collide with the row
+  // this deactivates a statement later, inside the same transaction.
   await q(
     `UPDATE pandit_subscriptions SET is_active = FALSE WHERE pandit_id = $1 AND id <> $2 AND is_active = TRUE`,
     [panditId, subscriptionId],
+  );
+  const { rows } = await q(
+    `UPDATE pandit_subscriptions SET is_active = TRUE, last_payment_id = $2 WHERE id = $1 RETURNING expires_at`,
+    [subscriptionId, paymentId],
   );
   await q('SELECT activate_pandit_subscription($1, $2::subscription_tier, $3)', [panditId, tier, rows[0].expires_at]);
 }

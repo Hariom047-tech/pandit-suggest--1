@@ -34,6 +34,13 @@ export default function PanditProfile() {
   const toast = useToast();
   const { t, lang } = useLang();
   const displayName = p ? (lang === "hi" && p.nameHi ? p.nameHi : p.name) : "";
+  /**
+   * The Hindi this pandit's last admin save produced (migration 0012), used
+   * only while the reader has Hindi selected. Applied field by field with
+   * `|| english`: a translation can legitimately be missing a key, and that
+   * field should render in English rather than disappear.
+   */
+  const hi = lang === "hi" ? p?.hi ?? null : null;
 
   // Single shared contact flow — guest gating, mobile-verification gating and
   // "only the server decides what a lead is" all live in one place.
@@ -164,7 +171,7 @@ export default function PanditProfile() {
                     <Icon name="briefcase" size={15} /> {t("panditProfile.yearsExperience", { exp: p.exp })}
                   </span>
                   <span className="tag tag--soft">
-                    <Icon name="map-pin" size={15} /> {p.city}, {p.state}
+                    <Icon name="map-pin" size={15} /> {hi?.city || p.city}, {hi?.state || p.state}
                   </span>
                 </div>
                 <p className="muted" style={{ marginTop: 16, fontSize: ".84rem" }}>
@@ -185,34 +192,58 @@ export default function PanditProfile() {
                   Qualifications, roughly four screens down on a phone. */}
               {reels.length > 0 && <VideoReels videos={reels} panditName={displayName} />}
 
-              <div className="grid g-2" style={{ gap: 20, alignItems: "start" }}>
-                <div className="card card-pad info-card">
-                  <h3>{t("panditProfile.servicesOffered")}</h3>
-                  <div className="tag-row" style={{ justifyContent: "flex-start" }}>
-                    {p.services.map((s) => <Link className="tag" to={`/services/${s}`} key={s}>{s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</Link>)}
-                  </div>
+              {/* A profile can be published before an admin has assigned any
+                  services or temples. A card that is just a heading over empty
+                  space reads as a page that failed to load, so each one appears
+                  only once it has something to list.
+                  The row itself is dropped when neither does — an empty grid is
+                  still a child of the .stack above, and would go on spending
+                  its 20px gap on nothing.
+                  g-2 only when BOTH are present: a lone card in a 2-column grid
+                  would sit in the left half with the right half blank, whereas
+                  bare .grid gives it the full width that About and
+                  Qualifications below already use. */}
+              {(p.services.length > 0 || p.temples.length > 0) && (
+                <div
+                  className={`grid${p.services.length > 0 && p.temples.length > 0 ? " g-2" : ""}`}
+                  style={{ gap: 20, alignItems: "start" }}
+                >
+                  {p.services.length > 0 && (
+                    <div className="card card-pad info-card">
+                      <h3>{t("panditProfile.servicesOffered")}</h3>
+                      <div className="tag-row" style={{ justifyContent: "flex-start" }}>
+                        {p.services.map((s) => <Link className="tag" to={`/services/${s}`} key={s}>{s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</Link>)}
+                      </div>
+                    </div>
+                  )}
+                  {p.temples.length > 0 && (
+                    <div className="card card-pad info-card">
+                      <h3>{t("panditProfile.associatedTemples")}</h3>
+                      <ul className="dot-list">
+                        {p.temples.map((tid) => (
+                          <li key={tid}><Link to={`/temples/${tid}`}>{templeNameBySlug.get(tid) || tid.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</Link></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-                <div className="card card-pad info-card">
-                  <h3>{t("panditProfile.associatedTemples")}</h3>
-                  <ul className="dot-list">
-                    {p.temples.map((tid) => (
-                      <li key={tid}><Link to={`/temples/${tid}`}>{templeNameBySlug.get(tid) || tid.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</Link></li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              )}
 
               <div className="card card-pad info-card">
                 <h3>{t("panditProfile.aboutTitle", { name: displayName })}</h3>
-                <p style={{ color: "#4d4a45" }}>{p.about}</p>
+                <p style={{ color: "#4d4a45" }}>{hi?.bio || p.about}</p>
               </div>
 
               <div className="card card-pad info-card">
                 <h3>{t("panditProfile.qualificationsTitle")}</h3>
-                <div className="grid g-2" style={{ gap: 14, marginTop: 6 }}>
+                {/* pg-grid: the gap and the value font-size used to be inline
+                    styles here. They moved into CSS because an inline style
+                    outranks a media query — with them here the mobile 2-up
+                    rules below simply could not take effect. */}
+                <div className="grid g-2 pg-grid" style={{ marginTop: 6 }}>
                   {([
-                    [t("panditProfile.vedicEducation"), p.edu],
-                    [t("panditProfile.gotraTradition"), [p.gotra, p.tradition].filter(Boolean).join(" · ")],
+                    [t("panditProfile.vedicEducation"), hi?.vedicEducation || p.edu],
+                    [t("panditProfile.gotraTradition"), [hi?.gotra || p.gotra, hi?.tradition || p.tradition].filter(Boolean).join(" · ")],
                     [t("panditProfile.languagesSpoken"), p.langs.join(", ")],
                     [t("panditProfile.experience"), t("panditProfile.yearsSuffix", { exp: p.exp })],
                   ] as [string, string][])
@@ -221,7 +252,7 @@ export default function PanditProfile() {
                     // "not filled in", not "no such concept".
                     .filter(([, v]) => Boolean(v && String(v).trim()))
                     .map(([k, v]) => (
-                    <div className="pg-item" key={k}><div className="k">{k}</div><div className="v" style={{ fontSize: ".98rem" }}>{v}</div></div>
+                    <div className="pg-item" key={k}><div className="k">{k}</div><div className="v">{v}</div></div>
                   ))}
                 </div>
                 <div className="usp-band" style={{ marginTop: 18, padding: "18px 20px" }}>
@@ -244,7 +275,7 @@ export default function PanditProfile() {
               {p.respondsWithin && (
                 <div className="card card-pad info-card">
                   <h3>{t("panditProfile.responseTimeTitle")}</h3>
-                  <p style={{ marginTop: 8 }}>{p.respondsWithin}</p>
+                  <p style={{ marginTop: 8 }}>{hi?.respondsWithin || p.respondsWithin}</p>
                 </div>
               )}
 
@@ -292,17 +323,25 @@ export default function PanditProfile() {
         </div>
       </section>
 
-      <section className="section section--cream">
-        <div className="shell">
-          <h2 className="section-title section-title--left" style={{ fontSize: "clamp(1.5rem,2.6vw,2rem)", marginBottom: 26 }}>{t("panditProfile.similarPanditsTitle")}</h2>
-          <div className="grid g-3 grid-2up-mobile">
-            {similar.slice(0, 12).map((sp, i) => <PanditCard p={sp} key={sp.id} index={i} sourceSurface="similar_pandits" />)}
+      {/* Nothing to be "similar" to means the whole section goes, not just the
+          "See all pandits" button under it: a heading over an empty grid with
+          no button below is a worse empty state than no section at all. The
+          button is the section's tail, so it cannot outlive the cards it was
+          offering more of. `similar` is empty whenever this is the only pandit
+          in the city with no shared service — the common case early on. */}
+      {similar.length > 0 && (
+        <section className="section section--cream">
+          <div className="shell">
+            <h2 className="section-title section-title--left" style={{ fontSize: "clamp(1.5rem,2.6vw,2rem)", marginBottom: 26 }}>{t("panditProfile.similarPanditsTitle")}</h2>
+            <div className="grid g-3 grid-2up-mobile">
+              {similar.slice(0, 12).map((sp, i) => <PanditCard p={sp} key={sp.id} index={i} sourceSurface="similar_pandits" />)}
+            </div>
+            <div className="text-c" style={{ marginTop: 32 }}>
+              <Link className="btn btn-outline" to="/pandits">{t("panditProfile.seeAllPandits")}</Link>
+            </div>
           </div>
-          <div className="text-c" style={{ marginTop: 32 }}>
-            <Link className="btn btn-outline" to="/pandits">{t("panditProfile.seeAllPandits")}</Link>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
       <ContactBar
         anchorRef={ctaRef}
         name={displayName}

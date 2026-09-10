@@ -1,16 +1,20 @@
 import { Link } from "react-router-dom";
 import { Icon } from "../lib/icons";
 import { Seo } from "../lib/Seo";
+import { useLang } from "../lib/i18n";
 import { useStructuredData, organizationSchema, websiteSchema, webPageSchema, breadcrumbSchema } from "../lib/structuredData";
 
+/** Only the icon lives here now — the words come from the dictionary, so the
+ *  page reads in whichever language the devotee has chosen. */
 const STEPS = [
-  { icon: "search", h: "Discover", p: "Search by city, deity, occasion, or ask the AI Recommender if you're not sure what you need." },
-  { icon: "users", h: "Compare", p: "Read verified Pandit profiles: experience, languages, temple association, and honest reviews." },
-  { icon: "message-circle", h: "Contact directly", p: "Call or WhatsApp the pandit ji yourself. No form, no waiting for an assignment." },
-  { icon: "check-circle", h: "Arrange it together", p: "Vidhi, date, and dakshina are settled directly between you — PanditSuggest is never part of that transaction." },
-];
+  { icon: "search", key: "step1" },
+  { icon: "users", key: "step2" },
+  { icon: "message-circle", key: "step3" },
+  { icon: "check-circle", key: "step4" },
+] as const;
 
 export default function HowItWorks() {
+  const { t } = useLang();
   useStructuredData([
     organizationSchema(),
     websiteSchema(),
@@ -28,10 +32,10 @@ export default function HowItWorks() {
       <section className="page-hero">
         <img src="/assets/img/mandala.svg" className="watermark watermark--tl" alt="" />
         <div className="shell" style={{ position: "relative", zIndex: 1 }}>
-          <nav className="crumbs" aria-label="Breadcrumb"><Link to="/">Home</Link> <span>/</span> How It Works</nav>
-          <h1 className="section-title" style={{ marginTop: 10 }}>How PanditSuggest Works</h1>
+          <nav className="crumbs" aria-label="Breadcrumb"><Link to="/">{t("nav.home")}</Link> <span>/</span> {t("howItWorks.crumb")}</nav>
+          <h1 className="section-title" style={{ marginTop: 10 }}>{t("howItWorks.title")}</h1>
           <svg className="ornament" viewBox="0 0 190 16" aria-hidden="true"><path d="M6 8h64M120 8h64" fill="none" stroke="#d4a017" strokeWidth="1.6" /><path d="M84 8l11-6 11 6-11 6z" fill="none" stroke="#d4a017" strokeWidth="1.6" /></svg>
-          <p className="section-sub">Four steps, no account required to browse.</p>
+          <p className="section-sub">{t("howItWorks.sub")}</p>
         </div>
       </section>
 
@@ -39,11 +43,11 @@ export default function HowItWorks() {
         <div className="shell">
           <div className="grid g-4 hiw-steps-grid">
             {STEPS.map((s, i) => (
-              <div className="card step" key={s.h}>
+              <div className="card step" key={s.key}>
                 <span className="step-n">0{i + 1}</span>
                 <div className="step-ico"><Icon name={s.icon} size={30} /></div>
-                <h3>{s.h}</h3>
-                <p>{s.p}</p>
+                <h3>{t(`howItWorks.${s.key}`)}</h3>
+                <p>{t(`howItWorks.${s.key}Desc`)}</p>
               </div>
             ))}
           </div>
@@ -52,11 +56,11 @@ export default function HowItWorks() {
 
       <section className="section section--cream">
         <div className="shell text-c">
-          <h2 className="section-title">Ready to start?</h2>
+          <h2 className="section-title">{t("howItWorks.ready")}</h2>
           <div className="row" style={{ justifyContent: "center", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
-            <Link className="btn btn-gold btn-lg" to="/pandits">Find Pandits</Link>
-            <Link className="btn btn-outline btn-lg" to="/temples">Explore Temples</Link>
-            <Link className="btn btn-outline btn-lg" to="/about">About PanditSuggest</Link>
+            <Link className="btn btn-gold btn-lg" to="/pandits">{t("howItWorks.findPandits")}</Link>
+            <Link className="btn btn-outline btn-lg" to="/temples">{t("howItWorks.exploreTemples")}</Link>
+            <Link className="btn btn-outline btn-lg" to="/about">{t("howItWorks.about")}</Link>
           </div>
         </div>
       </section>

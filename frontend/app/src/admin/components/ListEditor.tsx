@@ -11,9 +11,50 @@ export interface FieldDef {
   placeholder?: string;
   multiline?: boolean;
   width?: "full" | "half";
+  /** Renders the emoji picker below instead of a plain input. */
+  icon?: boolean;
 }
 
 export type ListRow = Record<string, string>;
+
+/**
+ * Quick picks for the icon field. Deliberately a short, puja-relevant set
+ * rather than a full emoji keyboard: the point is to choose in one tap, and
+ * anything not here can still be pasted into the box beside them.
+ */
+const ICON_PRESETS = [
+  "🕉️", "🪔", "🙏", "📿", "🔱", "🪷", "🌸", "🌺",
+  "🔥", "✨", "💫", "⭐", "☀️", "🌙", "🛕", "🧿",
+];
+
+function IconField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="list-editor__icon">
+      <div className="list-editor__icon-presets">
+        {ICON_PRESETS.map((ic) => (
+          <button
+            key={ic}
+            type="button"
+            // Tapping the one already chosen clears it, so an admin can get
+            // back to the default without hunting for the text box.
+            onClick={() => onChange(value === ic ? "" : ic)}
+            className={`list-editor__icon-btn${value === ic ? " is-active" : ""}`}
+            aria-label={`Use ${ic}`}
+            aria-pressed={value === ic}
+          >{ic}</button>
+        ))}
+      </div>
+      <input
+        className="input list-editor__icon-input"
+        value={value}
+        onChange={(e) => onChange(e.target.value.slice(0, 8))}
+        placeholder="Ya koi bhi emoji paste karein"
+        aria-label="Custom icon"
+      />
+      <p className="list-editor__hint">Khaali chhoda to default 🕉️ dikhega.</p>
+    </div>
+  );
+}
 
 export function ListEditor({
   label, hint, fields, rows, onChange, addLabel = "+ Add", max = 30,
@@ -65,7 +106,12 @@ export function ListEditor({
                     className={`list-editor__field${f.width === "full" ? " is-full" : ""}`}
                   >
                     <span>{f.label}</span>
-                    {f.multiline ? (
+                    {f.icon ? (
+                      <IconField
+                        value={row[f.key] ?? ""}
+                        onChange={(v) => update(i, f.key, v)}
+                      />
+                    ) : f.multiline ? (
                       <textarea
                         className="input" rows={2} placeholder={f.placeholder}
                         value={row[f.key] ?? ""}

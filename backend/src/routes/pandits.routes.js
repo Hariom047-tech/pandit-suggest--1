@@ -8,6 +8,9 @@ const { authLimiter } = require('../middleware/security');
 const router = Router();
 
 router.get('/', asyncHandler(ctrl.list));
+// MUST stay above '/:id' — otherwise "count" is read as a pandit slug and
+// this 404s.
+router.get('/count', asyncHandler(ctrl.count));
 // The fair-distribution listing. optionalAuth so a logged-in visitor's own id
 // seeds the rotation (stable across their devices) rather than their IP.
 router.get('/distributed', optionalAuth, asyncHandler(ctrl.distributed));

@@ -17,10 +17,31 @@ async function findByPhone(phone) {
   return rows[0] || null;
 }
 
+/**
+ * Every column of `users` the app role is allowed to SELECT.
+ *
+ * The runtime role holds COLUMN-level SELECT on `users`, not table-level:
+ * password_hash, totp_secret_encrypted, google_id, facebook_id and
+ * date_of_birth are deliberately excluded (baseline H2 — RLS is row-level, so
+ * once users_select_public exposes a pandit's row it would otherwise expose
+ * that row's credentials too). Postgres rejects `SELECT *` and `RETURNING *`
+ * outright when any column is unreadable, so those need this list spelled out.
+ *
+ * Credential reads have their own path and are unaffected: auth_find_user_by_*
+ * are SECURITY DEFINER and execute as the owner.
+ */
+const USER_COLUMNS = [
+  'id', 'email', 'phone', 'full_name', 'display_name', 'avatar_url',
+  'role', 'status', 'city', 'state', 'pincode', 'latitude', 'longitude',
+  'preferred_language', 'theme_preference',
+  'email_verified', 'phone_verified', 'last_login_at', 'login_count',
+  'totp_enabled', 'created_at', 'updated_at', 'deleted_at', 'country',
+].join(', ');
+
 /** Reads a user's own row. Requires RLS context — call via
  *  withUserContext(userId, (q) => repo.findById(userId, q)). */
 async function findById(id, q = query) {
-  const { rows } = await q('SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL', [id]);
+  const { rows } = await q(`SELECT ${USER_COLUMNS} FROM users WHERE id = $1 AND deleted_at IS NULL`, [id]);
   return rows[0] || null;
 }
 
@@ -37,7 +58,7 @@ async function create({ email, phone, passwordHash, fullName, role, googleId }) 
   const id = crypto.randomUUID();
   const { rows } = await withUserContext(id, (q) => q(
     `INSERT INTO users (id, email, phone, password_hash, full_name, role, status, google_id, email_verified)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING ${USER_COLUMNS}`,
     [id, email, phone || null, passwordHash || null, fullName, role || 'devotee',
      googleId ? 'active' : 'pending_verification', googleId || null,
      googleId ? true : false],  // Google users have their email verified by Google
@@ -63,7 +84,7 @@ async function createPandit({ email, phone, passwordHash, fullName, slug }) {
     await client.query('BEGIN');
     const { rows: userRows } = await client.query(
       `INSERT INTO users (email, phone, password_hash, full_name, role, status)
-       VALUES ($1, $2, $3, $4, 'pandit', 'pending_verification') RETURNING *`,
+       VALUES ($1, $2, $3, $4, 'pandit', 'pending_verification') RETURNING ${USER_COLUMNS}`,
       [email, phone || null, passwordHash, fullName],
     );
     const user = userRows[0];
@@ -109,6 +130,29 @@ async function findActiveSessionByTokenHash(tokenHash) {
 
 async function revokeSession(tokenHash) {
   await query('UPDATE user_sessions SET revoked_at = NOW() WHERE token_hash = $1', [tokenHash]);
+}
+
+/**
+ * Records the edge's guess at where this login came from (migrations/0007).
+ *
+ * Writes ONLY the geo_* columns — users.city/state/country are the devotee's
+ * own address and are never touched here, which is what lets the admin screen
+ * show what they typed in preference to this and still tell the two apart.
+ *
+ * A request that did not come through CloudFront has no geo headers at all;
+ * that writes NULLs and stamps geo_updated_at, which is the honest record of
+ * "we looked, and the edge told us nothing" rather than a stale guess kept
+ * alive. Needs RLS context — call inside withUserContext(userId, ...).
+ */
+async function updateLoginGeo(userId, viewer, q = query) {
+  await q(
+    `UPDATE users
+        SET geo_city = $2, geo_region = $3, geo_country_code = $4,
+            geo_country_name = $5, geo_updated_at = NOW()
+      WHERE id = $1`,
+    [userId, viewer?.city || null, viewer?.regionName || viewer?.regionCode || null,
+     viewer?.countryCode || null, viewer?.countryName || null],
+  );
 }
 
 /** Updates the just-authenticated user's own login stats — needs RLS
@@ -187,18 +231,52 @@ async function incrementOtpAttempts(id) {
  *  schema's bar for 'active' (01-schema.sql's account_status enum). Never
  *  touches an account an admin has since suspended/banned/deactivated,
  *  since the CASE only fires from 'pending_verification'. */
-async function markTargetVerified(userId, targetType, q = query) {
+/**
+ * Flips the verified flag and, when the caller passes the value that was
+ * actually proved, records it on the row in the same statement.
+ *
+ * The two have to move together. A devotee who signed in with Google has no
+ * phone at all, so verifying one has to write it as well as flag it — leaving
+ * that to a separate profile save would allow phone_verified = TRUE next to a
+ * number nobody proved, and record_qualified_lead() gates every lead on that
+ * flag alone.
+ *
+ * targetValue is optional and COALESCEd, so the existing callers that only
+ * want the flag flipped (phoneLogin, where the row was found BY that number)
+ * keep their previous behaviour untouched.
+ */
+/**
+ * Records a phone whose OTP the caller has just passed, absorbing the
+ * phone-only account that holds it if there is one. See
+ * migrations/0005-claim-verified-phone.sql for what is and is not allowed and
+ * why — every precondition lives inside the function, because it is SECURITY
+ * DEFINER and therefore runs with RLS out of the way.
+ *
+ * No withUserContext needed for the same reason. Returns 'set' | 'already_own'
+ * | 'merged'; throws with code 'PS001' when the number belongs to an account
+ * that can still be reached some other way, which the controller turns into a
+ * 409 rather than letting it surface as a 500.
+ */
+async function claimVerifiedPhone(phone, userId, q = query) {
+  const { rows } = await q('SELECT claim_verified_phone($1, $2) AS outcome', [phone, userId]);
+  return rows[0].outcome;
+}
+
+async function markTargetVerified(userId, targetType, q = query, targetValue = null) {
   const column = targetType === 'email' ? 'email_verified' : 'phone_verified';
+  const valueColumn = targetType === 'email' ? 'email' : 'phone';
   await q(
     `UPDATE users SET ${column} = TRUE,
+            ${valueColumn} = COALESCE($2, ${valueColumn}),
             status = CASE WHEN status = 'pending_verification' THEN 'active' ELSE status END
      WHERE id = $1`,
-    [userId],
+    [userId, targetValue],
   );
 }
 
 module.exports = {
   findByEmail, findByPhone, findById, create, createPandit, createSession, findActiveSessionByTokenHash,
   revokeSession, revokeAllSessions, touchLogin, createOtp, findLatestOtp, markOtpVerified,
-  incrementOtpAttempts, markTargetVerified, softDeleteAccount, exportAccountData, linkGoogleId,
+  incrementOtpAttempts, markTargetVerified, claimVerifiedPhone, softDeleteAccount, exportAccountData, linkGoogleId,
+  updateLoginGeo,
 };

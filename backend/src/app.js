@@ -20,13 +20,36 @@ app.use(verifyOrigin);
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.use(helmet({
-  // This is a JSON API with no HTML views of its own, so a page-oriented
-  // CSP buys nothing — but the default same-origin Cross-Origin-Resource-
-  // Policy would break the supported "frontend on :8080 fetching the
-  // backend directly on :4000, no nginx proxy" dev setup (see README), so
-  // that one's relaxed explicitly rather than left to helmet's default.
+  // Mostly a JSON API, so a page-oriented CSP buys nothing — but the default
+  // same-origin Cross-Origin-Resource-Policy would break the supported
+  // "frontend on :8080 fetching the backend directly on :4000, no nginx
+  // proxy" dev setup (see README), so that one's relaxed explicitly rather
+  // than left to helmet's default.
   contentSecurityPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // NOT a JSON-only API any more: render.controller.js serves the real SPA
+  // shell as HTML for /, /temples, /pandits, /services, /how-it-works,
+  // /ai-recommender and every entity detail page (docs/SEO_ARCHITECTURE.md
+  // Phase 7). Those responses inherit these headers, and helmet's default
+  // Cross-Origin-Opener-Policy: same-origin SEVERS window.opener for any
+  // popup the page opens.
+  //
+  // That silently broke "Sign in with Google": Google Identity Services
+  // opens accounts.google.com in a popup and posts the credential back to
+  // window.opener. With COOP same-origin the handle is null, so the popup
+  // finishes the Google-side sign-in and then just sits there blank —
+  // POST /api/auth/google is never even attempted (confirmed: zero such
+  // requests in the access log while users were trying).
+  //
+  // It bites even on /login (which nginx serves statically, without these
+  // headers), because this is a SPA: a visitor lands on "/", gets COOP from
+  // the render proxy, and client-side navigation to /login reuses that same
+  // document — headers and all.
+  //
+  // same-origin-allow-popups keeps the protection that matters (a
+  // cross-origin opener still cannot get a handle on our window) while
+  // letting popups WE open keep talking back to us.
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
 app.use(cors({ origin: corsOrigin }));
 // Before anything that reads req.ip (ban check, logging, sessions) — see

@@ -19,7 +19,16 @@ async function list(q, { search, status, city, state, page, perPage }) {
 
   params.push(perPage, (page - 1) * perPage);
   const { rows } = await q(
+    // city/state/country are what the devotee (or an admin) typed; geo_* is
+    // the edge's guess at their last login. Both are returned rather than
+    // COALESCEd in SQL so the screen can show the typed address in preference
+    // and still say which of the two it is showing.
+    // Reading geo_* needs the grant migration 0008 adds — this role holds
+    // COLUMN-level SELECT on users, which does not extend to columns added
+    // later. Selecting them before that grant existed is what took this
+    // screen down with "permission denied for table users".
     `SELECT id, email, phone, full_name, role, status, city, state, country, email_verified, phone_verified,
+            geo_city, geo_region, geo_country_name, geo_updated_at,
             last_login_at, created_at
      FROM users ${whereSql} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params,
@@ -55,6 +64,7 @@ async function listAdmins(q, { search, page, perPage }) {
 async function getById(q, id) {
   const { rows } = await q(
     `SELECT id, email, phone, full_name, role, status, city, state, country, pincode, email_verified, phone_verified,
+            geo_city, geo_region, geo_country_name, geo_updated_at,
             last_login_at, login_count, created_at, updated_at
      FROM users WHERE id = $1 AND deleted_at IS NULL AND role = 'devotee'`,
     [id],

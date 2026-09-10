@@ -20,6 +20,21 @@ export const siteConfig = {
   defaultDescription:
     "Browse temples across India, view verified Pandit profiles and contact them directly on WhatsApp or call. No middleman, no commission on your puja.",
   defaultOgImage: "/assets/img/logo-new.png",
+
+  /**
+   * The real contact details, in one place.
+   *
+   * The footer, the Contact page and the dictionary each carried their own
+   * copy of a placeholder ("+91 90000 00000", "namaste@panditsuggest.in"), so
+   * a devotee who tried the footer number and then the Contact page got two
+   * different fictional ways to reach nobody. `phoneHref` is the dialable
+   * E.164 form; `phone` is how it is shown.
+   */
+  contact: {
+    email: "panditsuggest@gmail.com",
+    phone: "+91 97555 59161",
+    phoneHref: "+919755559161",
+  },
 };
 
 /** Absolute URL for an OG/canonical tag — accepts a path or an already-full URL. */

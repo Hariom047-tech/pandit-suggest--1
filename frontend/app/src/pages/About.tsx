@@ -35,13 +35,12 @@ export default function About() {
   const platformReviews = useMemo(() => normReviews(rawPlatformReviews), [rawPlatformReviews]);
 
   const { data: stats } = useStats();
-  const defaultStats = [
-    { icon: "users", num: "500+", label: "Verified Pandits" },
-    { icon: "temple", num: "100+", label: "Temples Listed" },
-    { icon: "award", num: "50+", label: "Cities Covered" },
-    { icon: "star", num: "10K+", label: "Happy Families" },
-  ];
-  const displayStats = stats?.length ? stats : defaultStats;
+  // No hardcoded fallback — see components/hero/HeroAstrotalk.tsx for the same
+  // fix. These claimed "500+ Verified Pandits" and "10K+ Happy Families"
+  // whenever the API returned nothing, which on the clean production database
+  // is always. Unverifiable numbers on an About page are exactly the kind a
+  // visitor is entitled to take literally.
+  const displayStats = stats?.length ? stats : [];
   return (
     <>
       <Seo
@@ -92,6 +91,7 @@ export default function About() {
         </div>
       </section>
 
+      {displayStats.length > 0 && (
       <section className="section section--cream section--tight">
         <div className="shell">
           <div className="grid g-4 about-stats-grid">
@@ -105,6 +105,7 @@ export default function About() {
           </div>
         </div>
       </section>
+      )}
 
       <section className="section" id="verify" style={{ position: "relative" }}>
         <img src="/assets/img/lotus.svg" className="watermark watermark--bl" alt="" style={{ width: 240 }} />

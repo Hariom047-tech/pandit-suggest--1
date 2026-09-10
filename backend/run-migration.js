@@ -1,8 +1,10 @@
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const { assertDisposableTarget } = require('./src/config/destructiveGuard');
 
 async function run() {
+  assertDisposableTarget(process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/panditconnect', 'run-migration.js');
   const client = new Client(process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/panditconnect');
   await client.connect();
   try {

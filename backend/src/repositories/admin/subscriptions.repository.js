@@ -111,14 +111,17 @@ async function listSubscriptions(q, { tier, activeOnly, page, perPage }) {
 async function grantSubscription(q, panditId, tier, durationDays) {
   const plan = await q('SELECT id FROM subscription_plans WHERE tier = $1', [tier]);
   if (!plan.rows[0]) return null;
+  // Retire any existing entitlement first: uq_subscription_one_active_per_pandit
+  // enforces one active subscription per pandit at the storage layer, so the
+  // INSERT below would collide if the outgoing row were still active.
+  await q(
+    `UPDATE pandit_subscriptions SET is_active = FALSE WHERE pandit_id = $1 AND is_active = TRUE`,
+    [panditId],
+  );
   const { rows } = await q(
     `INSERT INTO pandit_subscriptions (pandit_id, plan_id, billing_cycle, starts_at, expires_at, is_active)
      VALUES ($1, $2, 'manual', NOW(), NOW() + ($3 || ' days')::interval, TRUE) RETURNING id, expires_at`,
     [panditId, plan.rows[0].id, durationDays || 30],
-  );
-  await q(
-    `UPDATE pandit_subscriptions SET is_active = FALSE WHERE pandit_id = $1 AND id <> $2 AND is_active = TRUE`,
-    [panditId, rows[0].id],
   );
   await q('SELECT activate_pandit_subscription($1, $2::subscription_tier, $3)', [panditId, tier, rows[0].expires_at]);
   return rows[0];

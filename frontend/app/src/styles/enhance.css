@@ -58,12 +58,9 @@
 
 .astro-card__name-row {
   display: flex;
-  /* flex-start, not center: .astro-card__name reserves height for 2 lines
-     even when the name is one line (see its min-height), so centering here
-     would center the verified badge against that full reserved box and
-     leave it sitting below a one-line name instead of beside it. */
+  /* The verified badge now lives inside the heading and aligns itself against
+     the text, so this row only has to stop its single child from stretching. */
   align-items: flex-start;
-  gap: 6px;
   margin-bottom: 4px;
 }
 .astro-card__name {
@@ -84,14 +81,22 @@
      from card to card in the same grid row. */
   min-height: calc(var(--fs-700) * var(--lh-snug) * 2);
 }
+/* Sits inside .astro-card__name (see PanditCard.tsx), so it must be an
+   INLINE box that flows with the name's last word rather than a flex sibling
+   parked to the right of the whole name block. The margin does the spacing
+   that a literal space would, without adding a line-break opportunity. */
 .astro-card__verified {
   color: #10b981; /* green */
-  display: flex;
-  /* Optical nudge: the row aligns to flex-start (name-row comment above),
-     which lines the badge up with the top of the name's line box, not the
-     glyphs' own vertical center within that line box — this closes the gap. */
-  margin-top: 3px;
+  /* Plain `inline`, not inline-flex/inline-block: .astro-card__name is a
+     -webkit-box for its 2-line clamp, and only genuinely inline content is
+     guaranteed to stay in that text flow rather than become a box child. */
+  display: inline;
+  /* Stands in for the space that was deliberately left out of the JSX. */
+  margin-left: 5px;
 }
+/* middle, not the baseline an inline SVG would otherwise sit on, so the tick
+   centres against the name's glyphs instead of hanging below them. */
+.astro-card__verified svg { vertical-align: middle; }
 
 .astro-card__meta-short {
   font-size: var(--fs-200);
@@ -523,7 +528,7 @@ a.card:hover .svc-ico--emoji {
   .grid-2up-mobile .astro-card__header { padding: 10px 6px 6px; flex-direction: column; text-align: center; gap: 4px; }
   .grid-2up-mobile .astro-card__avatar { width: 48px; height: 48px; margin: 0 auto; }
   .grid-2up-mobile .astro-card__header-info { width: 100%; display: flex; flex-direction: column; align-items: center; }
-  .grid-2up-mobile .astro-card__name-row { justify-content: center; gap: 4px; width: 100%; }
+  .grid-2up-mobile .astro-card__name-row { justify-content: center; width: 100%; }
   .grid-2up-mobile .astro-card__name { font-size: var(--fs-300); white-space: normal; line-height: var(--lh-tight); text-align: center; min-height: calc(var(--fs-300) * var(--lh-tight) * 2); }
   .grid-2up-mobile .astro-card__meta-short { font-size: var(--fs-50); text-align: center; }
   .grid-2up-mobile .astro-card__tags { padding: 0 4px; gap: 4px; margin-bottom: 6px; }

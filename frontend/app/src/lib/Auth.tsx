@@ -12,6 +12,10 @@ export interface User {
   status?: "pending_verification" | "active" | "suspended" | "deactivated" | "banned";
   phone_verified?: boolean;
   email_verified?: boolean;
+  /** The devotee's own town, as they typed it. Takes precedence over the
+   *  CloudFront guess everywhere location is shown — see users.geo_* . */
+  city?: string | null;
+  state?: string | null;
 }
 
 /**

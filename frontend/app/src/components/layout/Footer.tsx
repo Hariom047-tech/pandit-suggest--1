@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { siteConfig } from "../../lib/siteConfig";
 import { useState, type FormEvent } from "react";
 import { Icon } from "../../lib/icons";
 import { api } from "../../lib/api";
@@ -82,9 +83,17 @@ export function Footer() {
           <p className="muted" style={{ marginTop: 14, maxWidth: 330 }}>
             {t("footer.tagline")}
           </p>
+          {/* Linked, not just printed: a footer number is most often read on
+              a phone, where tapping it should dial. */}
           <ul className="footer-contact">
-            <li><Icon name="phone" size={14} /> +91 90000 00000</li>
-            <li><Icon name="mail" size={14} /> namaste@panditsuggest.in</li>
+            <li>
+              <Icon name="phone" size={14} />
+              <a href={`tel:${siteConfig.contact.phoneHref}`}>{siteConfig.contact.phone}</a>
+            </li>
+            <li>
+              <Icon name="mail" size={14} />
+              <a href={`mailto:${siteConfig.contact.email}`}>{siteConfig.contact.email}</a>
+            </li>
           </ul>
           <div className="socials">
             {SOCIALS.map(([icon, label]) => (

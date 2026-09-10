@@ -31,12 +31,42 @@ const BASE_SELECT = `
          p.public_phone AS phone, p.whatsapp_number, p.bio AS about, p.short_bio, p.profile_photo_url AS img,
          p.is_available, p.is_featured, p.rank_score,
          p.vedic_education, p.gotra, p.tradition, p.responds_within, p.accepts_online,
-         p.meta_title, p.meta_description
+         p.meta_title, p.meta_description,
+         -- Hindi version of the admin-authored profile text (migration 0012).
+         -- Sent alongside the English rather than swapped server-side: the
+         -- language is the reader's own switch and the page falls back field
+         -- by field, so both have to be in hand at render time.
+         p.content_hi
   FROM pandits p JOIN users u ON u.id = p.user_id
 `;
 
 /** Filterable, sortable, paginated pandit list. Every filter is optional and
  *  additive (AND'ed together); city/service/lang accept one or many values. */
+/**
+ * Platform-wide count of pandits a visitor could actually be shown — same
+ * "is this profile live" conditions as list()'s fixed WHERE clause, plus
+ * verified.
+ *
+ * Deliberately NOT market-filtered, unlike list(). This feeds the homepage
+ * trust badge, which is a statement about the platform ("this many real,
+ * checked pandits are here"), not about one visitor's rotation pool — the
+ * market condition exists to spread exposure fairly across a browse session,
+ * and letting it move the headline number would make the same site claim a
+ * different size to every visitor.
+ */
+async function countTrusted() {
+  const { rows } = await query(
+    `SELECT COUNT(*)::int AS total
+       FROM pandits p JOIN users u ON u.id = p.user_id
+      WHERE u.status = 'active'
+        AND p.deleted_at IS NULL
+        AND u.deleted_at IS NULL
+        AND p.is_paused = FALSE
+        AND p.verification_status = 'verified'`,
+  );
+  return rows[0].total;
+}
+
 async function list({ q, city, service, lang, minExp, minRating, verified, sort, page, perPage, market }) {
   const where = ['u.status = \'active\'', 'p.deleted_at IS NULL', 'u.deleted_at IS NULL', 'p.is_paused = FALSE'];
   const params = [];
@@ -278,4 +308,5 @@ async function addView(panditId) {
   );
 }
 
-module.exports = { forServiceOnline, list, hydrate, getBySlug, findIdBySlug, exists, forService, forTemple, pickForTemple, addEnquiry, addContactClick, addView };
+module.exports = {
+  countTrusted, forServiceOnline, list, hydrate, getBySlug, findIdBySlug, exists, forService, forTemple, pickForTemple, addEnquiry, addContactClick, addView };

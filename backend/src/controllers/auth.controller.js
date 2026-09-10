@@ -7,11 +7,17 @@ const { withUserContext } = require('../config/db');
 const { logSecurityEvent } = require('../utils/securityLog');
 const { sessionTtlHours, nodeEnv } = require('../config/env');
 const { logActivityEvent, deviceTypeFromUserAgent } = require('../utils/activityLog');
-const { browsingMarketFor } = require('../services/distribution/market');
+const { browsingMarketFor, viewerLocationSnapshot } = require('../services/distribution/market');
 const hyperSender = require('../services/notifications/hyperSender');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BCRYPT_ROUNDS = 10;
+
+/** users.full_name is NOT NULL, but a WhatsApp-OTP signup has nothing to put
+ *  in it — the number is all we know at that moment. This stands in until
+ *  the client collects a real name (see phoneLogin's `needsName`), and is the
+ *  marker for "we still haven't asked". Keep in sync with Login.tsx. */
+const NAME_PLACEHOLDER = 'Devotee';
 
 /**
  * Allow-list, not a deny-list.
@@ -37,7 +43,10 @@ function sanitize(user) {
   return out;
 }
 
-async function issueSession(res, user, req) {
+/** `extra` is merged into the response body — used by phoneLogin to tell the
+ *  client it just CREATED this account, so the UI can ask for a real name
+ *  instead of leaving the 'Devotee' placeholder on screen forever. */
+async function issueSession(res, user, req, extra) {
   const token = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + sessionTtlHours * 60 * 60 * 1000);
   await repo.createSession({
@@ -49,6 +58,15 @@ async function issueSession(res, user, req) {
   });
   await withUserContext(user.id, (q) => repo.touchLogin(user.id, q));
 
+  // Where the edge says this login came from, refreshed every time. It lands
+  // in users.geo_* — never in users.city/state/country, which belong to the
+  // devotee and are theirs to write (see migrations/0007). Best-effort and
+  // deliberately not awaited: a login must not fail because a nice-to-have
+  // analytics column could not be updated.
+  const viewer = viewerLocationSnapshot(req.headers);
+  void withUserContext(user.id, (q) => repo.updateLoginGeo(user.id, viewer, q))
+    .catch((err) => console.error('[auth] could not record login geo:', err.message));
+
   const browsing = browsingMarketFor(req);
   void logActivityEvent({
     userId: user.id,
@@ -59,7 +77,7 @@ async function issueSession(res, user, req) {
     deviceType: deviceTypeFromUserAgent(req.headers['user-agent']),
   });
 
-  res.status(201).json({ token, expiresAt, user: sanitize(user) });
+  res.status(201).json({ token, expiresAt, user: sanitize(user), ...extra });
 }
 
 /** POST /api/auth/register — plain devotee/temple_admin accounts. Pandits
@@ -137,19 +155,94 @@ async function me(req, res) {
   res.json(sanitize(user));
 }
 
-/** PATCH /api/auth/me — allow-listed profile update (name, phone only).
- *  The client never touches role, status, or any verified flag. */
+/** PATCH /api/auth/me — allow-listed profile update (name, phone, email,
+ *  city, state). The client never touches role, status, or any verified flag:
+ *  email_verified below is derived here, never read from the request body. */
 async function updateMe(req, res) {
-  const { full_name, phone } = req.body || {};
+  const { full_name, phone, email, city, state } = req.body || {};
   const updates = {};
-  if (full_name !== undefined) updates.full_name = String(full_name).trim().slice(0, 120);
-  if (phone !== undefined) updates.phone = phone ? String(phone).trim().slice(0, 20) : null;
+  if (full_name !== undefined) {
+    const name = String(full_name).trim().slice(0, 120);
+    // full_name is NOT NULL and is what the whole UI greets them by — an
+    // empty string would just replace 'Devotee' with a blank header.
+    if (!name) return res.status(400).json({ error: 'Please enter your name' });
+    updates.full_name = name;
+  }
+
+  // The devotee's own town. Until now only an admin could set these, so every
+  // account fell back to the CloudFront guess in the admin Users list — and
+  // that guess resolves a mobile connection to the carrier's gateway city, not
+  // the person's village. Someone in a town outside Indore shows up as Indore
+  // and no amount of edge data will fix it; only they can say where they are.
+  // Empty string means "clear it", which puts them back on the geo fallback.
+  if (city !== undefined) updates.city = city ? String(city).trim().slice(0, 120) : null;
+  if (state !== undefined) updates.state = state ? String(state).trim().slice(0, 120) : null;
+  // Fetched once for both branches below: each has to compare the incoming
+  // value against what is already stored before deciding whether a verified
+  // flag survives, and two reads of the same row inside one request would only
+  // invite them to disagree.
+  let current = null;
+  if (phone !== undefined || email !== undefined) {
+    current = await withUserContext(req.user.id, (q) => repo.findById(req.user.id, q));
+    if (!current) return res.status(404).json({ error: 'User not found' });
+  }
+
+  if (phone !== undefined) {
+    const next = phone ? String(phone).trim().slice(0, 20) : null;
+
+    // Same shape as the email branch below, and for the same reason. Typing a
+    // number into a form is not proof of owning it, so a changed number must
+    // lose phone_verified — otherwise an account that verified one number by
+    // OTP could carry the flag over to any other number just by saving the
+    // profile, and record_qualified_lead() (which gates every lead on
+    // phone_verified) would hand the pandit a number nobody owns.
+    // Re-saving the SAME number must not clear the flag, or a devotee who
+    // edits their name would silently lose their verification.
+    if (next !== current.phone) {
+      if (next) {
+        const taken = await repo.findByPhone(next);
+        if (taken && taken.id !== req.user.id) {
+          return res.status(409).json({ error: 'That phone number is already used by another account' });
+        }
+      }
+      updates.phone = next;
+      updates.phone_verified = false;
+    }
+  }
+
+  if (email !== undefined) {
+    const next = email ? String(email).trim().toLowerCase().slice(0, 255) : null;
+    if (next && !EMAIL_RE.test(next)) return res.status(400).json({ error: 'email is not valid' });
+
+    // Re-saving the same address must not clear email_verified — otherwise a
+    // Google user who edits their phone number and hits Save would silently
+    // lose the verified flag Google earned them.
+    if (next !== current.email) {
+      if (next) {
+        const taken = await repo.findByEmail(next);
+        if (taken && taken.id !== req.user.id) {
+          return res.status(409).json({ error: 'That email is already used by another account' });
+        }
+      }
+      updates.email = next;
+      // A self-declared address is NOT proof of ownership. Only Google
+      // sign-in (googleAuth/linkGoogleId) may set this true.
+      updates.email_verified = false;
+    }
+  }
+
   if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update' });
 
-  await withUserContext(req.user.id, (q) => q(
-    `UPDATE users SET ${ Object.keys(updates).map((k, i) => `${k} = $${i + 2}`).join(', ') } WHERE id = $1`,
-    [req.user.id, ...Object.values(updates)],
-  ));
+  try {
+    await withUserContext(req.user.id, (q) => q(
+      `UPDATE users SET ${ Object.keys(updates).map((k, i) => `${k} = $${i + 2}`).join(', ') } WHERE id = $1`,
+      [req.user.id, ...Object.values(updates)],
+    ));
+  } catch (err) {
+    // UNIQUE(email)/UNIQUE(phone) losing the race against the check above.
+    if (err.code === '23505') return res.status(409).json({ error: 'That email or phone is already used by another account' });
+    throw err;
+  }
   const updated = await withUserContext(req.user.id, (q) => repo.findById(req.user.id, q));
   res.json(sanitize(updated));
 }
@@ -171,14 +264,16 @@ function otpMatches(candidate, record) {
 }
 
 /** POST /api/auth/otp/request — a phone target is sent over WhatsApp via
- *  Hypersender when configured (services/notifications/hyperSender.js); no
- *  email provider is wired up (see README "Known placeholders"). The OTP
- *  itself is always generated and stored locally exactly as before —
- *  Hypersender is only ever the delivery channel, never the source of truth
- *  (see verifyOtp/phoneLogin's otpMatches below). In non-production the OTP
- *  is ALSO returned in the response body so the flow is still testable
- *  end-to-end without WhatsApp configured. 4 digits to match the OTP entry
- *  UI (Login.tsx's 4-box input). */
+ *  Hypersender (services/notifications/hyperSender.js); no email provider is
+ *  wired up (see README "Known placeholders"). The OTP itself is always
+ *  generated and stored locally — Hypersender is only ever the delivery
+ *  channel, never the source of truth (see verifyOtp/phoneLogin's
+ *  otpMatches below). In non-production the OTP is ALSO returned in the
+ *  response body so the flow is still testable end-to-end without WhatsApp
+ *  configured. 4 digits to match the OTP entry UI (Login.tsx's 4-box input).
+ *
+ *  Outside development, a phone OTP that cannot actually be delivered is an
+ *  ERROR, not a 201 — see the comments inline. */
 async function requestOtp(req, res) {
   const { target, targetType } = req.body || {};
   if (!target || !['phone', 'email'].includes(targetType)) {
@@ -190,14 +285,38 @@ async function requestOtp(req, res) {
   const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
   await repo.createOtp({ target, targetType, otpHash, expiresAt });
 
-  if (targetType === 'phone' && hyperSender.isConfigured()) {
-    // Soft-fail, same posture as templeInquiry elsewhere: the OTP record
-    // already exists and remains valid either way — a Hypersender outage
-    // should not block requestOtp itself. Logged so a real delivery problem
-    // is still visible in the server logs rather than silently swallowed.
-    const sent = await hyperSender.sendWhatsAppOtp(target, otp, expiresMinutes);
-    if (!sent.ok) console.error(`[auth] WhatsApp OTP delivery failed for ${target}: ${sent.error}`);
-  } else if (nodeEnv === 'development') {
+  if (targetType === 'phone') {
+    if (!hyperSender.isConfigured()) {
+      // NOT a soft-fail any more. This branch means there is no delivery
+      // channel at all: the code is generated and stored, and then nothing
+      // sends it anywhere. Returning `ok: true` here made the UI say "OTP
+      // sent to +91…" and left the user staring at an empty inbox — the
+      // access log shows exactly that, one visitor requesting a code ten
+      // times in twenty minutes and never being able to log in.
+      //
+      // In development the console log below is a real delivery channel, so
+      // this only fires where there genuinely isn't one.
+      if (nodeEnv !== 'development') {
+        console.error('[auth] OTP requested but HYPERSENDER_INSTANCE_ID/HYPERSENDER_API_KEY are unset — nothing can deliver it');
+        return res.status(503).json({ error: 'Phone verification is temporarily unavailable. Please try again later.' });
+      }
+    } else {
+      const sent = await hyperSender.sendWhatsAppOtp(target, otp, expiresMinutes);
+      if (!sent.ok) {
+        // Same reasoning: an undelivered code is not a success. The OTP row
+        // stays valid (harmless, and it still works if the message lands
+        // late), but the caller is told to retry instead of waiting forever.
+        console.error(`[auth] WhatsApp OTP delivery failed for ${target}: ${sent.error}`);
+        // Except in development, where the console log below is still a
+        // working channel and a provider outage shouldn't block local work.
+        if (nodeEnv !== 'development') {
+          return res.status(502).json({ error: 'Could not send the OTP right now. Please try again in a moment.' });
+        }
+      }
+    }
+  }
+
+  if (nodeEnv === 'development') {
     // Dev-only: log OTP to console so local testing works without WhatsApp
     // configured. NEVER include in staging — use nodeEnv === 'development',
     // NOT !== 'production'.
@@ -225,8 +344,39 @@ async function verifyOtp(req, res) {
   }
 
   await repo.markOtpVerified(record.id);
-  if (req.user) await withUserContext(req.user.id, (q) => repo.markTargetVerified(req.user.id, targetType, q));
-  res.json({ ok: true, verified: true });
+
+  let outcome = null;
+  if (req.user) {
+    if (targetType === 'phone') {
+      // Signing in on the phone with an OTP and later on the desktop with
+      // Google leaves one person holding two accounts, and users.phone being
+      // UNIQUE means the second one cannot record the number the first
+      // already has. claim_verified_phone() (migrations/0005) resolves that:
+      // it absorbs the other account when the phone is that account's ONLY
+      // way in — which makes its owner, by definition, whoever just passed
+      // this OTP — and refuses when the holder is separately reachable.
+      //
+      // The VALUE lands with the flag in there too, so the number on the row
+      // is by construction the number an OTP was proved against. That is what
+      // a pandit is shown when the lead arrives, and what updateMe's reset
+      // above exists to protect.
+      try {
+        outcome = await repo.claimVerifiedPhone(target, req.user.id);
+      } catch (err) {
+        if (err.code === 'PS001') {
+          return res.status(409).json({
+            error: 'Yeh number ek aise account par hai jisme aap alag se login kar sakte hain. Us account me login karke try karein.',
+          });
+        }
+        throw err;
+      }
+    } else {
+      await withUserContext(req.user.id, (q) => repo.markTargetVerified(req.user.id, targetType, q));
+    }
+  }
+  // `merged` is surfaced so the UI can say the old account was folded in,
+  // rather than leaving the devotee to notice their history moved on its own.
+  res.json({ ok: true, verified: true, merged: outcome === 'merged' });
 }
 
 /** POST /api/auth/otp/login — passwordless phone login/signup: verifies the
@@ -251,19 +401,21 @@ async function phoneLogin(req, res) {
   await repo.markOtpVerified(record.id);
 
   let user = await repo.findByPhone(phone);
+  let isNewUser = false;
   if (user) {
     if (!user.phone_verified) {
       await withUserContext(user.id, (q) => repo.markTargetVerified(user.id, 'phone', q));
       user.phone_verified = true;
     }
   } else {
+    isNewUser = true;
     // No email at all — better than a fake `phone-xxx@otp...` placeholder
     // that looked like real data everywhere it was displayed (admin Users
     // list, the devotee's own profile). email is nullable for exactly this
     // (33-nullable-email-and-status-fix.sql); the UNIQUE constraint still
     // holds since Postgres allows any number of NULLs under it.
     try {
-      user = await repo.create({ email: null, phone, fullName: 'Devotee', role: 'devotee' });
+      user = await repo.create({ email: null, phone, fullName: NAME_PLACEHOLDER, role: 'devotee' });
     } catch (err) {
       if (err.code === '23505') return res.status(409).json({ error: 'An account with this number already exists — please try again' });
       throw err;
@@ -275,7 +427,14 @@ async function phoneLogin(req, res) {
   if (user.status === 'suspended' || user.status === 'banned' || user.status === 'deactivated') {
     return res.status(403).json({ error: `Account is ${user.status}` });
   }
-  await issueSession(res, user, req);
+  // `isNewUser` drives Login.tsx's "what's your name?" step. NAME_PLACEHOLDER
+  // is also flagged so accounts created before that step existed — every
+  // phone signup so far, all of them still called 'Devotee' — get asked once
+  // on their next login instead of being stuck with the placeholder.
+  await issueSession(res, user, req, {
+    isNewUser,
+    needsName: isNewUser || user.full_name === NAME_PLACEHOLDER,
+  });
 }
 
 /** POST /api/auth/google */

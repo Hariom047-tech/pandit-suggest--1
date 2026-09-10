@@ -1,40 +1,49 @@
 #!/usr/bin/env node
 /**
- * Applies backend/src/db/01-schema.sql, 02-seed.sql then 03-qualified-leads.sql
- * against DATABASE_URL, in that order.
+ * Builds a database from scratch: baseline -> config -> pending migrations.
  *
- * Docker Compose never needs this — the postgres image runs both files itself
- * via /docker-entrypoint-initdb.d/ on first container start. This script is
- * for running the backend against a Postgres that ISN'T freshly created by
- * that image: a local install, a remote dev database, or re-seeding a
- * container after `docker compose down` without `-v` (data dir already has
- * content, so postgres's own auto-init won't fire again).
+ * This used to apply historical/01-schema.sql, 02-seed.sql and a hardcoded
+ * list of the next seven migrations. All three parts of that are now wrong:
  *
- * Run: DATABASE_URL=postgresql://... node backend/scripts/init-db.js
+ *   - 01-schema.sql could not build an empty database at all (a function
+ *     forward-referenced a table created 31 lines later), so this script's
+ *     single-query-per-file style rolled the whole thing back and produced an
+ *     EMPTY database while reporting success
+ *   - 02-seed.sql is demo content — 23 users sharing one committed bcrypt
+ *     hash, including an active admin. It must never reach any environment
+ *     that could be mistaken for production
+ *   - the hardcoded file list stopped at 09, so a database built this way was
+ *     missing migrations 10-36 entirely
+ *
+ * The bootstrap path is now baseline/0000 + config/0001 + migrations/, applied
+ * exactly once each and recorded in schema_migrations. That is one code path
+ * for CI, development, staging and production, which is the only way any of
+ * them proves anything about the others.
+ *
+ * This script is a thin, friendly wrapper around that. It exists for the case
+ * the original was written for: a Postgres that was NOT freshly created by the
+ * compose image, so /docker-entrypoint-initdb.d never fired.
+ *
+ *   DATABASE_MIGRATOR_URL=postgresql://... node scripts/init-db.js
+ *
+ * Roles and extensions must already exist — run tools/00-bootstrap-dev.sql (or
+ * tools/00-bootstrap-rds.sql in production) as a superuser first. Both are
+ * one-time, and both are documented in docs/PRODUCTION_DB_RUNBOOK.md.
  */
-require('dotenv').config();
-const fs = require('fs');
+'use strict';
+
+const { spawnSync } = require('child_process');
 const path = require('path');
-const { Client } = require('pg');
 
-const DB_DIR = path.join(__dirname, '..', 'src', 'db');
+console.log(
+  'init-db: delegating to scripts/migrate.js (baseline -> config -> migrations).\n'
+  + '         If roles or extensions are missing, apply src/db/tools/00-bootstrap-dev.sql\n'
+  + '         as a superuser first.\n');
 
-async function main() {
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
-  await client.connect();
-  try {
-    for (const file of ['01-schema.sql', '02-seed.sql', '03-qualified-leads.sql', '04-dynamic-content.sql', '05-temple-content.sql', '06-service-categories.sql', '07-online-puja.sql', '08-pandit-credentials.sql', '09-platform-reviews.sql']) {
-      const sql = fs.readFileSync(path.join(DB_DIR, file), 'utf8');
-      console.log(`applying ${file}...`);
-      await client.query(sql); // no params → simple query protocol → runs every ';'-separated statement
-    }
-    console.log('Database schema + seed applied.');
-  } finally {
-    await client.end();
-  }
-}
+const result = spawnSync(
+  process.execPath,
+  [path.join(__dirname, 'migrate.js'), ...process.argv.slice(2)],
+  { stdio: 'inherit' },
+);
 
-main().catch((err) => {
-  console.error('init-db failed:', err.message);
-  process.exit(1);
-});
+process.exit(result.status === null ? 1 : result.status);

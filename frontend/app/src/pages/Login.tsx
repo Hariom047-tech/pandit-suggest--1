@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Icon } from "../lib/icons";
 import { api } from "../lib/api";
-import { useAuth } from "../lib/Auth";
+import { useAuth, readContactIntent } from "../lib/Auth";
 import { useToast } from "../components/ui/Toast";
 import { GoogleLogin } from "@react-oauth/google";
 import { allCountries } from "../data/countries";
@@ -19,17 +19,43 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Third step, shown only to a brand-new phone signup (or to one of the
+  // older accounts still sitting on the 'Devotee' placeholder). A WhatsApp
+  // OTP proves the number and nothing else — without this the account is
+  // created nameless and every greeting on the site reads "Devotee".
+  const [needsName, setNeedsName] = useState(false);
+  const [fullName, setFullName] = useState("");
+  // No email field on this step. It reaches here only after a phone OTP has
+  // already proved who this is, so an address adds nothing to the sign-in and
+  // is one more thing between the devotee and the page they came to use. They
+  // can add one later from the dashboard if they want receipts.
+
   // Country Selector State
   const [showDropdown, setShowDropdown] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [selectedCountry, setSelectedCountry] = useState({ name: "India", code: "+91", iso: "in" });
   
-  const { login } = useAuth();
+  const { login, updateUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
 
-  const from = location.state?.from?.pathname || "/dashboard";
+  /*
+   * Where to land after signing in.
+   *
+   * Router state first — that is the caller saying explicitly where it wants
+   * them back, and usePanditContact now sets it to the pandit's profile.
+   *
+   * The parked contact intent is the fallback, because router state does not
+   * survive a page reload or someone opening /login in a fresh tab, and losing
+   * it there would put a devotee who had already chosen a pandit back on
+   * /dashboard to hunt for them again. readContactIntent() enforces its own
+   * 30-minute expiry, so a stale one cannot hijack an unrelated login.
+   */
+  const intent = readContactIntent();
+  const from = location.state?.from?.pathname
+    || (intent ? `/pandits/${intent.panditSlug}` : null)
+    || "/dashboard";
 
   const filteredCountries = allCountries.filter(c => 
     c.name.toLowerCase().includes(countrySearch.toLowerCase()) || 
@@ -126,15 +152,45 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.post<{ token: string; user: any }>("/auth/otp/login", {
+      const res = await api.post<{ token: string; user: any; needsName?: boolean }>("/auth/otp/login", {
         phone: fullPhone(),
         otp: otpString,
       });
+      // login() first either way: it puts the token in the api client, which
+      // the PATCH in handleSaveProfile below needs to authenticate.
       login(res.token, res.user);
+      if (res.needsName) {
+        setNeedsName(true);
+        return;
+      }
       toast("Verified successfully!");
       navigate(from, { replace: true });
     } catch (err: any) {
       setError(err.message || "Incorrect or expired OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Step 3 — the only place a phone signup ever gets a real name. Email is
+   *  optional and stored unverified (the backend never trusts a self-declared
+   *  address); it exists so a devotee who wants to be reachable by mail can be. */
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = fullName.trim();
+    if (name.length < 2) {
+      setError("Please enter your name");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const updated = await api.patch<any>("/auth/me", { full_name: name });
+      updateUser(updated);
+      toast(`Welcome, ${updated.full_name}!`);
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      setError(err.message || "Could not save your details. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -190,20 +246,27 @@ export default function Login() {
           alignItems: "center" 
         }}>
           <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "#000" }}>
-            {otpSent ? "Enter OTP" : "Continue with Phone"}
+            {needsName ? "Aapka naam?" : otpSent ? "Enter OTP" : "Continue with Phone"}
           </h2>
-          <button 
-            onClick={() => navigate(-1)} 
-            style={{ background: "none", border: "none", color: "#000", cursor: "pointer", padding: 4 }}
-          >
-            <Icon name="x" size={20} />
-          </button>
+          {/* No close button on the name step: the session already exists, so
+              dismissing it would drop the user into the site as 'Devotee' —
+              exactly the state this step is here to prevent. */}
+          {!needsName && (
+            <button 
+              onClick={() => navigate(-1)} 
+              style={{ background: "none", border: "none", color: "#000", cursor: "pointer", padding: 4 }}
+            >
+              <Icon name="x" size={20} />
+            </button>
+          )}
         </div>
 
         {/* Content Body */}
         <div style={{ padding: "30px 24px" }}>
           <p style={{ textAlign: "center", color: "#555", fontSize: "0.95rem", marginBottom: 30, lineHeight: 1.5 }}>
-            {otpSent 
+            {needsName
+              ? "Number verified! Bas ek aakhri step — apna naam bataiye taaki Pandit ji aapko naam se pukar sakein."
+              : otpSent 
               ? `We have sent a 4-digit code to ${selectedCountry.code} ${phone}`
               : "You will receive a 4 digit code for verification"}
           </p>
@@ -214,7 +277,55 @@ export default function Login() {
             </div>
           )}
 
-          {!otpSent ? (
+          {needsName ? (
+            <form onSubmit={handleSaveProfile}>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: "0.9rem", color: "#555", marginBottom: 8 }}>
+                  Full Name <span style={{ color: "#e53e3e" }}>*</span>
+                </label>
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Ramesh Sharma"
+                  autoFocus
+                  autoComplete="name"
+                  maxLength={120}
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    border: "1px solid #ddd",
+                    borderRadius: 8,
+                    fontSize: "1rem",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || fullName.trim().length < 2}
+                style={{
+                  width: "100%",
+                  background: (loading || fullName.trim().length < 2) ? "rgba(212,160,23,0.4)" : "var(--gold)",
+                  color: "#fff",
+                  border: "none",
+                  padding: "14px",
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  fontSize: "1rem",
+                  cursor: (loading || fullName.trim().length < 2) ? "not-allowed" : "pointer",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: 8,
+                  transition: "background 0.2s",
+                }}
+              >
+                {loading ? "SAVING..." : "CONTINUE"}
+                {!loading && <Icon name="arrow-right" size={18} />}
+              </button>
+            </form>
+          ) : !otpSent ? (
             <form onSubmit={handleGetOtp}>
               <div style={{ marginBottom: 24 }}>
                 <label style={{ display: "block", fontSize: "0.9rem", color: "#555", marginBottom: 8 }}>
@@ -430,7 +541,7 @@ export default function Login() {
           {/* Google sign-in needs a real configured OAuth client ID — without
               one, Google itself rejects the request before reaching our
               backend, so the button is hidden rather than offered broken. */}
-          {googleConfigured && (
+          {googleConfigured && !needsName && (
             <>
               {/* OR Divider */}
               <div style={{ display: "flex", alignItems: "center", margin: "24px 0" }}>

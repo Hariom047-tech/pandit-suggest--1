@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../lib/icons";
-import { useAuth } from "../lib/Auth";
+import { useAuth, readContactIntent, clearContactIntent } from "../lib/Auth";
 import { useToast } from "../components/ui/Toast";
 import { api } from "../lib/api";
+import { toE164 } from "../lib/format";
 import { motion, AnimatePresence } from "framer-motion";
 import { Seo } from "../lib/Seo";
 
@@ -16,12 +17,32 @@ const SECTIONS = [
 export default function Dashboard() {
   const { user, loading, logout, updateUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [section, setSection] = useState("profile");
   const [saving, setSaving] = useState(false);
   const toast = useToast();
 
   const [name, setName] = useState(user?.full_name || "");
   const [phone, setPhone] = useState(user?.phone || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [city, setCity] = useState(user?.city || "");
+  const [state, setState] = useState(user?.state || "");
+
+  // --- Mobile verification ---------------------------------------------
+  // A devotee who signed in with Google has email_verified but no phone at
+  // all, and record_qualified_lead() gates every lead on phone_verified
+  // specifically. Before this existed, such a user pressing Call/WhatsApp was
+  // bounced here to "?verify=mobile" and found only a plain text box that
+  // saved a number without ever proving it — so they were bounced here again
+  // on the next press, forever. This is the missing half: request an OTP for
+  // the number, confirm it, and let the backend set the flag.
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  // Set when the contact flow redirected here, so the reason is stated up
+  // front rather than leaving the devotee to guess why the page opened.
+  const wantsMobile = new URLSearchParams(location.search).get("verify") === "mobile";
   
   // Astrology / Kundli specific fields
   const [dob, setDob] = useState("");
@@ -32,16 +53,90 @@ export default function Dashboard() {
   if (loading) return null;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
 
+  /** Sends the code. The number is normalised first: OTP delivery needs the
+   *  full international number, and the field accepts "98765 43210" just as
+   *  happily as "+91 98765 43210". */
+  async function onSendOtp() {
+    const target = toE164(phone);
+    if (!target) {
+      setOtpError("Poora mobile number daaliye, jaise +91 98765 43210");
+      return;
+    }
+    setOtpBusy(true);
+    setOtpError(null);
+    try {
+      await api.post("/auth/otp/request", { target, targetType: "phone" });
+      setOtpSent(true);
+      setOtpCode("");
+      toast(`OTP bheja gaya ${target} par (WhatsApp)`);
+    } catch (err: any) {
+      setOtpError(err.message || "OTP bhej nahi paye. Thodi der baad try karein.");
+    } finally {
+      setOtpBusy(false);
+    }
+  }
+
+  /** Confirms the code. The backend writes the number AND the verified flag in
+   *  one statement (auth.controller.js verifyOtp), so there is nothing to save
+   *  separately here — refreshing the user is enough to unblock Call/WhatsApp
+   *  on the next press. */
+  async function onConfirmOtp() {
+    const target = toE164(phone);
+    if (!target || otpCode.trim().length < 4) {
+      setOtpError("4-digit code daaliye");
+      return;
+    }
+    setOtpBusy(true);
+    setOtpError(null);
+    try {
+      const res = await api.post<{ merged?: boolean }>("/auth/otp/verify", {
+        target, targetType: "phone", otp: otpCode.trim(),
+      });
+      const fresh = await api.get<any>("/auth/me");
+      updateUser({ ...user!, ...fresh });
+      setPhone(fresh.phone || target);
+      setOtpSent(false);
+      setOtpCode("");
+      // Said out loud rather than left to be noticed: when the number was
+      // already on a phone-login account, that account's saved pandits,
+      // reviews and enquiries have just moved into this one.
+      toast(res?.merged
+        ? "Mobile verify ho gaya ✓ Aapka purana phone-login account isme mila diya gaya."
+        : "Mobile number verify ho gaya ✓");
+
+      // They only came to this page because a Call/WhatsApp press sent them
+      // here. Verifying is the last thing standing between them and that
+      // pandit, so finish the journey instead of leaving them on a profile
+      // form to navigate back on their own. The intent is cleared because it
+      // has now been acted on; a fresh press parks a new one.
+      const intent = readContactIntent();
+      if (intent) {
+        clearContactIntent();
+        navigate(`/pandits/${intent.panditSlug}`);
+      }
+    } catch (err: any) {
+      setOtpError(err.message || "Code galat hai. Dobara try karein.");
+    } finally {
+      setOtpBusy(false);
+    }
+  }
+
   async function onProfileSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
     try {
-      // Save to backend — PATCH /api/auth/me updates full_name and phone
-      const updated = await api.patch<any>("/auth/me", { full_name: name, phone: phone || null });
+      // Save to backend — PATCH /api/auth/me updates full_name, phone and email
+      const updated = await api.patch<any>("/auth/me", {
+        full_name: name,
+        phone: phone || null,
+        email: email.trim() || null,
+        city: city.trim() || null,
+        state: state.trim() || null,
+      });
       updateUser({ ...user!, ...updated });
       toast("Profile saved successfully! ✓");
     } catch (err: any) {
-      toast("Failed to save profile: " + (err.message || "Please try again."));
+      toast(err.message || "Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -181,6 +276,21 @@ export default function Dashboard() {
                     <p style={{ margin: 0, color: "#666", fontSize: "0.95rem" }}>Provide your birth details for accurate Kundli and Pandit consultations.</p>
                   </div>
 
+                  {/* Shown only when the contact flow sent them here. Without
+                      it the page opens on a profile form with no hint that a
+                      Call/WhatsApp press is what interrupted them, or which
+                      of these fields is standing in the way. */}
+                  {wantsMobile && !user.phone_verified && (
+                    <div style={{ marginBottom: 24, padding: "14px 16px", borderRadius: 12, background: "#fffbeb", border: "1px solid #f5a623" }}>
+                      <strong style={{ display: "block", fontSize: "0.95rem", color: "#7c4a03", marginBottom: 4 }}>
+                        Pandit Ji se contact karne ke liye mobile verify karein
+                      </strong>
+                      <span style={{ fontSize: "0.85rem", color: "#8a6134" }}>
+                        Neeche apna number daaliye aur "Verify karein" dabaiye. WhatsApp par 4-digit code aayega.
+                      </span>
+                    </div>
+                  )}
+
                   <form onSubmit={onProfileSave}>
                     <h3 style={{ fontSize: "1.1rem", marginBottom: 16, color: "#333", borderBottom: "1px solid #eee", paddingBottom: 8 }}>Basic Info</h3>
                     <div className="grid g-2" style={{ gap: 20, marginBottom: 32 }}>
@@ -195,28 +305,131 @@ export default function Dashboard() {
                       <div>
                         <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: 6, fontWeight: 500 }}>
                           Phone Number
-                          {!user.phone && <span style={{ color: "#e53e3e", fontSize: "0.78rem", marginLeft: 8 }}>* Add to write reviews</span>}
+                          {user.phone_verified
+                            ? <span style={{ color: "#15803d", fontSize: "0.78rem", marginLeft: 8, fontWeight: 600 }}>✓ Verified</span>
+                            : <span style={{ color: "#e53e3e", fontSize: "0.78rem", marginLeft: 8 }}>* Pandit Ji se contact karne ke liye zaroori</span>}
                         </label>
-                        <input 
+
+                        {/* The number itself. Editing it after verification
+                            clears the flag server-side (updateMe), so the
+                            Verify button comes straight back — the field is
+                            deliberately left editable rather than locked. */}
+                        <input
                           type="tel"
                           value={phone}
-                          onChange={e => setPhone(e.target.value)}
+                          onChange={e => { setPhone(e.target.value); setOtpSent(false); setOtpError(null); }}
                           placeholder="e.g. +91 98765 43210"
-                          style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: `1px solid ${!user.phone ? "#f5a623" : "#ddd"}`, fontSize: "0.95rem", outline: "none" }} 
+                          autoComplete="tel"
+                          style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: `1px solid ${user.phone_verified ? "#ddd" : "#f5a623"}`, fontSize: "0.95rem", outline: "none" }}
                         />
-                        {!user.phone && (
-                          <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#888" }}>Add your phone number to enable writing reviews</p>
+
+                        {!user.phone_verified && !otpSent && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={onSendOtp}
+                              disabled={otpBusy || !phone.trim()}
+                              style={{ marginTop: 8, padding: "10px 18px", borderRadius: 8, border: "none", background: otpBusy || !phone.trim() ? "rgba(212,160,23,0.4)" : "var(--gold)", color: "#fff", fontWeight: 600, fontSize: "0.9rem", cursor: otpBusy || !phone.trim() ? "not-allowed" : "pointer" }}
+                            >
+                              {otpBusy ? "Bhej rahe hain…" : "Verify karein"}
+                            </button>
+                            <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: "#888" }}>
+                              WhatsApp par ek 4-digit code aayega.
+                            </p>
+                          </>
+                        )}
+
+                        {!user.phone_verified && otpSent && (
+                          <div style={{ marginTop: 10 }}>
+                            <input
+                              value={otpCode}
+                              onChange={e => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                              placeholder="4-digit code"
+                              inputMode="numeric"
+                              autoComplete="one-time-code"
+                              maxLength={4}
+                              autoFocus
+                              style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid #f5a623", fontSize: "1rem", letterSpacing: "0.3em", outline: "none" }}
+                            />
+                            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                              <button
+                                type="button"
+                                onClick={onConfirmOtp}
+                                disabled={otpBusy || otpCode.length < 4}
+                                style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: otpBusy || otpCode.length < 4 ? "rgba(212,160,23,0.4)" : "var(--gold)", color: "#fff", fontWeight: 600, fontSize: "0.9rem", cursor: otpBusy || otpCode.length < 4 ? "not-allowed" : "pointer" }}
+                              >
+                                {otpBusy ? "Check kar rahe hain…" : "Confirm"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={onSendOtp}
+                                disabled={otpBusy}
+                                style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", color: "#555", fontWeight: 500, fontSize: "0.9rem", cursor: otpBusy ? "not-allowed" : "pointer" }}
+                              >
+                                Dobara bhejein
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {otpError && (
+                          <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: "#991b1b" }}>{otpError}</p>
                         )}
                       </div>
                       <div style={{ gridColumn: "1 / -1" }}>
-                        <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: 6, fontWeight: 500 }}>Email Address</label>
+                        <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: 6, fontWeight: 500 }}>
+                          Email Address
+                          {user.email && user.email_verified && (
+                            <span style={{ color: "#15803d", fontSize: "0.78rem", marginLeft: 8, fontWeight: 600 }}>✓ Verified</span>
+                          )}
+                        </label>
                         <input
-                          value={user.email || ""}
-                          placeholder="No email on file"
-                          disabled
-                          style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid #ddd", fontSize: "0.95rem", background: "#f9f9f9", color: "#888" }} 
+                          type="email"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          placeholder="aapka@gmail.com"
+                          autoComplete="email"
+                          style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid #ddd", fontSize: "0.95rem", outline: "none" }} 
+                        />
+                        {!user.email && (
+                          <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#888" }}>
+                            Add your email for booking updates and receipts
+                          </p>
+                        )}
+                      </div>
+
+                      {/* The devotee's own town. Nothing here could set it
+                          before, so every account fell back to the CloudFront
+                          guess — which resolves a mobile connection to the
+                          carrier's gateway city, not the village someone is
+                          actually in. Whatever they type here wins over that. */}
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: 6, fontWeight: 500 }}>
+                          City / Town
+                        </label>
+                        <input
+                          value={city}
+                          onChange={e => setCity(e.target.value)}
+                          placeholder="e.g. Badagaon"
+                          autoComplete="address-level2"
+                          maxLength={120}
+                          style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid #ddd", fontSize: "0.95rem", outline: "none" }}
                         />
                       </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: 6, fontWeight: 500 }}>
+                          State
+                        </label>
+                        <input
+                          value={state}
+                          onChange={e => setState(e.target.value)}
+                          placeholder="e.g. Madhya Pradesh"
+                          autoComplete="address-level1"
+                          maxLength={120}
+                          style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid #ddd", fontSize: "0.95rem", outline: "none" }}
+                        />
+                      </div>
+
                       <div>
                         <label style={{ display: "block", fontSize: "0.85rem", color: "#555", marginBottom: 6, fontWeight: 500 }}>Gender</label>
                         <select 

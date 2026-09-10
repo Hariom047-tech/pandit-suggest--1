@@ -24,9 +24,27 @@ services:
       - "5433:5432" # host 5433 → avoids clashing with any local Postgres already on 5432
     volumes:
       - db_data:/var/lib/postgresql/data
-      # runs once, in filename order, ONLY against an empty data directory —
-      # see backend/src/db/01-schema.sql for how to re-apply by hand otherwise
-      - ./backend/src/db:/docker-entrypoint-initdb.d:ro
+      # Runs once, in filename order, ONLY against an empty data directory.
+      #
+      # This used to mount the whole of backend/src/db, which worked only while
+      # that directory was a flat list of 01..36 migrations. It is now
+      # baseline/ + config/ + historical/, and the postgres entrypoint does not
+      # recurse — mounting the directory would silently produce an EMPTY
+      # database. So the three files are mounted individually, in the same
+      # order production applies them:
+      #
+      #   00  roles, extensions, ownership   (dev twin of tools/00-bootstrap-rds.sql)
+      #   01  the production schema baseline — byte-identical to what RDS gets
+      #   02  production configuration       — plans, catalogue, tuning
+      #   03  marks this database as 'development'
+      #
+      # Demo/seed data is deliberately NOT loaded: historical/02-seed.sql is
+      # fixture content and no longer runs anywhere. A fresh dev stack starts
+      # empty, exactly like production, so dev and prod prove the same things.
+      - ./backend/src/db/tools/00-bootstrap-dev.sql:/docker-entrypoint-initdb.d/00-bootstrap.sql:ro
+      - ./backend/src/db/baseline/0000-production-baseline.sql:/docker-entrypoint-initdb.d/01-baseline.sql:ro
+      - ./backend/src/db/config/0001-production-config.sql:/docker-entrypoint-initdb.d/02-config.sql:ro
+      - ./backend/src/db/tools/mark-dev-environment.sql:/docker-entrypoint-initdb.d/03-mark-dev.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U panditconnect -d panditconnect"]
       interval: 10s
@@ -43,9 +61,22 @@ services:
       PORT: 4000
       NODE_ENV: production
       CORS_ORIGIN: http://localhost:8080
-      # panditconnect_app, not the bootstrap superuser — see 01-schema.sql's
-      # "APPLICATION ROLE" section for why (RLS enforcement).
-      DATABASE_URL: postgresql://panditconnect_app:panditconnect_app_dev@db:5432/panditconnect
+      # panditsuggest_app, not the bootstrap superuser and not the owner — the
+      # owner is NOLOGIN precisely so nothing can connect as it and bypass RLS
+      # (see backend/src/db/tools/hardening.sql H1).
+      #
+      # Sourced from the environment, NOT hardcoded. In production the value is
+      # written into .env at deploy time from AWS Secrets Manager
+      # (panditsuggest/rds/app) and points at RDS as panditsuggest_app over
+      # TLS with verify-full. Never the RDS master, owner or migrator.
+      #
+      # The fallback is the local docker database, so `docker compose up` on a
+      # laptop still works with no .env entry at all.
+      DATABASE_URL: "${DATABASE_URL:-postgresql://panditsuggest_app:dev_app_not_a_secret@db:5432/panditconnect}"
+      # Absolute path to the AWS RDS CA bundle inside the container. config/db.js
+      # refuses to connect to an RDS host without it rather than falling back to
+      # an unverified session — rejectUnauthorized:false is not acceptable here.
+      RDS_CA_BUNDLE: /certs/rds-global-bundle.pem
       SESSION_TTL_HOURS: 720
       # Subscription/payment endpoints work end-to-end against Razorpay's
       # test mode once these are set in the root .env — see README "Known
@@ -68,8 +99,11 @@ services:
       GEMINI_API_KEY: "${GEMINI_API_KEY}"
       GOOGLE_MAPS_API_KEY: "${GOOGLE_MAPS_API_KEY}"
       # WhatsApp OTP delivery — see backend/.env.example and
-      # services/notifications/hyperSender.js. Optional: unset (the default)
-      # leaves phone OTP requests on the existing dev-only console log.
+      # services/notifications/hyperSender.js. REQUIRED in production: this
+      # is the only channel that puts a login OTP in front of a user, so
+      # leaving it unset makes phone login impossible. auth.controller.js's
+      # requestOtp now returns 503 rather than pretending the code was sent.
+      # In development the dev-only console log stands in for it.
       HYPERSENDER_INSTANCE_ID: "${HYPERSENDER_INSTANCE_ID:-}"
       HYPERSENDER_API_KEY: "${HYPERSENDER_API_KEY:-}"
       # S3 + CloudFront media storage — see docs/S3_CLOUDFRONT_MIGRATION.md
@@ -87,6 +121,10 @@ services:
       # CloudFront origin header — see backend/src/middleware/originVerify.js.
       # Unset = no-op, required for local dev.
       ORIGIN_SHARED_SECRET: "${ORIGIN_SHARED_SECRET}"
+    volumes:
+      # AWS RDS CA bundle, for verify-full TLS to the production database.
+      # Fetched at deploy time (see docs/AWS_RDS_RUNBOOK.md), never vendored.
+      - ./certs/rds-global-bundle.pem:/certs/rds-global-bundle.pem:ro
     ports:
       # Loopback only. The distribution/fairness engine trusts a handful of
       # geo headers (cloudfront-viewer-country etc.) as coming from the edge —

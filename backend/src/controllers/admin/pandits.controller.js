@@ -1,6 +1,7 @@
 const repo = require('../../repositories/admin/pandits.repository');
 const authRepo = require('../../repositories/auth.repository');
 const { readPaging, paginationEnvelope } = require('../../utils/paginate');
+const { refreshHindiContent } = require('../../services/hindiContent.service');
 const { logAdminAction } = require('../../utils/adminLog');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
@@ -226,8 +227,15 @@ async function update(req, res) {
   if (Array.isArray(temples)) await repo.syncTemples(req.db, pandit.id, temples);
 
   const full = await repo.getFullById(req.db, pandit.id);
+  // Translated from the saved record, not the request body — see
+  // services/hindiContent.service.js. getFullById already joins the users row,
+  // so `name` here is the pandit's display name.
+  await refreshHindiContent(req.db, {
+    kind: 'pandit', table: 'pandits', key: pandit.id, row: full, explicit: req.body?.contentHi,
+  });
   await logAdminAction({ adminUserId: req.adminUser.id, action: 'PANDIT_UPDATED', targetType: 'pandit', targetId: pandit.id, details: req.body, ip: req.ip });
-  res.json(full);
+  // Re-read so the response carries the Hindi that was just written.
+  res.json(await repo.getFullById(req.db, pandit.id));
 }
 
 async function verify(req, res) {

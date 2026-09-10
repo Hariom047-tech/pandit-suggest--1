@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { siteConfig } from "../lib/siteConfig";
 import { Link } from "react-router-dom";
 import { Icon } from "../lib/icons";
 import { useFaqs } from "../hooks/useData";
@@ -106,7 +107,7 @@ export default function Contact() {
             <div className="card card-pad card--cream">
               <h3 style={{ fontSize: "1.16rem" }}>{t("contact.reachUs")}</h3>
               <ul className="dot-list" style={{ marginTop: 10 }}>
-                <li>namaste@panditsuggest.in</li>
+                <li><a href={`mailto:${siteConfig.contact.email}`}>{siteConfig.contact.email}</a></li>
                 <li>{t("contact.hours")}</li>
                 <li>{t("contact.cities")}</li>
               </ul>

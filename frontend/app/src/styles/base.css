@@ -1130,6 +1130,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .pg-item { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px; }
 .pg-item .k { font-size: var(--fs-200); letter-spacing: .06em; text-transform: uppercase; color: var(--gold-deep); font-weight: var(--fw-semibold); }
 .pg-item .v { font-family: var(--font-head); font-size: var(--fs-600); font-weight: var(--fw-semibold); margin-top: 5px; }
+/* The pandit profile's Qualifications block (PanditProfile.tsx). Both values
+   below are the ones that used to sit inline on the markup — restated here so
+   desktop and tablet render byte-identically, while the mobile block near the
+   .g-2/.g-3/.g-4 collapse can still override them. About.tsx uses bare
+   .pg-item and is deliberately left alone. */
+.pg-grid { gap: 14px; }
+.pg-grid .pg-item .v { font-size: .98rem; }
 
 /* ------------------------------------------------------------ map page --- */
 .map-wrap {
@@ -1573,6 +1580,59 @@ body.modal-open .contact-bar { display: none; }
   .shell { padding: 0 16px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
   .btn { white-space: normal; height: auto; line-height: var(--lh-normal); padding: 12px 20px; }
   .g-2, .g-3, .g-4 { grid-template-columns: 1fr; }
+
+  /* Pandit profile → Qualifications & Verification: two boxes per row on a
+     phone instead of the single column the rule above would give. Four
+     full-width boxes stacked ran most of a screen on their own; paired up
+     they take two short rows. Desktop and tablet are untouched — .g-2 is
+     already 2-up above 620px, so this only re-targets the mobile collapse.
+     Compound selector so it beats that shared rule whatever the source order.
+     Same pattern as .svc-related-grid.g-4 further up this file. */
+  .pg-grid.g-2 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  /* Half the width means the padding has to come down with it, or the box is
+     mostly padding and the value wraps a line earlier than it needs to. */
+  .pg-grid .pg-item {
+    padding: 12px 10px;
+    border-radius: var(--r-sm);
+    /* Grid stretches every box to the tallest one in its row, and a box is
+       only ever as tall as its neighbour needs to be — so a short entry like
+       "12 years" was left pinned to the top with all the slack hanging below
+       it. Centring the label+value pair puts that slack half above and half
+       below instead, which is what makes the pair read as one balanced tile
+       next to a taller neighbour. Text stays left-aligned: these values run
+       to four lines at this width, and centred ragged lines read worse than
+       a straight left edge. */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  /* The label is the longest fixed string in the box ("Gotra / Tradition"),
+     so it sets the width everything else has to live inside. Dropped a rung
+     and given back some of the tracking so it still holds one line at ~113px
+     of usable width rather than wrapping and pushing the value down. */
+  .pg-grid .pg-item .k {
+    font-size: var(--fs-50);
+    letter-spacing: .04em;
+    /* Tighter than snug: a label that does wrap ("Languages Spoken", and the
+       longer Hindi strings) then costs less height. nowrap is not an option
+       here — it would push the longest label out past the border. */
+    line-height: var(--lh-tight);
+  }
+  /* Only one rung down from the .98rem desktop value: at this width the
+     wrapping is driven by the column, not the type size, so shrinking further
+     would cost legibility without saving a line. overflow-wrap is the guard
+     for a value with no space to break at — a long single-word gotra or a
+     qualification with a long place name would otherwise spill out of the box. */
+  .pg-grid .pg-item .v {
+    font-size: var(--fs-400);
+    line-height: var(--lh-snug);
+    margin-top: 3px;
+    overflow-wrap: anywhere;
+  }
+
   .stat-strip { grid-template-columns: 1fr; }
   .stat { justify-content: flex-start; }
   .stat:nth-child(2n) { border-left: 0; }

@@ -1,5 +1,6 @@
 const { Client } = require('pg');
 const bcrypt = require('bcryptjs');
+const { assertDisposableTarget } = require('./src/config/destructiveGuard');
 
 async function reset() {
   const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/panditconnect';
@@ -8,6 +9,7 @@ async function reset() {
     console.error('Set ADMIN_PASSWORD env var before running this script.');
     process.exit(1);
   }
+  assertDisposableTarget(connectionString, 'reset-admin.js');
   const client = new Client(connectionString);
   await client.connect();
   try {

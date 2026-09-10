@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLang } from "../lib/i18n";
 import { Link, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icon } from "../lib/icons";
@@ -71,6 +72,14 @@ export default function TempleDetail() {
   const { data: rawServices } = useServices();
 
   const t = useMemo(() => rawTemple ? normTemple(rawTemple) : null, [rawTemple]);
+  /**
+   * This temple's Hindi (migration 0012), used only while the reader has Hindi
+   * selected and applied field by field with `|| english` — a translation may
+   * be missing a key, and that field should stay English rather than vanish.
+   * Named `lang`, not `t`: `t` is already the temple on this page.
+   */
+  const { lang } = useLang();
+  const hi = lang === "hi" ? t?.hi ?? null : null;
   const allTemples = useMemo(() => normTemples(rawTemples), [rawTemples]);
   const allPandits = useMemo(() => normPandits(rawPandits), [rawPandits]);
   const reviews = useMemo(() => normReviews(rawReviews), [rawReviews]);
@@ -242,14 +251,14 @@ export default function TempleDetail() {
                       About the temple
                       <span className="td-heading__ornament" />
                     </h2>
-                    <p className="td-about-text">{t.about}</p>
+                    <p className="td-about-text">{hi?.shortDescription || hi?.description || t.about}</p>
                   </motion.div>
 
                   {/* Info stat cards */}
                   <motion.div className="td-info-grid" variants={stagger} initial="initial" animate="animate">
                     {([
                       ["Darshan Timings", t.timings, "clock"],
-                      ["Presiding Deity", t.deity, "om"],
+                      ["Presiding Deity", hi?.primaryDeity || t.deity, "om"],
                       ["Established", t.est || "—", "calendar"],
                       ["Location", `${t.city}, ${t.state}`, "map-pin"],
                     ] as [string, string, string][]).map(([label, value, icon], i) => (
@@ -330,8 +339,8 @@ export default function TempleDetail() {
                           <span className="td-heading__icon" style={{ width: 34, height: 34, borderRadius: 10 }}><Icon name="book-open" size={17} /></span>
                           History &amp; significance
                         </h3>
-                        {t.history && <p className="td-about-text" style={{ marginTop: 10 }}>{t.history}</p>}
-                        {t.significance && <p className="td-about-text" style={{ marginTop: 10 }}>{t.significance}</p>}
+                        {t.history && <p className="td-about-text" style={{ marginTop: 10 }}>{hi?.history || t.history}</p>}
+                        {t.significance && <p className="td-about-text" style={{ marginTop: 10 }}>{hi?.significance || t.significance}</p>}
                       </motion.div>
 
                       <hr className="sacred-divider" />
@@ -349,7 +358,7 @@ export default function TempleDetail() {
                         {t.highlights.map((h, i) => (
                           <motion.li key={h} className="td-highlight-item" {...cardReveal} transition={{ ...cardReveal.transition, delay: i * 0.06 }}>
                             <span className="td-highlight-dot" />
-                            {h}
+                            {hi?.highlights?.[i] || h}
                           </motion.li>
                         ))}
                       </ul>

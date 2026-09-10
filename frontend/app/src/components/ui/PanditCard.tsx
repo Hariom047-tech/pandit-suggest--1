@@ -10,6 +10,24 @@ import { useInViewOnce } from "../../lib/useInViewOnce";
 export function PanditCard({ p, index = 0, sourceSurface }: { p: Pandit; index?: number; sourceSurface?: string }) {
   const { t, lang } = useLang();
   const displayName = lang === "hi" && p.nameHi ? p.nameHi : p.name;
+  /**
+   * Everything else this pandit has in Hindi (migration 0012), used only while
+   * the reader is in Hindi and applied per field with `|| english`.
+   *
+   * Spoken languages are different: they are a fixed vocabulary stored in
+   * pandit_languages ("English", "Hindi", "Sanskrit"), not prose an admin
+   * wrote, so they come from the dictionary rather than the translator — and
+   * any value not in that list falls through as itself.
+   */
+  const hi = lang === "hi" ? p.hi ?? null : null;
+  const langLabel = (name: string) => {
+    // t() echoes the key back when the dictionary has no entry, so a language
+    // this map does not cover must be detected and passed through as itself
+    // rather than rendered as the literal string "languages.Bhojpuri".
+    const key = `languages.${name}`;
+    const label = t(key);
+    return label === key ? name : label;
+  };
   const { ref, visible } = useInViewOnce<HTMLElement>();
   // One shared contact flow (see lib/usePanditContact.ts). This card sits
   // inside a <Link>, so the press must be stopped from navigating first.
@@ -48,22 +66,30 @@ export function PanditCard({ p, index = 0, sourceSurface }: { p: Pandit; index?:
 
           <div className="astro-card__header-info">
             <div className="astro-card__name-row">
-              <h3 className="astro-card__name">{displayName}</h3>
-              {p.verified && (
-                <span className="astro-card__verified" title={t("common.verified")}>
-                  <Icon name="verified" size={16} />
-                </span>
-              )}
+              {/* The badge lives INSIDE the heading, so it flows with the text
+                  and lands right after the last word of the name instead of
+                  floating beside the whole (possibly 2-line) name block.
+                  There is deliberately no whitespace between the name and the
+                  badge: without a break opportunity the two can never be split
+                  across lines, so the tick always stays on the surname. */}
+              <h3 className="astro-card__name">
+                {displayName}
+                {p.verified && (
+                  <span className="astro-card__verified" title={t("common.verified")}>
+                    <Icon name="verified" size={16} />
+                  </span>
+                )}
+              </h3>
             </div>
             <div className="astro-card__meta-short">
-              {p.exp} {t("common.yearsExp")} • {p.langs.slice(0, 2).join(", ")}
+              {p.exp} {t("common.yearsExp")} • {p.langs.slice(0, 2).map(langLabel).join(", ")}
             </div>
             {/* Always rendered, even when city is blank (e.g. a profile mid
                 onboarding) — an empty row keeps every card the same height
                 and the same internal alignment as one with a real city. */}
             <div className="astro-card__location">
               <Icon name="map-pin" size={12} />
-              <span>{p.city || t("panditCard.locationUnknown")}</span>
+              <span>{hi?.city || p.city || t("panditCard.locationUnknown")}</span>
             </div>
           </div>
         </div>
@@ -79,10 +105,26 @@ export function PanditCard({ p, index = 0, sourceSurface }: { p: Pandit; index?:
 
         {/* Rating and Online Status */}
         <div className="astro-card__stats-row">
+          {/* Stars only once there is something to average — the same rule the
+              profile page already applies. "0.0" on a pandit nobody has
+              reviewed yet reads as a BAD pandit rather than a new one.
+
+              The count is printed as the number of reviews it actually is.
+              It used to render as `{p.reviews}k+ orders`, which turned two
+              reviews into a claim of two thousand orders — a number nothing in
+              this system measures. */}
           <div className="astro-card__rating">
-            <span className="astro-card__star">★</span> 
-            <span className="astro-card__rating-num">{p.rating.toFixed(1)}</span>
-            <span className="astro-card__orders">{p.reviews}k+ {t("panditCard.orders")}</span>
+            {p.reviews > 0 ? (
+              <>
+                <span className="astro-card__star">★</span>{" "}
+                <span className="astro-card__rating-num">{p.rating.toFixed(1)}</span>
+                <span className="astro-card__orders">
+                  ({p.reviews} {t("panditCard.reviews")})
+                </span>
+              </>
+            ) : (
+              <span className="astro-card__orders">{t("panditCard.newOnPlatform")}</span>
+            )}
           </div>
           <div className="astro-card__online">
             <span className="astro-card__online-dot" /> {t("common.online")}

@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "../../lib/icons";
-import { usePandits, useStats, useHomeHero } from "../../hooks/useData";
+import { usePandits, useStats, useHomeHero, usePanditCount } from "../../hooks/useData";
 import { normPandits } from "../../lib/normalize";
 import { CountUp } from "../ui/CountUp";
 import { useLang } from "../../lib/i18n";
@@ -14,13 +14,33 @@ export function HeroAstrotalk() {
   const { t, lang } = useLang();
   const { data: rawPandits } = usePandits({ perPage: 20 });
   const { data: rawStats } = useStats();
+  const { data: panditCount } = usePanditCount();
+
+  /**
+   * The badge used to read a hardcoded "1,240+ pandits online now" — a number
+   * that was never true and an "online now" claim nothing on the site tracks.
+   * It is now the real count of verified, live pandits, rounded DOWN to the
+   * nearest 10 so the "+" is always honest (427 real -> "420+").
+   *
+   * Null while the count is in flight. The badge itself still renders in that
+   * gap: it sits directly above the H1, which is this page's measured mobile
+   * LCP element, so mounting the badge late would push the H1 down and buy a
+   * layout shift on exactly the element we care most about. Only the number
+   * appears late, and its width changing shifts nothing vertically.
+   */
+  const trustedLabel = useMemo(() => {
+    const n = panditCount?.trusted;
+    if (!n || n < 10) return null;
+    return `${(Math.floor(n / 10) * 10).toLocaleString("en-IN")}+`;
+  }, [panditCount]);
   const pandits = useMemo(() => normPandits(rawPandits), [rawPandits]);
-  const stats = rawStats?.length ? rawStats : [
-    { icon: "users", num: "500+", label: "Verified Pandits" },
-    { icon: "temple", num: "100+", label: "Temples Listed" },
-    { icon: "award", num: "50+", label: "Cities Covered" },
-    { icon: "star", num: "10K+", label: "Happy Families" },
-  ];
+  // No hardcoded fallback. This used to claim "500+ Verified Pandits",
+  // "100+ Temples Listed", "50+ Cities Covered" and "10K+ Happy Families"
+  // whenever the API returned nothing — which, on the clean production
+  // database, is always: the stats table is empty, as are pandits and temples.
+  // Those are headline marketing numbers on the front page, and they were not
+  // true. An empty stats row is rendered as no stats row at all.
+  const stats = rawStats?.length ? rawStats : [];
 
   /**
    * Hero circles come from admin-uploaded images (Admin Panel -> Home Page).
@@ -78,7 +98,7 @@ export function HeroAstrotalk() {
           <div className="hero-astro__content">
             <div className="hero-astro__badge">
               <span className="hero-astro__badge-dot" />
-              1,240+ {t("home.heroBadge")}
+              {trustedLabel ? `${trustedLabel} ` : ""}{t("home.heroBadge")}
               <div className="hero-astro__badge-avatars">
                 {circles.map((c, i) => (
                   <img key={c.key} src={c.src} alt="" style={{ zIndex: 3 - i }} />
@@ -135,7 +155,8 @@ export function HeroAstrotalk() {
         </div>
       </div>
 
-      {/* Stats Row */}
+      {/* Stats Row — only when the API supplied real numbers. */}
+      {stats.length > 0 && (
       <div className="hero-astro__stats-row">
         <div className="shell hero-astro__stats-inner">
           {stats.map((s, index) => (
@@ -149,22 +170,14 @@ export function HeroAstrotalk() {
           ))}
         </div>
       </div>
+      )}
 
-      {/* Live Ticker */}
-      <div className="hero-astro__ticker">
-        <div className="hero-astro__ticker-track">
-          <div className="hero-astro__ticker-content">
-            {[0, 1].map((dup) => (
-              <Fragment key={dup}>
-                <span className="ticker-item"><span className="ticker-dot" /> <span dangerouslySetInnerHTML={{ __html: t("home.ticker1") }} /> <span className="ticker-time">· {t("home.tickerJustNow")}</span></span>
-                <span className="ticker-item"><span className="ticker-dot ticker-dot--gold" /> <span dangerouslySetInnerHTML={{ __html: t("home.ticker2") }} /> <span className="ticker-time">· {t("home.ticker2minAgo")}</span></span>
-                <span className="ticker-item"><span className="ticker-dot" /> <span dangerouslySetInnerHTML={{ __html: t("home.ticker3") }} /> <span className="ticker-time">· {t("home.ticker5minAgo")}</span></span>
-                <span className="ticker-item"><span className="ticker-dot ticker-dot--gold" /> <span dangerouslySetInnerHTML={{ __html: t("home.ticker4") }} /> <span className="ticker-time">· {t("home.ticker12minAgo")}</span></span>
-              </Fragment>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Live ticker REMOVED — it scrolled four hardcoded lines presented as
+          real timestamped activity ("Rahul from Mumbai booked ... just now",
+          "Priya from Pune left a 5-star review ..."). The database holds zero
+          users, pandits, bookings and reviews, so all of it was fabricated
+          social proof shown to real visitors. See components/ui/HeroTicker.tsx
+          for what a real implementation would need. */}
     </section>
   );
 }

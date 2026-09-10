@@ -27,9 +27,20 @@ require('../src/config/loadEnv');
  */
 const { assertSafeForTests } = require('../src/config/testDbGuard');
 
+// No fallback, deliberately. This used to end in a hardcoded string that was
+// the PRODUCTION database as a BYPASSRLS superuser, so an unset SUPER_DATABASE_URL
+// and a correctly-configured one were indistinguishable — and an unset one won.
+// Absent configuration must now fail loudly instead of guessing.
 const superConnectionString = process.env.SUPER_DATABASE_URL
-  || (process.env.DATABASE_URL || '').replace('panditconnect_app:panditconnect_app_dev', 'panditconnect:panditconnect')
-  || 'postgresql://panditconnect:panditconnect@localhost:5433/panditconnect';
+  || (process.env.DATABASE_URL || '').replace('panditconnect_app:panditconnect_app_dev', 'panditconnect:panditconnect');
+
+if (!superConnectionString) {
+  console.error(
+    '\n[FATAL] tests/helpers.js: neither SUPER_DATABASE_URL nor DATABASE_URL is set.\n'
+    + 'Point them at the dedicated test database (see backend/.env.test.example):\n'
+    + '  SUPER_DATABASE_URL=postgresql://<owner>@localhost:5433/panditconnect_test\n');
+  process.exit(1);
+}
 
 // Bypasses RLS (see the class comment above) — the single most dangerous
 // connection in this file to ever point at production. Checked

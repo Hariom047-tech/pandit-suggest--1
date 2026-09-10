@@ -15,6 +15,12 @@ router.get('/services', adminHandler(ctrl.list));
 router.post('/services', adminHandler(ctrl.create));
 router.put('/services/:id', adminHandler(ctrl.update));
 router.delete('/services/:id', adminHandler(ctrl.remove));
+// Distinct paths, not one route with a flag: deactivating and destroying are
+// different enough that a mistyped body should never be able to turn one into
+// the other.
+router.patch('/services/:id/active', adminHandler(ctrl.setActive));
+router.delete('/services/:id/permanent', adminHandler(ctrl.destroy));
+router.delete('/service-categories/:id/permanent', adminHandler(ctrl.destroyCategory));
 
 // Full record for the editor, and the hero image upload.
 router.get('/services/:id/detail', adminHandler(ctrl.getBySlug));

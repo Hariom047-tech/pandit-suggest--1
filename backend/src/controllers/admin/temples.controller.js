@@ -1,6 +1,7 @@
 const repo = require('../../repositories/admin/temples.repository');
 const panditsRepo = require('../../repositories/admin/pandits.repository');
 const { readPaging, paginationEnvelope } = require('../../utils/paginate');
+const { refreshHindiContent } = require('../../services/hindiContent.service');
 const { logAdminAction } = require('../../utils/adminLog');
 
 async function list(req, res) {
@@ -31,6 +32,9 @@ async function create(req, res) {
     name, slug, description, shortDescription, primaryDeity, addressLine1, city, state,
     latitude, longitude, establishedYear, history, significance, highlights,
   });
+  await refreshHindiContent(req.db, {
+    kind: 'temple', table: 'temples', key: temple.id, row: temple, explicit: req.body?.contentHi,
+  });
   await logAdminAction({ adminUserId: req.adminUser.id, action: 'TEMPLE_CREATED', targetType: 'temple', targetId: temple.id, details: { name }, ip: req.ip });
   res.status(201).json(temple);
 }
@@ -38,6 +42,11 @@ async function create(req, res) {
 async function update(req, res) {
   const updated = await repo.update(req.db, req.params.id, req.body || {});
   if (!updated) return res.status(404).json({ error: 'Temple not found' });
+  // Translated from the saved row, not the request body — an update carries
+  // only the changed fields. See services/hindiContent.service.js.
+  await refreshHindiContent(req.db, {
+    kind: 'temple', table: 'temples', key: updated.id, row: updated, explicit: req.body?.contentHi,
+  });
   await logAdminAction({ adminUserId: req.adminUser.id, action: 'TEMPLE_UPDATED', targetType: 'temple', targetId: updated.id, details: req.body, ip: req.ip });
   res.json(updated);
 }

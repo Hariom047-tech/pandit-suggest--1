@@ -5,6 +5,9 @@ import { adminApi, ADMIN_BASE } from "../lib/adminApi";
 interface UserProfile {
   id: string; email: string | null; phone: string | null; full_name: string; status: string;
   city: string | null; state: string | null; country: string | null;
+  /** CloudFront's guess at the last login (migrations/0007), used only when
+   *  the devotee has stated nothing. Same rule as the Users list. */
+  geo_city: string | null; geo_region: string | null; geo_country_name: string | null;
   email_verified: boolean; phone_verified: boolean;
   last_login_at: string | null; login_count: number; created_at: string;
   reviewCount: number; inquiryCount: number;
@@ -71,7 +74,17 @@ export default function AdminUserDetail() {
           <div className="grid g-4" style={{ gap: 14 }}>
             <div><span className="admin-stat-card__label">Mobile</span><div>{profile.phone || "—"} {profile.phone_verified && <span className="admin-pill admin-pill--green">Verified</span>}</div></div>
             <div><span className="admin-stat-card__label">Email</span><div>{profile.email || "—"} {profile.email_verified && <span className="admin-pill admin-pill--green">Verified</span>}</div></div>
-            <div><span className="admin-stat-card__label">Location</span><div>{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "Unknown"}</div></div>
+            {/* Typed address wins; the edge guess is the fallback and is
+                marked, so an admin always knows which of the two they are
+                reading before acting on it. Mirrors the Users list. */}
+            <div><span className="admin-stat-card__label">Location</span><div>{(() => {
+              const typed = [profile.city, profile.state, profile.country].filter(Boolean).join(", ");
+              if (typed) return typed;
+              const edge = [profile.geo_city, profile.geo_region, profile.geo_country_name].filter(Boolean).join(", ");
+              return edge
+                ? <span title="Detected at last login (CloudFront) — not entered by the user">{edge} <span style={{ opacity: 0.6 }}>~</span></span>
+                : "Unknown";
+            })()}</div></div>
             <div><span className="admin-stat-card__label">Status</span><div><span className={`admin-pill ${profile.status === "active" ? "admin-pill--green" : "admin-pill--red"}`}>{profile.status}</span></div></div>
             <div><span className="admin-stat-card__label">Last login</span><div>{profile.last_login_at ? new Date(profile.last_login_at).toLocaleString("en-IN") : "Never"}</div></div>
             <div><span className="admin-stat-card__label">Login count</span><div>{profile.login_count}</div></div>
