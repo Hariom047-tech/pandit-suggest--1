@@ -53,9 +53,6 @@
   line-height: 1.6;
   color: var(--text-2);
 }
-.oh-head--invert .oh-head__title { color: var(--text-on-dark); }
-.oh-head--invert .oh-head__sub { color: var(--text-on-dark-2); }
-.oh-head--invert .oh-head__eyebrow { color: var(--gold-bright); }
 
 /* ═══════════ HERO ═══════════ */
 .oh-hero {
@@ -275,14 +272,59 @@
 .oh-shastra h3 { margin: 0 0 8px; font-size: var(--fs-700); color: var(--gold-deep); }
 .oh-shastra p { margin: 0; font-size: var(--fs-400); line-height: 1.7; color: var(--text); }
 
-/* ═══════════ THE RITUAL DAY ═══════════ */
-.oh-section--dark {
+/* ═══════════ THE RITUAL DAY ═══════════
+   Was a dark brown band, which made it the only dark surface on the site
+   above the footer and read as a different product bolted into the page.
+   It now uses the same warm cream + gold the rest of the site does; what
+   still separates it from its neighbours is the gold hairline top and
+   bottom and the slightly deeper ground, not a change of theme. */
+.oh-section--ritual {
   background:
-    radial-gradient(90% 70% at 50% 0%, rgba(212, 160, 23, 0.16) 0%, transparent 65%),
-    linear-gradient(165deg, #241c14 0%, #1a140f 60%, #211a12 100%);
+    radial-gradient(90% 70% at 50% 0%, rgba(212, 160, 23, 0.14) 0%, transparent 62%),
+    linear-gradient(165deg, var(--ivory) 0%, var(--cream) 55%, #fffdf7 100%);
+  border-top: 1px solid var(--gold-soft);
+  border-bottom: 1px solid var(--gold-soft);
 }
 
-.oh-day { color: var(--text-on-dark); }
+/* ── the gate: this begins with a Pandit Ji ── */
+.oh-gate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto 28px;
+  max-width: 900px;
+  padding: 20px 22px;
+  border-radius: var(--r-lg);
+  background: var(--white);
+  border: 1px solid var(--oh-home-border);
+  border-left: 4px solid var(--oh-home);
+  box-shadow: var(--sh-sm);
+}
+.oh-gate__icon {
+  display: grid;
+  place-items: center;
+  width: 44px; height: 44px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--oh-home-soft);
+  color: var(--oh-home);
+}
+.oh-gate__body { flex: 1 1 340px; min-width: 0; }
+.oh-gate__body h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-600);
+  color: var(--oh-home);
+}
+.oh-gate__body p {
+  margin: 0;
+  font-size: var(--fs-300);
+  line-height: 1.7;
+  color: var(--text-2);
+}
+.oh-gate__cta { flex: none; }
+
+.oh-day { color: var(--text); }
 
 .oh-day__railwrap { position: relative; }
 .oh-day__rail {
@@ -304,7 +346,7 @@
   position: absolute;
   top: 19px; left: 0; right: 0;
   height: 2px;
-  background: rgba(255, 248, 231, 0.14);
+  background: var(--border);
 }
 .oh-day__track-fill {
   display: block;
@@ -326,7 +368,7 @@
   border: 0;
   cursor: pointer;
   text-align: center;
-  color: var(--text-on-dark-muted);
+  color: var(--text-muted);
   transition: color 0.2s;
 }
 .oh-day__bead-dot {
@@ -335,22 +377,26 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #2f2519;
-  border: 2px solid rgba(255, 248, 231, 0.2);
+  background: var(--white);
+  border: 2px solid var(--border);
   font-size: var(--fs-200);
   font-weight: var(--fw-bold);
   transition: transform 0.25s, border-color 0.25s, background 0.25s;
 }
-.oh-day__bead.is-done .oh-day__bead-dot { border-color: var(--gold); background: #3a2c19; }
-.oh-day__bead.is-active { color: var(--text-on-dark); }
+.oh-day__bead.is-done .oh-day__bead-dot {
+  border-color: var(--gold);
+  background: var(--gold-grad-soft);
+  color: var(--gold-deep);
+}
+.oh-day__bead.is-active { color: var(--text); }
 .oh-day__bead.is-active .oh-day__bead-dot {
   background: var(--gold-grad);
-  border-color: var(--gold-bright);
-  color: #2d2416;
+  border-color: var(--gold-deep);
+  color: var(--text-inverse);
   transform: scale(1.16);
-  box-shadow: 0 0 0 6px rgba(212, 160, 23, 0.16);
+  box-shadow: 0 0 0 6px rgba(212, 160, 23, 0.14);
 }
-.oh-day__bead:hover .oh-day__bead-dot { border-color: var(--gold-light); }
+.oh-day__bead:hover .oh-day__bead-dot { border-color: var(--gold); }
 
 /* the "be on the call" marker, on the bead itself */
 .oh-day__bead-live {
@@ -359,7 +405,7 @@
   width: 9px; height: 9px;
   border-radius: 50%;
   background: #e5484d;
-  border: 2px solid #241c14;
+  border: 2px solid var(--ivory);
   animation: oh-blink 1.8s ease-in-out infinite;
 }
 .oh-day__bead-time {
@@ -371,7 +417,7 @@
 .oh-day__bead-name {
   font-size: var(--fs-100);
   line-height: 1.35;
-  opacity: 0.75;
+  opacity: 0.8;
 }
 
 .oh-day__controls {
@@ -387,19 +433,23 @@
   align-items: center;
   gap: 7px;
   border-radius: var(--r-pill);
-  border: 1px solid rgba(255, 248, 231, 0.22);
-  background: rgba(255, 248, 231, 0.06);
-  color: var(--text-on-dark);
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-2);
   cursor: pointer;
-  transition: background 0.18s, border-color 0.18s;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
 }
 .oh-day__nav { width: 36px; height: 36px; justify-content: center; padding: 0; }
 .oh-day__play { padding: 8px 16px; font-size: var(--fs-300); font-weight: var(--fw-semibold); }
 .oh-day__nav:hover,
-.oh-day__play:hover { background: rgba(212, 160, 23, 0.18); border-color: var(--gold); }
+.oh-day__play:hover {
+  background: var(--gold-grad-soft);
+  border-color: var(--gold);
+  color: var(--gold-deep);
+}
 .oh-day__counter {
   font-size: var(--fs-200);
-  color: var(--text-on-dark-muted);
+  color: var(--text-muted);
   min-width: 92px;
   text-align: center;
 }
@@ -407,8 +457,9 @@
 .oh-day__panel {
   padding: 26px 28px;
   border-radius: var(--r-xl);
-  background: rgba(255, 248, 231, 0.045);
-  border: 1px solid rgba(255, 248, 231, 0.14);
+  background: var(--white);
+  border: 1px solid var(--border);
+  box-shadow: var(--sh-md);
 }
 .oh-day__head {
   display: flex;
@@ -424,12 +475,12 @@
   font-weight: var(--fw-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gold-bright);
+  color: var(--gold-deep);
 }
 .oh-day__title {
   margin: 6px 0 0;
   font-size: var(--fs-h4);
-  color: var(--text-on-dark);
+  color: var(--text);
   line-height: 1.25;
 }
 .oh-day__livetag {
@@ -439,9 +490,9 @@
   flex: none;
   padding: 6px 13px;
   border-radius: var(--r-pill);
-  background: rgba(229, 72, 77, 0.16);
-  border: 1px solid rgba(229, 72, 77, 0.45);
-  color: #ff9ea1;
+  background: rgba(229, 72, 77, 0.09);
+  border: 1px solid rgba(229, 72, 77, 0.3);
+  color: var(--danger);
   font-size: var(--fs-200);
   font-weight: var(--fw-bold);
 }
@@ -459,18 +510,18 @@
   margin-bottom: 16px;
   padding: 8px 16px;
   border-radius: var(--r-md);
-  background: rgba(212, 160, 23, 0.12);
-  border: 1px solid rgba(212, 160, 23, 0.3);
+  background: var(--gold-grad-soft);
+  border: 1px solid var(--gold-soft);
 }
 .oh-day__count-value {
   font-size: var(--fs-900);
   font-weight: var(--fw-extrabold);
-  color: var(--gold-bright);
+  color: var(--gold-deep);
   line-height: 1;
 }
 .oh-day__count-label {
   font-size: var(--fs-300);
-  color: var(--text-on-dark-2);
+  color: var(--text-2);
 }
 
 .oh-day__split {
@@ -483,13 +534,15 @@
   border-radius: var(--r-lg);
   border: 1px solid transparent;
 }
+/* The same warm/cool pair the whole page uses: the kund is gold, the
+   devotee's own room is the blue of the service page's online card. */
 .oh-day__side--kund {
-  background: rgba(212, 160, 23, 0.08);
-  border-color: rgba(212, 160, 23, 0.26);
+  background: linear-gradient(180deg, #fffbf0, var(--white) 70%);
+  border-color: var(--gold-soft);
 }
 .oh-day__side--home {
-  background: rgba(126, 178, 232, 0.09);
-  border-color: rgba(126, 178, 232, 0.28);
+  background: linear-gradient(180deg, var(--oh-home-soft), var(--white) 70%);
+  border-color: var(--oh-home-border);
 }
 .oh-day__side-head {
   display: flex;
@@ -497,25 +550,26 @@
   gap: 8px;
   font-size: var(--fs-200);
   font-weight: var(--fw-bold);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 9px;
 }
-.oh-day__side--kund .oh-day__side-head { color: var(--gold-bright); }
-.oh-day__side--home .oh-day__side-head { color: #9ecbf5; }
+.oh-day__side--kund .oh-day__side-head { color: var(--gold-deep); }
+.oh-day__side--home .oh-day__side-head { color: var(--oh-home); }
 .oh-day__side-icon { font-size: 1rem; }
 .oh-day__side p {
   margin: 0;
   font-size: var(--fs-400);
   line-height: 1.7;
-  color: var(--text-on-dark-2);
+  color: var(--text-2);
 }
 
 .oh-day__mantra {
   margin-top: 16px;
   padding: 18px 20px;
   border-radius: var(--r-lg);
-  background: rgba(0, 0, 0, 0.22);
+  background: var(--cream);
+  border: 1px solid var(--border-soft);
   border-left: 3px solid var(--gold);
 }
 .oh-day__mantra-label {
@@ -524,21 +578,21 @@
   font-weight: var(--fw-bold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-on-dark-muted);
+  color: var(--text-muted);
   margin-bottom: 8px;
 }
 .oh-day__mantra-dev {
   margin: 0;
   font-size: var(--fs-600);
   line-height: 1.8;
-  color: var(--gold-bright);
+  color: var(--gold-deep);
 }
 .oh-day__mantra-roman {
   margin: 6px 0 0;
   font-size: var(--fs-300);
   font-style: italic;
   line-height: 1.6;
-  color: var(--text-on-dark-muted);
+  color: var(--text-muted);
 }
 
 /* ═══════════ BOOKING JOURNEY ═══════════ */
@@ -1190,6 +1244,8 @@
   .oh-journey__step { grid-template-columns: 38px minmax(0, 1fr); gap: 14px; }
   .oh-journey__icon { width: 36px; height: 36px; }
   .oh-cta__inner { flex-direction: column; align-items: flex-start; }
+  .oh-gate { align-items: flex-start; }
+  .oh-gate__cta { width: 100%; justify-content: center; }
   .oh-sankalp__scroll { padding: 26px 20px 20px; }
   .oh-sankalp__vakya p { font-size: var(--fs-500); line-height: 1.95; }
 }

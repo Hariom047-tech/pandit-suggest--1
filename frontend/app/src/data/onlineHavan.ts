@@ -108,6 +108,12 @@ export const PILLARS: Pillar[] = [
 
 /* ═══════════════════════════════════════════════════════════════
    2. The ritual day, hour by hour — the page's centrepiece
+
+   Read AFTER the journey above, never instead of it: this is how the
+   tradition is generally performed, not an instruction sheet. Every
+   `you` field below therefore defers to the Pandit Ji the devotee has
+   already spoken to — the page describes, the acharya instructs, and
+   where the two differ the acharya is right.
    ═══════════════════════════════════════════════════════════════ */
 
 export interface RitualStep {
@@ -140,8 +146,8 @@ export const RITUAL_DAY: RitualStep[] = [
       hi: "आचार्य सूर्योदय से पूर्व स्नान कर पीले वस्त्र धारण करते हैं। हवन शाला की धुलाई होती है, कुंड की भीतरी दीवारों पर हल्दी का लेप किया जाता है, और वेदी पर पीला वस्त्र एवं बगलामुखी यंत्र स्थापित किए जाते हैं।",
     },
     you: {
-      en: "Bathe before the call, wear yellow or clean light clothes, and keep the room where you will sit clean and quiet. Nothing is expected of you on camera yet.",
-      hi: "कॉल से पहले स्नान कर लें, पीले या स्वच्छ हल्के वस्त्र पहनें, और जिस कमरे में बैठना है उसे स्वच्छ व शांत रखें। इस समय आपसे कैमरे पर कुछ अपेक्षित नहीं है।",
+      en: "Whatever Pandit Ji told you the day before — usually a bath before the call, yellow or clean light clothes, and a clean quiet corner to sit in. Nothing is expected of you on camera yet.",
+      hi: "जो पंडित जी ने एक दिन पूर्व बताया हो — प्रायः कॉल से पहले स्नान, पीले या स्वच्छ हल्के वस्त्र, और बैठने के लिए एक स्वच्छ व शांत कोना। इस समय आपसे कैमरे पर कुछ अपेक्षित नहीं है।",
     },
   },
   {
@@ -154,8 +160,8 @@ export const RITUAL_DAY: RitualStep[] = [
       hi: "आधार ईंधन के रूप में आम की लकड़ी और उसके ऊपर हल्दी की लकड़ी रखी जाती है। इस परंपरा में हल्दी की लकड़ी वैकल्पिक नहीं है — यही वह ईंधन है जिससे यह हवन पहचाना जाता है। घी, पीली सरसों, पीले पुष्प और सामग्री की थालियाँ पास ही सजाई जाती हैं।",
     },
     you: {
-      en: "Set a small thali beside you — a diya, a few yellow flowers, some rice and water. It is not a parallel puja; it is so your hands have something to offer at the aarti.",
-      hi: "अपने पास एक छोटी थाली रखें — एक दीपक, कुछ पीले पुष्प, थोड़े चावल और जल। यह अलग पूजा नहीं है; यह इसलिए है कि आरती के समय आपके हाथों में अर्पित करने को कुछ हो।",
+      en: "If Pandit Ji has asked for it, set a small thali beside you — a diya, a few yellow flowers, some rice and water. It is not a parallel puja; it is so your hands have something to offer at the aarti.",
+      hi: "यदि पंडित जी ने कहा हो तो अपने पास एक छोटी थाली रखें — एक दीपक, कुछ पीले पुष्प, थोड़े चावल और जल। यह अलग पूजा नहीं है; यह इसलिए है कि आरती के समय आपके हाथों में अर्पित करने को कुछ हो।",
     },
   },
   {
@@ -219,8 +225,8 @@ export const RITUAL_DAY: RitualStep[] = [
       hi: "आचार्य हथेली में जल, अक्षत और एक पीला पुष्प लेकर संकल्प का उच्चारण करते हैं: तिथि और दिन, फिर आपका गोत्र, आपका नाम, पिता का नाम और नगर, और अंत में वह उद्देश्य जिसके लिए आप आए हैं। तत्पश्चात वे उसे कुंड में छोड़ देते हैं। इस क्षण के बाद अर्पित प्रत्येक वस्तु आपकी ओर से अर्पित होती है।",
     },
     you: {
-      en: "Be on the call for this step if you are on it for nothing else. Sit facing east, hands folded, and listen for your own name and gotra. Hearing them spoken correctly is how you verify the ritual is yours.",
-      hi: "यदि किसी एक चरण पर उपस्थित रहना हो तो वह यही है। पूर्वाभिमुख होकर, हाथ जोड़कर बैठें और अपना नाम व गोत्र सुनें। उन्हें शुद्ध रूप से सुनना ही इस बात का प्रमाण है कि यह अनुष्ठान आपका है।",
+      en: "Be on the call for this step if you are on it for nothing else — Pandit Ji tells you its time in advance for exactly that reason. Sit facing east, hands folded, and listen for your own name and gotra. Hearing them spoken correctly is how you verify the ritual is yours.",
+      hi: "यदि किसी एक चरण पर उपस्थित रहना हो तो वह यही है — पंडित जी इसी कारण इसका समय पहले ही बता देते हैं। पूर्वाभिमुख होकर, हाथ जोड़कर बैठें और अपना नाम व गोत्र सुनें। उन्हें शुद्ध रूप से सुनना ही इस बात का प्रमाण है कि यह अनुष्ठान आपका है।",
     },
     live: true,
   },
@@ -307,50 +313,60 @@ export interface JourneyStep {
 
 export const JOURNEY: JourneyStep[] = [
   {
-    id: "talk",
-    when: { en: "Day −7 or earlier", hi: "7 दिन पूर्व या उससे पहले" },
-    icon: "message-circle",
-    title: { en: "Speak to a Pandit Ji first", hi: "पहले पंडित जी से बात करें" },
+    id: "find",
+    when: { en: "Start here", hi: "यहाँ से आरंभ" },
+    icon: "users",
+    title: { en: "Find a verified Pandit Ji on PanditSuggest", hi: "PanditSuggest पर सत्यापित पंडित जी खोजें" },
     text: {
-      en: "Describe the situation before choosing anything. Which havan tier fits — standard samagri, twenty-one jadi-buti, or a multi-day anushthan — is a decision for a qualified Baglamukhi upasaka, not for a dropdown. Nalkheda pujas are usually confirmed about a week ahead.",
-      hi: "कुछ भी चुनने से पहले अपनी स्थिति बताएँ। कौन-सा स्तर उपयुक्त है — सामान्य सामग्री, इक्कीस जड़ी-बूटी, या बहुदिवसीय अनुष्ठान — यह निर्णय किसी योग्य बगलामुखी उपासक का है, किसी ड्रॉपडाउन का नहीं। नलखेड़ा की पूजाएँ प्रायः एक सप्ताह पूर्व निश्चित होती हैं।",
+      en: "Open the list of Pandit Jis who perform this puja and read their profiles properly — credentials, years of practice, the languages they speak, what other devotees have written. A Baglamukhi anushthan is advanced practice, so the person matters more than the price.",
+      hi: "इस पूजा को करने वाले पंडित जी की सूची खोलें और उनकी प्रोफ़ाइल ध्यान से पढ़ें — प्रमाण, अनुभव के वर्ष, वे कौन-सी भाषाएँ बोलते हैं, अन्य भक्तों ने क्या लिखा है। बगलामुखी अनुष्ठान उन्नत साधना है, इसलिए मूल्य से अधिक महत्व व्यक्ति का है।",
     },
   },
   {
-    id: "muhurat",
-    when: { en: "Day −5", hi: "5 दिन पूर्व" },
-    icon: "calendar",
-    title: { en: "The muhurat is fixed", hi: "मुहूर्त निश्चित होता है" },
+    id: "talk",
+    when: { en: "The same day", hi: "उसी दिन" },
+    icon: "whatsapp",
+    title: { en: "Call or WhatsApp them yourself", hi: "स्वयं कॉल या व्हाट्सएप करें" },
     text: {
-      en: "A Tuesday or a Friday, an Ashtami of the bright fortnight, or a date chosen against your birth details. Longer anushthans are scheduled to end on the auspicious day rather than begin on it.",
-      hi: "मंगलवार या शुक्रवार, शुक्ल पक्ष की अष्टमी, अथवा आपकी जन्म-कुंडली देखकर चुनी गई तिथि। दीर्घ अनुष्ठान इस प्रकार नियोजित होते हैं कि वे शुभ दिन पर आरंभ नहीं, पूर्ण हों।",
+      en: "Their number is on their profile and you speak to them directly — nothing is booked through PanditSuggest and we take no commission on your puja. Describe the situation in your own words, in your own language. This first conversation is where everything else gets decided.",
+      hi: "उनका नंबर उनकी प्रोफ़ाइल पर है और आप सीधे उनसे बात करते हैं — PanditSuggest के माध्यम से कोई बुकिंग नहीं होती और आपकी पूजा पर हम कोई कमीशन नहीं लेते। अपनी स्थिति अपने शब्दों में, अपनी भाषा में बताएँ। यही पहली बातचीत है जिसमें आगे का सब कुछ तय होता है।",
+    },
+  },
+  {
+    id: "decide",
+    when: { en: "Pandit Ji decides", hi: "पंडित जी निर्धारित करते हैं" },
+    icon: "book-open",
+    title: { en: "Pandit Ji decides the vidhi, the tier and the muhurat", hi: "पंडित जी विधि, स्तर और मुहूर्त तय करते हैं" },
+    text: {
+      en: "Standard samagri, twenty-one jadi-buti, or a multi-day anushthan; the japa count, the nyasa, the paddhati; and the date — a Tuesday, a Friday, an Ashtami, or one chosen against your birth details. Every one of those is their call to make after hearing you, not a dropdown's. Nalkheda dates are usually settled about a week ahead.",
+      hi: "सामान्य सामग्री, इक्कीस जड़ी-बूटी, अथवा बहुदिवसीय अनुष्ठान; जप संख्या, न्यास, पद्धति; और तिथि — मंगलवार, शुक्रवार, अष्टमी, या आपकी जन्म-कुंडली देखकर चुनी गई। यह हर निर्णय आपकी बात सुनने के बाद उनका है, किसी ड्रॉपडाउन का नहीं। नलखेड़ा की तिथियाँ प्रायः एक सप्ताह पूर्व निश्चित होती हैं।",
     },
   },
   {
     id: "sankalp-details",
-    when: { en: "Day −3", hi: "3 दिन पूर्व" },
+    when: { en: "When Pandit Ji asks", hi: "जब पंडित जी माँगें" },
     icon: "edit",
-    title: { en: "You send your sankalp details", hi: "आप अपने संकल्प का विवरण भेजते हैं" },
+    title: { en: "You send the sankalp details they ask for", hi: "वे जो संकल्प-विवरण माँगें, आप भेजें" },
     text: {
-      en: "Full name, father's name, gotra, rashi and nakshatra if you know them, your city, and the purpose in your own words. If your gotra is not known, share your birth details and the acharya will resolve it — Kashyap gotra is the traditional fallback, but only after asking.",
-      hi: "पूरा नाम, पिता का नाम, गोत्र, ज्ञात हो तो राशि और नक्षत्र, अपना नगर, और अपने शब्दों में उद्देश्य। गोत्र ज्ञात न हो तो जन्म-विवरण भेजें, आचार्य निर्धारित कर देंगे — कश्यप गोत्र परंपरागत विकल्प है, किंतु पूछे बिना नहीं।",
+      en: "Usually your full name, your father's name, gotra, rashi and nakshatra if you know them, your city, and the purpose in your own words. If your gotra is not known, send your father's and grandfather's names, your birth place and your family's native village — Pandit Ji will resolve it. Send exactly what they ask for and nothing to anyone else.",
+      hi: "प्रायः आपका पूरा नाम, पिता का नाम, गोत्र, ज्ञात हो तो राशि और नक्षत्र, आपका नगर, और अपने शब्दों में उद्देश्य। गोत्र ज्ञात न हो तो पिता और दादा का नाम, जन्म स्थान और परिवार का मूल गाँव भेजें — पंडित जी निर्धारित कर देंगे। जो वे माँगें बस वही भेजें, और किसी और को कुछ नहीं।",
     },
   },
   {
-    id: "samagri",
-    when: { en: "Day −1", hi: "1 दिन पूर्व" },
-    icon: "package",
-    title: { en: "Samagri is gathered at the temple", hi: "मंदिर में सामग्री एकत्र होती है" },
+    id: "prepare",
+    when: { en: "Before the date", hi: "तिथि से पूर्व" },
+    icon: "message-circle",
+    title: { en: "Pandit Ji tells you what to do at home", hi: "पंडित जी बताते हैं घर पर क्या करना है" },
     text: {
-      en: "Turmeric wood, yellow mustard, whole turmeric roots, yellow flowers, cow ghee, besan laddoo and the jadi-buti your tier calls for are arranged the day before. You buy nothing and arrange nothing.",
-      hi: "हल्दी की लकड़ी, पीली सरसों, समूची हल्दी की गाँठें, पीले पुष्प, गोघृत, बेसन के लड्डू और आपके स्तर के अनुसार जड़ी-बूटियाँ एक दिन पूर्व तैयार की जाती हैं। आपको कुछ भी क्रय या व्यवस्थित नहीं करना।",
+      en: "What to wear, when to sit, whether to keep a diya or a fast, what to avoid eating, and which parts of the ritual you should be on the call for. Everything further down this page is how the tradition is generally described — but the instruction that actually applies to you is the one your Pandit Ji gives. Samagri is their side of it; you buy and arrange nothing.",
+      hi: "क्या पहनना है, कब बैठना है, दीपक या व्रत रखना है या नहीं, क्या नहीं खाना, और अनुष्ठान के किन हिस्सों पर कॉल पर रहना है। इस पृष्ठ पर आगे जो कुछ है वह परंपरा का सामान्य वर्णन है — किंतु आप पर लागू होने वाला निर्देश वही है जो आपके पंडित जी दें। सामग्री उनका पक्ष है; आपको कुछ क्रय या व्यवस्थित नहीं करना।",
     },
   },
   {
     id: "link",
-    when: { en: "Puja day, morning", hi: "पूजा के दिन, प्रातः" },
+    when: { en: "On the day, morning", hi: "उस दिन, प्रातः" },
     icon: "video",
-    title: { en: "Your live link arrives", hi: "आपका लाइव लिंक आता है" },
+    title: { en: "Pandit Ji sends your live link", hi: "पंडित जी आपका लाइव लिंक भेजते हैं" },
     text: {
       en: "A WhatsApp video call, a Zoom link or a Meet link, with the time of your sankalp told to you in advance so you can be sitting when it happens rather than joining halfway through it.",
       hi: "व्हाट्सएप वीडियो कॉल, ज़ूम या मीट लिंक, और आपके संकल्प का समय पहले ही बता दिया जाता है ताकि आप उस क्षण बैठे हों, बीच में जुड़ें नहीं।",
@@ -358,32 +374,32 @@ export const JOURNEY: JourneyStep[] = [
   },
   {
     id: "ritual",
-    when: { en: "Puja day", hi: "पूजा का दिन" },
+    when: { en: "The day itself", hi: "वह दिन" },
     icon: "flame",
     title: { en: "The havan is performed", hi: "हवन सम्पन्न होता है" },
     text: {
-      en: "Ganesh pujan, avahan, your sankalp, japa, ahuti, purnahuti, aarti — the same order, in the same number, as it would be if you were standing there. Photographs and short clips are usually sent through the day.",
-      hi: "गणेश पूजन, आवाहन, आपका संकल्प, जप, आहुति, पूर्णाहुति, आरती — वही क्रम, वही संख्या, जो आपके वहाँ उपस्थित होने पर होती। दिन भर छायाचित्र और लघु वीडियो प्रायः भेजे जाते हैं।",
+      en: "Ganesh pujan, avahan, your sankalp, japa, ahuti, purnahuti, aarti — the same order, in the same number, as it would be if you were standing there. Photographs and short clips are usually sent through the day. The next section walks that day hour by hour.",
+      hi: "गणेश पूजन, आवाहन, आपका संकल्प, जप, आहुति, पूर्णाहुति, आरती — वही क्रम, वही संख्या, जो आपके वहाँ उपस्थित होने पर होती। दिन भर छायाचित्र और लघु वीडियो प्रायः भेजे जाते हैं। अगला अनुभाग उसी दिन को घंटे-दर-घंटे दिखाता है।",
     },
   },
   {
     id: "prasad",
-    when: { en: "Day +1 to +10", hi: "अगले 1 से 10 दिन" },
+    when: { en: "Next 7–10 days", hi: "अगले 7–10 दिन" },
     icon: "heart",
     title: { en: "Bhasma and prasad are couriered", hi: "भस्म और प्रसाद कूरियर होते हैं" },
     text: {
-      en: "Havan bhasma, raksha sutra, an energised yantra where your tier includes one, and prasad — dispatched to the address you registered, in India or abroad, typically arriving within seven to ten days.",
-      hi: "हवन भस्म, रक्षा-सूत्र, आपके स्तर में सम्मिलित हो तो अभिमंत्रित यंत्र, और प्रसाद — आपके पंजीकृत पते पर भेजे जाते हैं, भारत में या विदेश में, प्रायः सात से दस दिनों में पहुँचते हैं।",
+      en: "Havan bhasma, raksha sutra, an energised yantra where your tier includes one, and prasad — dispatched to the address you gave Pandit Ji, in India or abroad, typically arriving within seven to ten days.",
+      hi: "हवन भस्म, रक्षा-सूत्र, आपके स्तर में सम्मिलित हो तो अभिमंत्रित यंत्र, और प्रसाद — जो पता आपने पंडित जी को दिया, वहाँ भेजे जाते हैं, भारत में या विदेश में, प्रायः सात से दस दिनों में पहुँचते हैं।",
     },
   },
   {
     id: "after",
-    when: { en: "After", hi: "तत्पश्चात" },
-    icon: "book-open",
-    title: { en: "What you are asked to keep doing", hi: "आपसे आगे क्या करने को कहा जाता है" },
+    when: { en: "Afterwards", hi: "तत्पश्चात" },
+    icon: "check-circle",
+    title: { en: "Pandit Ji gives you the niyam to keep", hi: "पंडित जी आगे का नियम देते हैं" },
     text: {
-      en: "Most acharyas give a small daily practice afterwards — a mantra count, a Tuesday diya, the raksha sutra worn until it falls away on its own. The havan is the beginning of the sankalp, not the end of it.",
-      hi: "अधिकांश आचार्य पश्चात एक छोटा नित्य नियम देते हैं — एक मंत्र संख्या, मंगलवार का दीपक, रक्षा-सूत्र जब तक स्वयं न उतरे तब तक धारण। हवन संकल्प का आरंभ है, अंत नहीं।",
+      en: "Most acharyas give a small daily practice afterwards — a mantra count, a Tuesday diya, the raksha sutra worn until it falls away on its own. Keep their number; the havan is the beginning of the sankalp, not the end of it.",
+      hi: "अधिकांश आचार्य पश्चात एक छोटा नित्य नियम देते हैं — एक मंत्र संख्या, मंगलवार का दीपक, रक्षा-सूत्र जब तक स्वयं न उतरे तब तक धारण। उनका नंबर सुरक्षित रखें; हवन संकल्प का आरंभ है, अंत नहीं।",
     },
   },
 ];

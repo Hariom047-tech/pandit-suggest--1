@@ -57,8 +57,8 @@ import {
 /** In-page jump targets — the page is long by design, so it is navigable. */
 const JUMPS = [
   { id: "how", key: "jumpHow" },
-  { id: "day", key: "jumpDay" },
   { id: "journey", key: "jumpJourney" },
+  { id: "day", key: "jumpDay" },
   { id: "sankalp", key: "jumpSankalp" },
   { id: "home", key: "jumpHome" },
   { id: "compare", key: "jumpCompare" },
@@ -226,18 +226,6 @@ export default function OnlineHavan() {
         </div>
       </section>
 
-      {/* ═══════════════════ THE RITUAL DAY ═══════════════════ */}
-      <section className="section oh-section oh-section--dark" id="day">
-        <div className="shell">
-          <header className="oh-head oh-head--invert">
-            <span className="oh-head__eyebrow">{t("onlineHavan.dayEyebrow")}</span>
-            <h2 className="oh-head__title">{t("onlineHavan.dayTitle")}</h2>
-            <p className="oh-head__sub">{t("onlineHavan.daySub")}</p>
-          </header>
-          <RitualDay />
-        </div>
-      </section>
-
       {/* ═══════════════════ BOOKING JOURNEY ═══════════════════ */}
       <section className="section oh-section" id="journey">
         <div className="shell">
@@ -269,6 +257,35 @@ export default function OnlineHavan() {
               </motion.li>
             ))}
           </ol>
+        </div>
+      </section>
+
+
+      {/* ═══════════════════ THE RITUAL DAY ═══════════════════
+          Deliberately AFTER the journey: it describes what a devotee will
+          watch happen once a Pandit Ji has been chosen and spoken to, and
+          reads as an instruction sheet if it arrives before that. The gate
+          below says so in as many words. */}
+      <section className="section oh-section oh-section--ritual" id="day">
+        <div className="shell">
+          <header className="oh-head">
+            <span className="oh-head__eyebrow">{t("onlineHavan.dayEyebrow")}</span>
+            <h2 className="oh-head__title">{t("onlineHavan.dayTitle")}</h2>
+            <p className="oh-head__sub">{t("onlineHavan.daySub")}</p>
+          </header>
+
+          <Reveal className="oh-gate">
+            <span className="oh-gate__icon"><Icon name="message-circle" size={20} /></span>
+            <div className="oh-gate__body">
+              <h3>{t("onlineHavan.gateTitle")}</h3>
+              <p>{t("onlineHavan.gateText")}</p>
+            </div>
+            <Link className="btn btn-gold btn-sm oh-gate__cta" to={panditsHref}>
+              {t("onlineHavan.gateCta")} <Icon name="arrow-right" size={15} />
+            </Link>
+          </Reveal>
+
+          <RitualDay />
         </div>
       </section>
 
