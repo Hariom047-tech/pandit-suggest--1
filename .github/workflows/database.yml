@@ -1,0 +1,269 @@
+name: Database
+
+# Gate for every change that touches the schema, the migration runner, or the
+# code that talks to them. There was no CI at all before this: the fresh-install
+# path was broken for weeks (01-schema.sql could not build an empty database)
+# and nobody found out, because nothing ever built one.
+on:
+  pull_request:
+    paths:
+      - 'backend/src/db/**'
+      - 'backend/scripts/migrate.js'
+      - 'backend/src/config/db.js'
+      - 'backend/src/config/testDbGuard.js'
+      - '.github/workflows/database.yml'
+  push:
+    branches: [main]
+
+concurrency:
+  group: database-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fresh-install:
+    name: Fresh install from baseline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # PostGIS + pgvector in one image, matching docker/postgres/Dockerfile.
+      - name: Start PostgreSQL 16
+        run: |
+          docker build -t ci-postgres -f docker/postgres/Dockerfile .
+          docker run -d --name pg -p 5432:5432 \
+            -e POSTGRES_USER=ci -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=postgres \
+            ci-postgres
+          for i in $(seq 1 60); do
+            docker exec pg pg_isready -U ci -d postgres && break || sleep 2
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+
+      - name: Create the database and bootstrap roles/extensions
+        run: |
+          docker exec pg psql -U ci -d postgres -c "CREATE DATABASE ci_fresh;"
+          docker exec pg psql -U ci -d postgres \
+            -c "CREATE ROLE panditsuggest_migrator LOGIN PASSWORD 'ci';"
+          docker exec -i pg psql -U ci -d ci_fresh -v ON_ERROR_STOP=1 -v dbname=ci_fresh \
+            < backend/src/db/tools/00-bootstrap-rds.sql
+
+      - name: Apply baseline + config + migrations
+        working-directory: backend
+        env:
+          DATABASE_MIGRATOR_URL: postgresql://panditsuggest_migrator:ci@localhost:5432/ci_fresh
+          DEPLOYMENT_ID: ${{ github.run_id }}
+        run: node scripts/migrate.js
+
+      - name: Re-run must be a no-op
+        working-directory: backend
+        env:
+          DATABASE_MIGRATOR_URL: postgresql://panditsuggest_migrator:ci@localhost:5432/ci_fresh
+        run: |
+          out=$(node scripts/migrate.js)
+          echo "$out"
+          echo "$out" | grep -q 'nothing to do' \
+            || { echo "::error::re-running the migrator was not a no-op"; exit 1; }
+
+      - name: Schema verification
+        run: |
+          docker exec -i pg psql -U ci -d ci_fresh -v ON_ERROR_STOP=1 \
+            < backend/src/db/tools/verify-schema.sql
+
+      - name: Lead distribution and payment integrity tests
+        run: |
+          docker exec -i pg psql -U ci -d ci_fresh -v ON_ERROR_STOP=1 \
+            < backend/src/db/tools/test-lead-payment.sql
+
+      - name: No fixture data may reach the baseline
+        run: |
+          docker exec pg psql -U ci -d ci_fresh -v ON_ERROR_STOP=1 -tAc "
+            DO \$\$
+            DECLARE n INT;
+            BEGIN
+              SELECT count(*) INTO n FROM users;
+              IF n > 0 THEN RAISE EXCEPTION 'baseline+config created % user(s)', n; END IF;
+              SELECT count(*) INTO n FROM pandits;
+              IF n > 0 THEN RAISE EXCEPTION 'baseline+config created % pandit(s)', n; END IF;
+            END \$\$;"
+
+      - name: Record fingerprint
+        id: fp
+        run: |
+          fp=$(PG_CONTAINER=pg PG_SUPERUSER=ci backend/src/db/tools/schema-fingerprint.sh ci_fresh)
+          echo "fingerprint=$fp" >> "$GITHUB_OUTPUT"
+          echo "fresh install fingerprint: $fp"
+    outputs:
+      fingerprint: ${{ steps.fp.outputs.fingerprint }}
+
+  upgrade:
+    name: Upgrade from the previous release
+    runs-on: ubuntu-latest
+    needs: fresh-install
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Start PostgreSQL 16
+        run: |
+          docker build -t ci-postgres -f docker/postgres/Dockerfile .
+          docker run -d --name pg -p 5432:5432 \
+            -e POSTGRES_USER=ci -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=postgres ci-postgres
+          for i in $(seq 1 60); do
+            docker exec pg pg_isready -U ci -d postgres && break || sleep 2
+          done
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: npm, cache-dependency-path: backend/package-lock.json }
+      - run: npm ci
+        working-directory: backend
+
+      - name: Build the database as it exists on main
+        run: |
+          docker exec pg psql -U ci -d postgres -c "CREATE DATABASE ci_upgrade;"
+          docker exec pg psql -U ci -d postgres \
+            -c "CREATE ROLE panditsuggest_migrator LOGIN PASSWORD 'ci';"
+          git worktree add /tmp/base origin/${{ github.base_ref || 'main' }}
+          docker exec -i pg psql -U ci -d ci_upgrade -v ON_ERROR_STOP=1 -v dbname=ci_upgrade \
+            < /tmp/base/backend/src/db/tools/00-bootstrap-rds.sql
+          cd /tmp/base/backend && npm ci --omit=dev >/dev/null 2>&1 || npm ci
+          DATABASE_MIGRATOR_URL=postgresql://panditsuggest_migrator:ci@localhost:5432/ci_upgrade \
+            node scripts/migrate.js
+
+      - name: Apply this PR's pending migrations on top
+        working-directory: backend
+        env:
+          DATABASE_MIGRATOR_URL: postgresql://panditsuggest_migrator:ci@localhost:5432/ci_upgrade
+          DEPLOYMENT_ID: ${{ github.run_id }}
+        run: node scripts/migrate.js
+
+      - name: Verify and test the upgraded database
+        run: |
+          docker exec -i pg psql -U ci -d ci_upgrade -v ON_ERROR_STOP=1 \
+            < backend/src/db/tools/verify-schema.sql
+          docker exec -i pg psql -U ci -d ci_upgrade -v ON_ERROR_STOP=1 \
+            < backend/src/db/tools/test-lead-payment.sql
+
+      # The whole point of running both jobs: an upgraded database and a
+      # freshly-built one must be the same database. A migration that only
+      # works on one path is the classic way production and CI diverge.
+      - name: Upgraded schema must equal a fresh install
+        run: |
+          up=$(PG_CONTAINER=pg PG_SUPERUSER=ci backend/src/db/tools/schema-fingerprint.sh ci_upgrade)
+          fresh='${{ needs.fresh-install.outputs.fingerprint }}'
+          echo "upgraded: $up"
+          echo "fresh:    $fresh"
+          if [ "$up" != "$fresh" ]; then
+            echo "::error::upgrade path and fresh install produced different schemas"
+            exit 1
+          fi
+
+  immutability:
+    name: Applied migrations are immutable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      # A migration that has shipped must never be edited: production has
+      # already run the old bytes, so the edit silently creates two different
+      # schemas that both claim the same version. Forward-fix in a new file.
+      - name: Refuse edits to migrations already on main
+        run: |
+          base="origin/${{ github.base_ref || 'main' }}"
+          git fetch origin "${{ github.base_ref || 'main' }}" --depth=1 || true
+          changed=$(git diff --name-only --diff-filter=M "$base"...HEAD \
+                     -- 'backend/src/db/migrations/*.sql' \
+                        'backend/src/db/baseline/*.sql' \
+                        'backend/src/db/config/*.sql' || true)
+          if [ -n "$changed" ]; then
+            echo "::error::these already-released files were modified:"
+            echo "$changed"
+            echo "Add a new migration instead. See docs/MIGRATION_RULES.md."
+            exit 1
+          fi
+          echo "no released migration was modified"
+
+      # historical/ is provenance. Nothing runs it; nothing may change it.
+      - name: Refuse edits to historical/
+        run: |
+          base="origin/${{ github.base_ref || 'main' }}"
+          changed=$(git diff --name-only --diff-filter=MD "$base"...HEAD \
+                     -- 'backend/src/db/historical/*' || true)
+          if [ -n "$changed" ]; then
+            echo "::error::historical/ is an immutable record and was modified:"
+            echo "$changed"
+            exit 1
+          fi
+          echo "historical/ untouched"
+
+  test-isolation:
+    name: Tests cannot reach production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: npm, cache-dependency-path: backend/package-lock.json }
+      - run: npm ci
+        working-directory: backend
+
+      # Every npm test script must set both markers. Nine of them once did not,
+      # which disabled the guard entirely and put 633 fixture rows in production.
+      - name: Every test script sets NODE_ENV=test and DATABASE_ENV=test
+        working-directory: backend
+        run: |
+          node -e "
+            const s = require('./package.json').scripts;
+            const bad = Object.entries(s)
+              .filter(([k]) => k === 'test' || k.startsWith('test:'))
+              .filter(([,v]) => !v.includes('NODE_ENV=test') || !v.includes('DATABASE_ENV=test'))
+              .map(([k]) => k);
+            if (bad.length) {
+              console.error('::error::test scripts missing NODE_ENV/DATABASE_ENV: ' + bad.join(', '));
+              process.exit(1);
+            }
+            console.log('all test scripts guarded');
+          "
+
+      - name: The guard refuses an RDS endpoint before any SQL runs
+        working-directory: backend
+        run: |
+          cat > /tmp/probe.js <<'EOF'
+          const { assertSafeForTests } = require('./src/config/testDbGuard');
+          assertSafeForTests(process.env.TEST_URL, 'ci probe');
+          console.log('ALLOWED');
+          EOF
+          set +e
+          out=$(NODE_ENV=test DATABASE_ENV=test \
+                TEST_URL='postgresql://u:p@prod.abc.ap-south-1.rds.amazonaws.com:5432/panditconnect_test' \
+                node /tmp/probe.js 2>&1)
+          code=$?
+          set -e
+          echo "$out"
+          if [ $code -eq 0 ]; then
+            echo "::error::the guard ALLOWED a connection to an RDS endpoint"; exit 1
+          fi
+          echo "guard correctly refused"
+
+  secrets:
+    name: No credentials in the database sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baseline and config must not contain a password
+        run: |
+          if grep -rniE "(password|secret)\s*(=|:)\s*['\"][^'\"]{4,}" \
+               backend/src/db/baseline backend/src/db/config; then
+            echo "::error::a credential appears in the baseline or config"; exit 1
+          fi
+          # The production baseline must not name the local build superuser.
+          if grep -nE '(^|[^_a-z])panditconnect([^_a-z]|$)' \
+               backend/src/db/baseline/0000-production-baseline.sql | grep -v ':--'; then
+            echo "::error::baseline references the local build role 'panditconnect'"; exit 1
+          fi
+          echo "no credentials found"
