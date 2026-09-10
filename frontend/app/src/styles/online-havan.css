@@ -44,13 +44,13 @@
 .oh-head__title {
   margin: 0 0 10px;
   font-size: var(--fs-h2);
-  line-height: 1.2;
+  line-height: var(--lh-snug);
   color: var(--text);
 }
 .oh-head__sub {
   margin: 0;
   font-size: var(--fs-600);
-  line-height: 1.6;
+  line-height: var(--lh-relaxed);
   color: var(--text-2);
 }
 
@@ -105,20 +105,20 @@
 .oh-hero__title {
   margin: 14px 0 12px;
   font-size: clamp(1.9rem, 4.4vw, var(--fs-1300));
-  line-height: 1.12;
+  line-height: var(--lh-tight);
   color: var(--text);
 }
 .oh-hero__sub {
   margin: 0;
   font-size: var(--fs-600);
-  line-height: 1.65;
+  line-height: var(--lh-relaxed);
   color: var(--text-2);
   max-width: 56ch;
 }
 .oh-hero__from {
   margin: 12px 0 0;
-  font-size: var(--fs-300);
-  color: var(--text-muted);
+  font-size: var(--fs-400);
+  color: var(--text-2);
 }
 .oh-hero__from a { color: var(--gold-deep); font-weight: var(--fw-semibold); }
 
@@ -139,7 +139,7 @@
   justify-content: center;
   gap: 8px 22px;
   margin-top: 4px;
-  font-size: var(--fs-200);
+  font-size: var(--fs-400);
   color: var(--text-2);
 }
 .oh-hero__scene-legend span { display: inline-flex; align-items: center; gap: 7px; }
@@ -171,8 +171,8 @@
 .oh-fact__label {
   display: block;
   margin-top: 4px;
-  font-size: var(--fs-200);
-  line-height: 1.45;
+  font-size: var(--fs-400);
+  line-height: var(--lh-normal);
   color: var(--text-2);
 }
 
@@ -200,7 +200,7 @@
   flex: none;
   padding: 6px 13px;
   border-radius: var(--r-pill);
-  font-size: var(--fs-300);
+  font-size: var(--fs-400);
   font-weight: var(--fw-semibold);
   color: var(--text-2);
   text-decoration: none;
@@ -241,18 +241,18 @@
 .oh-pillar--home .oh-pillar__title { color: var(--oh-home); }
 .oh-pillar__text {
   margin: 0 0 14px;
-  font-size: var(--fs-400);
-  line-height: 1.65;
-  color: var(--text-2);
+  font-size: var(--fs-500);
+  line-height: var(--lh-relaxed);
+  color: var(--text);
 }
 .oh-pillar__points { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .oh-pillar__points li {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  font-size: var(--fs-300);
-  line-height: 1.5;
-  color: var(--text);
+  font-size: var(--fs-400);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
 }
 .oh-pillar__points svg { flex: none; margin-top: 3px; color: var(--gold-deep); }
 .oh-pillar--home .oh-pillar__points svg { color: var(--oh-home); }
@@ -269,8 +269,8 @@
   border: 1px solid var(--gold-soft);
 }
 .oh-shastra__icon { font-size: 1.6rem; line-height: 1; flex: none; }
-.oh-shastra h3 { margin: 0 0 8px; font-size: var(--fs-700); color: var(--gold-deep); }
-.oh-shastra p { margin: 0; font-size: var(--fs-400); line-height: 1.7; color: var(--text); }
+.oh-shastra h3 { margin: 0 0 8px; font-size: var(--fs-700); color: var(--text); }
+.oh-shastra p { margin: 0; font-size: var(--fs-500); line-height: var(--lh-relaxed); color: var(--text); }
 
 /* ═══════════ THE RITUAL DAY ═══════════
    Was a dark brown band, which made it the only dark surface on the site
@@ -313,14 +313,14 @@
 .oh-gate__body { flex: 1 1 340px; min-width: 0; }
 .oh-gate__body h3 {
   margin: 0 0 6px;
-  font-size: var(--fs-600);
+  font-size: var(--fs-700);
   color: var(--oh-home);
 }
 .oh-gate__body p {
   margin: 0;
-  font-size: var(--fs-300);
-  line-height: 1.7;
-  color: var(--text-2);
+  font-size: var(--fs-500);
+  line-height: var(--lh-relaxed);
+  color: var(--text);
 }
 .oh-gate__cta { flex: none; }
 
@@ -409,9 +409,9 @@
   animation: oh-blink 1.8s ease-in-out infinite;
 }
 .oh-day__bead-name {
-  font-size: var(--fs-100);
+  font-size: var(--fs-200);
   font-weight: var(--fw-semibold);
-  line-height: 1.35;
+  line-height: var(--lh-normal);
   opacity: 0.85;
 }
 
@@ -442,7 +442,7 @@
   margin: 6px 0 0;
   font-size: var(--fs-h4);
   color: var(--text);
-  line-height: 1.25;
+  line-height: var(--lh-snug);
 }
 .oh-day__livetag {
   display: inline-flex;
@@ -481,7 +481,7 @@
   line-height: 1;
 }
 .oh-day__count-label {
-  font-size: var(--fs-300);
+  font-size: var(--fs-400);
   color: var(--text-2);
 }
 
@@ -520,9 +520,9 @@
 .oh-day__side-icon { font-size: 1rem; }
 .oh-day__side p {
   margin: 0;
-  font-size: var(--fs-400);
-  line-height: 1.7;
-  color: var(--text-2);
+  font-size: var(--fs-500);
+  line-height: var(--lh-relaxed);
+  color: var(--text);
 }
 
 .oh-day__mantra {
@@ -535,7 +535,7 @@
 }
 .oh-day__mantra-label {
   display: block;
-  font-size: var(--fs-100);
+  font-size: var(--fs-200);
   font-weight: var(--fw-bold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -545,15 +545,15 @@
 .oh-day__mantra-dev {
   margin: 0;
   font-size: var(--fs-600);
-  line-height: 1.8;
+  line-height: var(--lh-loose);
   color: var(--gold-deep);
 }
 .oh-day__mantra-roman {
   margin: 6px 0 0;
-  font-size: var(--fs-300);
+  font-size: var(--fs-400);
   font-style: italic;
-  line-height: 1.6;
-  color: var(--text-muted);
+  line-height: var(--lh-normal);
+  color: var(--text-2);
 }
 
 /* ═══════════ BOOKING JOURNEY ═══════════ */
@@ -596,7 +596,7 @@
   padding: 3px 11px;
   border-radius: var(--r-pill);
   background: var(--cream-deep);
-  font-size: var(--fs-100);
+  font-size: var(--fs-200);
   font-weight: var(--fw-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -609,9 +609,9 @@
 }
 .oh-journey__text {
   margin: 0;
-  font-size: var(--fs-400);
-  line-height: 1.72;
-  color: var(--text-2);
+  font-size: var(--fs-500);
+  line-height: var(--lh-relaxed);
+  color: var(--text);
 }
 
 /* ═══════════ AT HOME ═══════════ */
@@ -636,9 +636,9 @@
 .oh-rules__col ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
 .oh-rules__col li {
   position: relative;
-  padding-left: 24px;
-  font-size: var(--fs-400);
-  line-height: 1.6;
+  padding-left: 26px;
+  font-size: var(--fs-500);
+  line-height: var(--lh-relaxed);
   color: var(--text);
 }
 .oh-rules__col li::before {
@@ -669,13 +669,13 @@
   font-size: var(--fs-700);
   color: var(--text);
 }
-.oh-samagri__sub { margin: 0 0 18px; font-size: var(--fs-300); color: var(--text-2); }
+.oh-samagri__sub { margin: 0 0 18px; font-size: var(--fs-400); color: var(--text-2); }
 .oh-samagri__list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 10px;
 }
 .oh-samagri__item {
@@ -691,7 +691,7 @@
 }
 .oh-samagri__name {
   display: block;
-  font-size: var(--fs-400);
+  font-size: var(--fs-500);
   font-weight: var(--fw-semibold);
   color: var(--text);
 }
@@ -699,8 +699,8 @@
 .oh-samagri__note {
   display: block;
   margin-top: 3px;
-  font-size: var(--fs-200);
-  line-height: 1.45;
+  font-size: var(--fs-400);
+  line-height: var(--lh-normal);
   color: var(--text-2);
 }
 
@@ -729,8 +729,8 @@
   color: var(--gold-deep);
   margin-bottom: 12px;
 }
-.oh-deliver__card h3 { margin: 0 0 5px; font-size: var(--fs-600); color: var(--text); }
-.oh-deliver__card p { margin: 0; font-size: var(--fs-300); line-height: 1.6; color: var(--text-2); }
+.oh-deliver__card h3 { margin: 0 0 5px; font-size: var(--fs-700); color: var(--text); }
+.oh-deliver__card p { margin: 0; font-size: var(--fs-400); line-height: var(--lh-normal); color: var(--text-2); }
 
 /* ═══════════ TRUST ═══════════ */
 .oh-trust {
@@ -759,8 +759,8 @@
   font-weight: var(--fw-extrabold);
   box-shadow: var(--sh-gold);
 }
-.oh-trust__card h3 { margin: 6px 0 8px; font-size: var(--fs-600); color: var(--text); }
-.oh-trust__card p { margin: 0; font-size: var(--fs-300); line-height: 1.7; color: var(--text-2); }
+.oh-trust__card h3 { margin: 6px 0 8px; font-size: var(--fs-700); color: var(--text); }
+.oh-trust__card p { margin: 0; font-size: var(--fs-500); line-height: var(--lh-relaxed); color: var(--text); }
 
 /* ═══════════ FAQ ═══════════ */
 .oh-faq { max-width: 820px; margin: 0 auto; display: grid; gap: 10px; }
@@ -784,7 +784,7 @@
   cursor: pointer;
   text-align: left;
   font: inherit;
-  font-size: var(--fs-500);
+  font-size: var(--fs-600);
   font-weight: var(--fw-semibold);
   color: var(--text);
 }
@@ -794,9 +794,9 @@
 .oh-faq__a p {
   margin: 0;
   padding: 0 18px 18px;
-  font-size: var(--fs-400);
-  line-height: 1.75;
-  color: var(--text-2);
+  font-size: var(--fs-500);
+  line-height: var(--lh-relaxed);
+  color: var(--text);
 }
 
 /* ═══════════ PUJAS AVAILABLE ONLINE ═══════════
@@ -875,8 +875,8 @@
 .oh-disclaimer p {
   margin: 0;
   max-width: 900px;
-  font-size: var(--fs-200);
-  line-height: 1.7;
+  font-size: var(--fs-300);
+  line-height: var(--lh-normal);
   color: var(--text-muted);
   text-align: center;
 }
@@ -912,15 +912,15 @@
 .sd-online-card__cta-body { flex: 1; min-width: 0; }
 .sd-online-card__cta-title {
   display: block;
-  font-size: var(--fs-400);
+  font-size: var(--fs-500);
   font-weight: var(--fw-bold);
   color: var(--oh-home);
 }
 .sd-online-card__cta-sub {
   display: block;
   margin-top: 2px;
-  font-size: var(--fs-200);
-  line-height: 1.45;
+  font-size: var(--fs-400);
+  line-height: var(--lh-normal);
   color: #3d5f7d;
 }
 .sd-online-card__cta > svg { flex: none; color: var(--oh-home); }
@@ -930,7 +930,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--fs-300);
+  font-size: var(--fs-400);
   font-weight: var(--fw-semibold);
   color: var(--gold-deep);
   text-decoration: none;
@@ -970,6 +970,16 @@
   .oh-journey__icon { width: 36px; height: 36px; }
   .oh-gate { align-items: flex-start; }
   .oh-gate__cta { width: 100%; justify-content: center; }
+}
+
+/* The scale in typography.css is fixed, so pages step their own headings
+   down on narrow screens (home-sections.css does the same). Keeps the
+   heading-to-body ratio near 2:1 at every width instead of letting a 35px
+   Devanagari title wrap to three lines above 16px copy. */
+@media (max-width: 620px) {
+  .oh-head__title { font-size: var(--fs-h3); }
+  .oh-head__sub { font-size: var(--fs-500); }
+  .oh-day__title { font-size: var(--fs-h5); }
 }
 
 @media (max-width: 520px) {
