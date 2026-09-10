@@ -43,8 +43,6 @@ const en = {
     sub: "An online havan is not a video of someone else's puja. It is your sankalp — your name, your gotra, your reason — taken at a physical kund at the temple, with you watching it happen. Here is the whole thing, hour by hour, with nothing skipped.",
     arrivedFrom: "You came here from",
     heroCta2: "Talk to a Pandit Ji",
-    legendOut: "Your sankalp goes to the fire",
-    legendBack: "Bhasma and prasad come back",
     jumpLabel: "Jump to a section",
     jumpHow: "What it is",
     jumpDay: "The ritual day",

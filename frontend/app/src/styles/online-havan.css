@@ -58,7 +58,7 @@
 .oh-hero {
   position: relative;
   overflow: hidden;
-  padding: 30px 0 40px;
+  padding: 44px 0 40px;
   background:
     radial-gradient(120% 90% at 78% 0%, #fff4d6 0%, transparent 60%),
     linear-gradient(160deg, var(--ivory) 0%, #fffdf7 55%, var(--cream) 100%);
@@ -75,12 +75,11 @@
 }
 .oh-hero__shell { position: relative; z-index: 1; }
 
-.oh-hero__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-  gap: 28px;
-  align-items: center;
-  margin-top: 14px;
+/* One centred column — there is no illustration beside it any more. */
+.oh-hero__copy {
+  max-width: 780px;
+  margin: 14px auto 0;
+  text-align: center;
 }
 
 .oh-hero__pill {
@@ -114,6 +113,7 @@
   line-height: var(--lh-relaxed);
   color: var(--text-2);
   max-width: 56ch;
+  margin-inline: auto;
 }
 .oh-hero__from {
   margin: 12px 0 0;
@@ -125,31 +125,10 @@
 .oh-hero__cta {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
   margin-top: 22px;
 }
-
-.oh-hero__scene {
-  position: relative;
-  padding: 8px 6px 0;
-}
-.oh-hero__scene-legend {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 22px;
-  margin-top: 4px;
-  font-size: var(--fs-400);
-  color: var(--text-2);
-}
-.oh-hero__scene-legend span { display: inline-flex; align-items: center; gap: 7px; }
-.oh-legend-dot {
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  flex: none;
-}
-.oh-legend-dot--out { background: var(--gold); box-shadow: 0 0 8px rgba(212, 160, 23, 0.6); }
-.oh-legend-dot--back { background: #a33d2c; }
 
 /* the temple, in four numbers */
 .oh-facts {
@@ -947,8 +926,6 @@
 
 /* ═══════════ responsive ═══════════ */
 @media (max-width: 1000px) {
-  .oh-hero__grid { grid-template-columns: 1fr; gap: 18px; }
-  .oh-hero__scene { order: -1; }
   .oh-pillars,
   .oh-deliver,
   .oh-trust { grid-template-columns: repeat(2, minmax(0, 1fr)); }

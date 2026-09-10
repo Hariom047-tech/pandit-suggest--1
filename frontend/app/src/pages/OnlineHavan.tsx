@@ -6,7 +6,6 @@ import { Seo } from "../lib/Seo";
 import { useLang } from "../lib/i18n";
 import { useServices } from "../hooks/useData";
 import { normServices } from "../lib/normalize";
-import { SankalpDiorama3D } from "../components/online/SankalpDiorama3D";
 import { RitualDay } from "../components/online/RitualDay";
 import { OnlinePujaSlider } from "../components/online/OnlinePujaSlider";
 import {
@@ -121,36 +120,30 @@ export default function OnlineHavan() {
       <section className="oh-hero">
         <div className="oh-hero__glow" aria-hidden="true" />
         <div className="shell oh-hero__shell">
-          <div className="oh-hero__grid">
-            <div className="oh-hero__copy">
-              <span className="oh-hero__pill">
-                <span className="oh-hero__pill-dot" />
-                {t("onlineHavan.pill")}
-              </span>
-              <h1 className="oh-hero__title">
-                {t("onlineHavan.title1")}{" "}
-                <span className="gold-text">{t("onlineHavan.titleGold")}</span>{" "}
-                {t("onlineHavan.title2")}
-              </h1>
-              <p className="oh-hero__sub">{t("onlineHavan.sub")}</p>
-              {source && (
-                <p className="oh-hero__from">
-                  {t("onlineHavan.arrivedFrom")} <Link to={`/services/${source.id}`}>{source.name}</Link>
-                </p>
-              )}
-              <div className="oh-hero__cta">
-                <Link className="btn btn-gold" to={panditsHref}>
-                  {t("onlineHavan.heroCta2")} <Icon name="arrow-right" size={16} />
-                </Link>
-              </div>
-            </div>
-
-            <div className="oh-hero__scene">
-              <SankalpDiorama3D />
-              <div className="oh-hero__scene-legend">
-                <span><i className="oh-legend-dot oh-legend-dot--out" />{t("onlineHavan.legendOut")}</span>
-                <span><i className="oh-legend-dot oh-legend-dot--back" />{t("onlineHavan.legendBack")}</span>
-              </div>
+          {/* The page opens on the live pill — no illustration above it. The
+              two-column hero and the scene it held are gone, so the copy is
+              one centred column rather than a half-width one with a hole
+              beside it. */}
+          <div className="oh-hero__copy">
+            <span className="oh-hero__pill">
+              <span className="oh-hero__pill-dot" />
+              {t("onlineHavan.pill")}
+            </span>
+            <h1 className="oh-hero__title">
+              {t("onlineHavan.title1")}{" "}
+              <span className="gold-text">{t("onlineHavan.titleGold")}</span>{" "}
+              {t("onlineHavan.title2")}
+            </h1>
+            <p className="oh-hero__sub">{t("onlineHavan.sub")}</p>
+            {source && (
+              <p className="oh-hero__from">
+                {t("onlineHavan.arrivedFrom")} <Link to={`/services/${source.id}`}>{source.name}</Link>
+              </p>
+            )}
+            <div className="oh-hero__cta">
+              <Link className="btn btn-gold" to={panditsHref}>
+                {t("onlineHavan.heroCta2")} <Icon name="arrow-right" size={16} />
+              </Link>
             </div>
           </div>
 
