@@ -176,9 +176,6 @@
   color: var(--text-2);
 }
 
-/* .crumbs is centred for .page-hero, which this hero is not. */
-.oh-hero .crumbs { justify-content: flex-start; }
-
 /* ═══════════ JUMP NAV ═══════════ */
 .oh-jump {
   position: sticky;

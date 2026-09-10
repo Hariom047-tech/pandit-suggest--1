@@ -6,7 +6,7 @@ import { Seo } from "../lib/Seo";
 import { useLang } from "../lib/i18n";
 import { useServices } from "../hooks/useData";
 import { normServices } from "../lib/normalize";
-import { LiveSankalpScene } from "../components/online/LiveSankalpScene";
+import { SankalpDiorama3D } from "../components/online/SankalpDiorama3D";
 import { RitualDay } from "../components/online/RitualDay";
 import { OnlinePujaSlider } from "../components/online/OnlinePujaSlider";
 import {
@@ -121,11 +121,6 @@ export default function OnlineHavan() {
       <section className="oh-hero">
         <div className="oh-hero__glow" aria-hidden="true" />
         <div className="shell oh-hero__shell">
-          <nav className="crumbs" aria-label="Breadcrumb">
-            <Link to="/">{t("nav.home")}</Link> <span>/</span>{" "}
-            <Link to="/services">{t("nav.services")}</Link> <span>/</span> {t("onlineHavan.crumb")}
-          </nav>
-
           <div className="oh-hero__grid">
             <div className="oh-hero__copy">
               <span className="oh-hero__pill">
@@ -144,17 +139,14 @@ export default function OnlineHavan() {
                 </p>
               )}
               <div className="oh-hero__cta">
-                <a className="btn btn-gold" href="#day">
-                  {t("onlineHavan.heroCta")} <Icon name="arrow-right" size={16} />
-                </a>
-                <Link className="btn btn-ghost" to={panditsHref}>
-                  {t("onlineHavan.heroCta2")}
+                <Link className="btn btn-gold" to={panditsHref}>
+                  {t("onlineHavan.heroCta2")} <Icon name="arrow-right" size={16} />
                 </Link>
               </div>
             </div>
 
             <div className="oh-hero__scene">
-              <LiveSankalpScene />
+              <SankalpDiorama3D />
               <div className="oh-hero__scene-legend">
                 <span><i className="oh-legend-dot oh-legend-dot--out" />{t("onlineHavan.legendOut")}</span>
                 <span><i className="oh-legend-dot oh-legend-dot--back" />{t("onlineHavan.legendBack")}</span>
