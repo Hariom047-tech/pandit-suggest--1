@@ -8,6 +8,7 @@ import { useServices } from "../hooks/useData";
 import { normServices } from "../lib/normalize";
 import { LiveSankalpScene } from "../components/online/LiveSankalpScene";
 import { RitualDay } from "../components/online/RitualDay";
+import { OnlinePujaSlider } from "../components/online/OnlinePujaSlider";
 import {
   AVOID_AT_HOME,
   DELIVERABLES,
@@ -84,7 +85,7 @@ export default function OnlineHavan() {
   const services = useMemo(() => normServices(rawServices), [rawServices]);
   /** Only pujas an admin has actually marked as available online. */
   const onlineServices = useMemo(
-    () => services.filter((s) => s.onlineAvailable).slice(0, 6),
+    () => services.filter((s) => s.onlineAvailable),
     [services],
   );
   /** The puja this devotee arrived from, when they arrived from one. */
@@ -407,41 +408,19 @@ export default function OnlineHavan() {
               <span className="oh-head__eyebrow">{t("onlineHavan.pujasEyebrow")}</span>
               <h2 className="oh-head__title">{t("onlineHavan.pujasTitle")}</h2>
             </header>
-            <div className="oh-pujas">
-              {onlineServices.map((s, i) => (
-                <Reveal delay={i * 0.05} key={s.id}>
-                  <Link className="oh-puja" to={`/services/${s.id}`}>
-                    <span className="oh-puja__live">● {t("ohp.live")}</span>
-                    <h3>{s.name}</h3>
-                    {(s.tag || s.desc) && <p>{s.tag || s.desc}</p>}
-                    <span className="oh-puja__go">
-                      {t("common.learnMore")} <Icon name="arrow-right" size={14} />
-                    </span>
-                  </Link>
-                </Reveal>
-              ))}
-            </div>
+            <OnlinePujaSlider services={onlineServices} />
           </div>
         </section>
       )}
 
-      {/* ═══════════════════ CTA ═══════════════════ */}
-      <section className="oh-cta">
-        <div className="shell oh-cta__inner">
-          <div>
-            <h2>{t("onlineHavan.ctaTitle")}</h2>
-            <p>{t("onlineHavan.ctaText")}</p>
-          </div>
-          <div className="oh-cta__buttons">
-            <Link className="btn btn-gold" to={panditsHref}>
-              {t("onlineHavan.ctaButton")} <Icon name="arrow-right" size={16} />
-            </Link>
-            <Link className="btn btn-ghost" to="/contact">
-              {t("nav.contact")}
-            </Link>
-          </div>
+      {/* The closing CTA band was removed on the owner's call. The disclaimer
+          it carried was not part of that ask and is not a call to action —
+          it is the promise this site makes about how benefits are worded, so
+          it stays, as a plain closing note. */}
+      <section className="oh-disclaimer">
+        <div className="shell">
+          <p>{t("onlineHavan.disclaimer")}</p>
         </div>
-        <p className="oh-cta__note">{t("onlineHavan.disclaimer")}</p>
       </section>
     </>
   );

@@ -799,84 +799,86 @@
   color: var(--text-2);
 }
 
-/* ═══════════ PUJAS AVAILABLE ONLINE ═══════════ */
-.oh-pujas {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-.oh-puja {
+/* ═══════════ PUJAS AVAILABLE ONLINE ═══════════
+   The cards themselves are the homepage's .ohp-puja-card, untouched, so
+   the two strips are the same object at the same size — see
+   OnlinePujaSlider.tsx. Only the track they sit in lives here. */
+.oh-slider {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 20px;
-  border-radius: var(--r-lg);
-  background: var(--white);
-  border: 1px solid var(--border);
-  text-decoration: none;
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-}
-.oh-puja:hover { transform: translateY(-3px); box-shadow: var(--sh-md); border-color: var(--gold); }
-.oh-puja__live {
-  align-self: flex-start;
-  padding: 3px 10px;
-  border-radius: var(--r-pill);
-  background: rgba(46, 125, 79, 0.1);
-  color: var(--success);
-  font-size: var(--fs-100);
-  font-weight: var(--fw-bold);
-}
-.oh-puja h3 { margin: 10px 0 6px; font-size: var(--fs-600); color: var(--text); }
-.oh-puja p {
-  margin: 0 0 14px;
-  font-size: var(--fs-300);
-  line-height: 1.55;
-  color: var(--text-2);
-}
-.oh-puja__go {
-  margin-top: auto;
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--fs-300);
-  font-weight: var(--fw-semibold);
-  color: var(--gold-deep);
+  gap: 8px;
 }
 
-/* ═══════════ CTA ═══════════ */
-.oh-cta {
-  padding: var(--section-y) 0 34px;
-  background:
-    radial-gradient(80% 100% at 50% 0%, rgba(212, 160, 23, 0.18) 0%, transparent 70%),
-    linear-gradient(165deg, #241c14 0%, #1a140f 100%);
-  color: var(--text-on-dark);
-}
-.oh-cta__inner {
+.oh-slider__track {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  gap: 18px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  /* Room for the cards' own hover lift and shadow, which a tight overflow
+     box would otherwise clip along the top and bottom edges. */
+  padding: 10px 4px 16px;
+  scroll-padding-left: 4px;
 }
-.oh-cta h2 { margin: 0 0 8px; font-size: var(--fs-h3); color: var(--text-on-dark); }
-.oh-cta p {
+.oh-slider__track::-webkit-scrollbar { display: none; }
+
+/* 246px is exactly what the homepage's four-column, 1040px-wide, 18px-gap
+   grid gives each card — the same size, in a strip that can hold more. */
+.oh-slider__card {
+  flex: 0 0 246px;
+  scroll-snap-align: start;
+}
+
+.oh-slider__arrow {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--gold-deep);
+  cursor: pointer;
+  box-shadow: var(--sh-sm);
+  transition: background 0.18s, border-color 0.18s, opacity 0.18s;
+}
+.oh-slider__arrow:hover:not(:disabled) {
+  background: var(--gold-grad-soft);
+  border-color: var(--gold);
+}
+.oh-slider__arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Touch screens swipe; the arrows are for the pointer that cannot. */
+@media (hover: none), (max-width: 900px) {
+  .oh-slider__arrow { display: none; }
+}
+
+/* Match the homepage's own mobile card sizing, so the two strips still
+   agree once .ohp-puja-card shrinks at 620px. */
+@media (max-width: 620px) {
+  .oh-slider__track { gap: 10px; }
+  .oh-slider__card { flex: 0 0 46%; }
+}
+
+/* ═══════════ CLOSING DISCLAIMER ═══════════ */
+.oh-disclaimer {
+  padding: 26px 0 34px;
+  background: var(--cream);
+  border-top: 1px solid var(--border-soft);
+}
+.oh-disclaimer p {
   margin: 0;
-  max-width: 56ch;
-  font-size: var(--fs-400);
-  line-height: 1.7;
-  color: var(--text-on-dark-2);
-}
-.oh-cta__buttons { display: flex; flex-wrap: wrap; gap: 12px; }
-.oh-cta__buttons .btn-ghost { color: var(--text-on-dark); border-color: rgba(255, 248, 231, 0.3); }
-.oh-cta__buttons .btn-ghost:hover { color: var(--gold-bright); border-color: var(--gold); }
-.oh-cta__note {
-  max-width: var(--shell);
-  margin: 28px auto 0;
-  padding: 16px 16px 0;
-  border-top: 1px solid rgba(255, 248, 231, 0.14);
+  max-width: 900px;
   font-size: var(--fs-200);
-  line-height: 1.65;
-  color: var(--text-on-dark-muted);
+  line-height: 1.7;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 /* ═══════════ the service-page card that leads here ═══════════ */
@@ -952,8 +954,7 @@
   .oh-hero__scene { order: -1; }
   .oh-pillars,
   .oh-deliver,
-  .oh-trust,
-  .oh-pujas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .oh-trust { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
@@ -961,14 +962,12 @@
   .oh-pillars,
   .oh-deliver,
   .oh-trust,
-  .oh-pujas,
   .oh-rules { grid-template-columns: 1fr; }
   .oh-day__split { grid-template-columns: 1fr; }
   .oh-day__panel { padding: 20px 18px; }
   .oh-day__bead { flex: 0 0 96px; }
   .oh-journey__step { grid-template-columns: 38px minmax(0, 1fr); gap: 14px; }
   .oh-journey__icon { width: 36px; height: 36px; }
-  .oh-cta__inner { flex-direction: column; align-items: flex-start; }
   .oh-gate { align-items: flex-start; }
   .oh-gate__cta { width: 100%; justify-content: center; }
 }
@@ -983,6 +982,5 @@
   .oh-day__bead-live,
   .oh-day__livetag-dot { animation: none !important; }
   .oh-deliver__card:hover,
-  .oh-puja:hover,
   .sd-online-card__cta:hover { transform: none; }
 }
