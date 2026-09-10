@@ -614,144 +614,6 @@
   color: var(--text-2);
 }
 
-/* ═══════════ SANKALP ═══════════ */
-.oh-sankalp {
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: 22px;
-  align-items: start;
-}
-
-.oh-sankalp__form {
-  padding: 24px;
-  border-radius: var(--r-lg);
-  background: var(--white);
-  border: 1px solid var(--border);
-  box-shadow: var(--sh-sm);
-}
-.oh-sankalp__form-title { margin: 0 0 4px; font-size: var(--fs-700); color: var(--text); }
-.oh-sankalp__form-sub {
-  margin: 0 0 18px;
-  font-size: var(--fs-300);
-  line-height: 1.55;
-  color: var(--text-2);
-}
-.oh-sankalp__field { display: block; margin-bottom: 13px; }
-.oh-sankalp__field > span {
-  display: block;
-  margin-bottom: 5px;
-  font-size: var(--fs-300);
-  font-weight: var(--fw-semibold);
-  color: var(--text);
-}
-.oh-sankalp__field input {
-  width: 100%;
-  padding: 10px 13px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border);
-  background: var(--white);
-  font: inherit;
-  font-size: var(--fs-400);
-  color: var(--text);
-}
-.oh-sankalp__field input:focus {
-  outline: none;
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.16);
-}
-.oh-sankalp__row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.oh-sankalp__hint {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  margin: 2px 0 16px;
-  font-size: var(--fs-200);
-  line-height: 1.55;
-  color: var(--text-muted);
-}
-.oh-sankalp__hint svg { flex: none; margin-top: 2px; }
-.oh-sankalp__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-.oh-sankalp__privacy { font-size: var(--fs-100); color: var(--text-muted); }
-/* Nothing to copy until at least one field is filled. */
-.oh-sankalp__actions .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.oh-sankalp__actions .btn:disabled:hover { color: var(--text-2); border-color: var(--border); }
-
-/* the vakya, on its palm-leaf panel */
-.oh-sankalp__scroll {
-  position: relative;
-  margin: 0;
-  padding: 30px 28px 24px;
-  border-radius: var(--r-lg);
-  background:
-    radial-gradient(120% 60% at 50% 0%, rgba(255, 255, 255, 0.7) 0%, transparent 60%),
-    linear-gradient(160deg, #fdf3dd 0%, #f7e8c8 100%);
-  border: 1px solid var(--gold-soft);
-  box-shadow: var(--sh-md);
-}
-.oh-sankalp__scroll-top {
-  position: absolute;
-  top: 0; left: 8%; right: 8%;
-  height: 3px;
-  border-radius: 0 0 4px 4px;
-  background: var(--gold-grad);
-}
-.oh-sankalp__scroll-label {
-  display: block;
-  font-size: var(--fs-100);
-  font-weight: var(--fw-bold);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--gold-deep);
-  margin-bottom: 14px;
-}
-.oh-sankalp__vakya { margin: 0; }
-.oh-sankalp__om {
-  display: block;
-  text-align: center;
-  font-size: var(--fs-600);
-  font-weight: var(--fw-bold);
-  color: var(--gold-deep);
-  margin-bottom: 14px;
-}
-.oh-sankalp__vakya p {
-  margin: 0 0 12px;
-  font-size: var(--fs-600);
-  line-height: 2.05;
-  color: #4a3a1c;
-}
-.oh-sankalp__slot {
-  display: inline-block;
-  min-width: 74px;
-  padding: 1px 9px;
-  margin: 0 2px;
-  border-radius: var(--r-sm);
-  background: rgba(212, 160, 23, 0.1);
-  border-bottom: 2px dashed var(--gold);
-  text-align: center;
-  color: var(--text-muted);
-  transition: background 0.25s, color 0.25s;
-}
-.oh-sankalp__slot.is-filled {
-  background: var(--gold-grad);
-  border-bottom-style: solid;
-  border-bottom-color: var(--gold-deep);
-  color: var(--text-inverse);
-  font-weight: var(--fw-semibold);
-}
-.oh-sankalp__caption {
-  margin: 16px 0 0;
-  padding-top: 14px;
-  border-top: 1px dashed var(--gold-soft);
-  font-size: var(--fs-200);
-  line-height: 1.6;
-  color: var(--text-muted);
-}
-
 /* ═══════════ AT HOME ═══════════ */
 .oh-rules {
   display: grid;
@@ -869,103 +731,6 @@
 }
 .oh-deliver__card h3 { margin: 0 0 5px; font-size: var(--fs-600); color: var(--text); }
 .oh-deliver__card p { margin: 0; font-size: var(--fs-300); line-height: 1.6; color: var(--text-2); }
-
-/* ═══════════ COMPARISON ═══════════ */
-.oh-compare {
-  border-radius: var(--r-lg);
-  background: var(--white);
-  border: 1px solid var(--border);
-  box-shadow: var(--sh-sm);
-  overflow: hidden;
-}
-.oh-compare__scroll { overflow-x: auto; }
-.oh-compare__table { width: 100%; border-collapse: collapse; min-width: 620px; }
-.oh-compare__table th,
-.oh-compare__table td {
-  padding: 14px 18px;
-  text-align: left;
-  font-size: var(--fs-400);
-  line-height: 1.55;
-  border-bottom: 1px solid var(--border-soft);
-  vertical-align: top;
-}
-.oh-compare__table thead th {
-  background: var(--cream);
-  font-size: var(--fs-300);
-  font-weight: var(--fw-bold);
-  color: var(--text);
-  white-space: nowrap;
-}
-.oh-compare__h { display: inline-flex; align-items: center; gap: 6px; }
-.oh-compare__table tbody th {
-  font-weight: var(--fw-semibold);
-  color: var(--text);
-  width: 32%;
-}
-.oh-compare__table tbody td { color: var(--text-2); }
-.oh-compare__table tr:last-child th,
-.oh-compare__table tr:last-child td { border-bottom: 0; }
-.oh-compare__table tr.is-same td { color: var(--success); font-weight: var(--fw-medium); }
-.oh-compare__same {
-  display: inline-grid;
-  place-items: center;
-  width: 18px; height: 18px;
-  margin-right: 7px;
-  border-radius: 50%;
-  background: rgba(46, 125, 79, 0.12);
-  color: var(--success);
-  font-size: var(--fs-100);
-  font-weight: var(--fw-bold);
-  vertical-align: 1px;
-}
-.oh-compare__foot {
-  margin: 0;
-  padding: 12px 18px;
-  background: var(--cream);
-  font-size: var(--fs-200);
-  color: var(--text-muted);
-}
-
-/* muhurat */
-.oh-muhurat { margin-top: 26px; }
-.oh-muhurat__title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 14px;
-  font-size: var(--fs-700);
-  color: var(--text);
-}
-.oh-muhurat__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
-}
-.oh-muhurat__card {
-  padding: 16px 18px;
-  border-radius: var(--r-md);
-  background: var(--white);
-  border: 1px solid var(--border);
-}
-.oh-muhurat__card.is-prime {
-  background: var(--gold-grad-soft);
-  border-color: var(--gold);
-  box-shadow: var(--sh-sm);
-}
-.oh-muhurat__label {
-  display: block;
-  font-size: var(--fs-600);
-  font-weight: var(--fw-bold);
-  color: var(--text);
-}
-.oh-muhurat__card.is-prime .oh-muhurat__label { color: var(--gold-deep); }
-.oh-muhurat__detail {
-  display: block;
-  margin-top: 4px;
-  font-size: var(--fs-300);
-  line-height: 1.5;
-  color: var(--text-2);
-}
 
 /* ═══════════ TRUST ═══════════ */
 .oh-trust {
@@ -1189,7 +954,6 @@
   .oh-deliver,
   .oh-trust,
   .oh-pujas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .oh-sankalp { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -1207,12 +971,9 @@
   .oh-cta__inner { flex-direction: column; align-items: flex-start; }
   .oh-gate { align-items: flex-start; }
   .oh-gate__cta { width: 100%; justify-content: center; }
-  .oh-sankalp__scroll { padding: 26px 20px 20px; }
-  .oh-sankalp__vakya p { font-size: var(--fs-500); line-height: 1.95; }
 }
 
 @media (max-width: 520px) {
-  .oh-sankalp__row { grid-template-columns: 1fr; }
   .oh-shastra { flex-direction: column; gap: 10px; }
 }
 

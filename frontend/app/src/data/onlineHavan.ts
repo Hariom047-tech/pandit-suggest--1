@@ -107,7 +107,7 @@ export const PILLARS: Pillar[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════
-   2. The ritual day, hour by hour — the page's centrepiece
+   2. The ritual day, step by step — the page's centrepiece
 
    Read AFTER the journey above, never instead of it: this is how the
    tradition is generally performed, not an instruction sheet. Every
@@ -287,7 +287,7 @@ export const RITUAL_DAY: RitualStep[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════
-   3. Booking journey — sankalp to prasad, over days not hours
+   3. The journey — finding a Pandit Ji, then everything after
    ═══════════════════════════════════════════════════════════════ */
 
 export interface JourneyStep {
@@ -463,87 +463,8 @@ export const DELIVERABLES: Deliverable[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════
-   6. Online vs standing there — said plainly
+   6. What goes into the fire, and where it is lit
    ═══════════════════════════════════════════════════════════════ */
-
-export interface CompareRow {
-  aspect: L;
-  online: L;
-  inPerson: L;
-  /** true where the two are genuinely identical. */
-  same: boolean;
-}
-
-export const COMPARISON: CompareRow[] = [
-  {
-    aspect: { en: "Sankalp in your name and gotra", hi: "आपके नाम और गोत्र से संकल्प" },
-    online: { en: "Spoken aloud, same words", hi: "उसी प्रकार उच्चारित, वही शब्द" },
-    inPerson: { en: "Spoken aloud, same words", hi: "उसी प्रकार उच्चारित, वही शब्द" },
-    same: true,
-  },
-  {
-    aspect: { en: "Vidhi, mantra and ahuti count", hi: "विधि, मंत्र और आहुति संख्या" },
-    online: { en: "Unchanged", hi: "अपरिवर्तित" },
-    inPerson: { en: "Unchanged", hi: "अपरिवर्तित" },
-    same: true,
-  },
-  {
-    aspect: { en: "Who offers the ahuti", hi: "आहुति कौन देता है" },
-    online: { en: "The acharya, as your pratinidhi", hi: "आचार्य, आपके प्रतिनिधि के रूप में" },
-    inPerson: { en: "You, with your own hand", hi: "आप, अपने ही हाथ से" },
-    same: false,
-  },
-  {
-    aspect: { en: "Darshan of the sanctum", hi: "गर्भगृह के दर्शन" },
-    online: { en: "On live video", hi: "लाइव वीडियो पर" },
-    inPerson: { en: "In person", hi: "प्रत्यक्ष" },
-    same: false,
-  },
-  {
-    aspect: { en: "Temple-specific Nalkheda rites", hi: "नलखेड़ा की मंदिर-विशिष्ट विधियाँ" },
-    online: { en: "Performed by the pandit at the site", hi: "स्थल पर पंडित जी द्वारा सम्पन्न" },
-    inPerson: { en: "You participate directly", hi: "आप स्वयं सहभागी होते हैं" },
-    same: false,
-  },
-  {
-    aspect: { en: "Chola seva and offerings at the idol", hi: "चोला सेवा और प्रतिमा पर अर्पण" },
-    online: { en: "Done on your behalf, shown on video", hi: "आपकी ओर से, वीडियो पर दिखाकर" },
-    inPerson: { en: "By your own hand", hi: "आपके अपने हाथों से" },
-    same: false,
-  },
-  {
-    aspect: { en: "Prasad and bhasma", hi: "प्रसाद और भस्म" },
-    online: { en: "Couriered, 7–10 days", hi: "कूरियर द्वारा, 7–10 दिन" },
-    inPerson: { en: "In your hand the same day", hi: "उसी दिन आपके हाथ में" },
-    same: false,
-  },
-  {
-    aspect: { en: "Travel, stay and leave from work", hi: "यात्रा, ठहरना और अवकाश" },
-    online: { en: "None", hi: "कुछ नहीं" },
-    inPerson: { en: "Nalkheda, Agar Malwa, MP", hi: "नलखेड़ा, आगर मालवा, म.प्र." },
-    same: false,
-  },
-];
-
-/* ═══════════════════════════════════════════════════════════════
-   7. Muhurat, samagri, and the temple itself
-   ═══════════════════════════════════════════════════════════════ */
-
-export interface MuhuratItem {
-  label: L;
-  detail: L;
-  /** The strongest occasions get the filled treatment. */
-  prime?: boolean;
-}
-
-export const MUHURAT: MuhuratItem[] = [
-  { label: { en: "Tuesday", hi: "मंगलवार" }, detail: { en: "The primary day for Baglamukhi worship", hi: "बगलामुखी उपासना का प्रमुख दिन" }, prime: true },
-  { label: { en: "Brahma Muhurat", hi: "ब्रह्म मुहूर्त" }, detail: { en: "4:00 – 6:00 AM, the most potent window", hi: "प्रातः 4:00 – 6:00, सर्वाधिक प्रभावी काल" }, prime: true },
-  { label: { en: "Friday", hi: "शुक्रवार" }, detail: { en: "The secondary day, also considered auspicious", hi: "द्वितीय दिन, यह भी शुभ माना जाता है" } },
-  { label: { en: "Shukla Ashtami", hi: "शुक्ल अष्टमी" }, detail: { en: "The eighth day of the bright fortnight, monthly", hi: "शुक्ल पक्ष की अष्टमी, प्रति मास" } },
-  { label: { en: "Baglamukhi Jayanti", hi: "बगलामुखी जयंती" }, detail: { en: "Vaishakh Shukla Ashtami — the year's largest day", hi: "वैशाख शुक्ल अष्टमी — वर्ष का सबसे बड़ा दिन" }, prime: true },
-  { label: { en: "Navratri", hi: "नवरात्रि" }, detail: { en: "Both Chaitra and Shardiya — anushthans fill up early", hi: "चैत्र और शारदीय दोनों — अनुष्ठान शीघ्र भर जाते हैं" } },
-];
 
 export const SAMAGRI: { name: L; note: L; key?: boolean }[] = [
   { name: { en: "Haldi ki lakdi", hi: "हल्दी की लकड़ी" }, note: { en: "Primary fuel — never substituted", hi: "मुख्य ईंधन — कभी प्रतिस्थापित नहीं" }, key: true },
@@ -566,7 +487,7 @@ export const TEMPLE_FACTS: { value: L; label: L }[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════
-   8. Trust, and the questions everyone actually asks
+   7. Trust, and the questions everyone actually asks
    ═══════════════════════════════════════════════════════════════ */
 
 export const TRUST_CHECKS: { title: L; text: L }[] = [

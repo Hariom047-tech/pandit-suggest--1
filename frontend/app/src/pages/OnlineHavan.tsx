@@ -8,15 +8,12 @@ import { useServices } from "../hooks/useData";
 import { normServices } from "../lib/normalize";
 import { LiveSankalpScene } from "../components/online/LiveSankalpScene";
 import { RitualDay } from "../components/online/RitualDay";
-import { SankalpPreview } from "../components/online/SankalpPreview";
 import {
   AVOID_AT_HOME,
-  COMPARISON,
   DELIVERABLES,
   DO_AT_HOME,
   FAQS,
   JOURNEY,
-  MUHURAT,
   PILLARS,
   SAMAGRI,
   TEMPLE_FACTS,
@@ -59,9 +56,7 @@ const JUMPS = [
   { id: "how", key: "jumpHow" },
   { id: "journey", key: "jumpJourney" },
   { id: "day", key: "jumpDay" },
-  { id: "sankalp", key: "jumpSankalp" },
   { id: "home", key: "jumpHome" },
-  { id: "compare", key: "jumpCompare" },
   { id: "faq", key: "jumpFaq" },
 ] as const;
 
@@ -289,18 +284,6 @@ export default function OnlineHavan() {
         </div>
       </section>
 
-      {/* ═══════════════════ SANKALP ═══════════════════ */}
-      <section className="section oh-section oh-section--cream" id="sankalp">
-        <div className="shell">
-          <header className="oh-head">
-            <span className="oh-head__eyebrow">{t("onlineHavan.sankalpEyebrow")}</span>
-            <h2 className="oh-head__title">{t("onlineHavan.sankalpTitle")}</h2>
-            <p className="oh-head__sub">{t("onlineHavan.sankalpSub")}</p>
-          </header>
-          <SankalpPreview />
-        </div>
-      </section>
-
       {/* ═══════════════════ AT HOME ═══════════════════ */}
       <section className="section oh-section" id="home">
         <div className="shell">
@@ -359,58 +342,6 @@ export default function OnlineHavan() {
               </Reveal>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════ COMPARISON + MUHURAT ═══════════════════ */}
-      <section className="section oh-section" id="compare">
-        <div className="shell">
-          <header className="oh-head">
-            <span className="oh-head__eyebrow">{t("onlineHavan.compareEyebrow")}</span>
-            <h2 className="oh-head__title">{t("onlineHavan.compareTitle")}</h2>
-            <p className="oh-head__sub">{t("onlineHavan.compareSub")}</p>
-          </header>
-
-          <Reveal className="oh-compare">
-            <div className="oh-compare__scroll">
-              <table className="oh-compare__table">
-                <thead>
-                  <tr>
-                    <th scope="col">{t("onlineHavan.colAspect")}</th>
-                    <th scope="col"><span className="oh-compare__h">🌐 {t("onlineHavan.colOnline")}</span></th>
-                    <th scope="col"><span className="oh-compare__h">🛕 {t("onlineHavan.colInPerson")}</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARISON.map((row) => (
-                    <tr key={row.aspect.en} className={row.same ? "is-same" : ""}>
-                      <th scope="row">{pick(row.aspect, lang)}</th>
-                      <td>
-                        {row.same && <span className="oh-compare__same" aria-hidden="true">=</span>}
-                        {pick(row.online, lang)}
-                      </td>
-                      <td>{pick(row.inPerson, lang)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="oh-compare__foot">{t("onlineHavan.compareFoot")}</p>
-          </Reveal>
-
-          <Reveal className="oh-muhurat">
-            <h3 className="oh-muhurat__title">
-              <span>📅</span> {t("onlineHavan.muhuratTitle")}
-            </h3>
-            <div className="oh-muhurat__grid">
-              {MUHURAT.map((m) => (
-                <div className={`oh-muhurat__card${m.prime ? " is-prime" : ""}`} key={m.label.en}>
-                  <span className="oh-muhurat__label">{pick(m.label, lang)}</span>
-                  <span className="oh-muhurat__detail">{pick(m.detail, lang)}</span>
-                </div>
-              ))}
-            </div>
-          </Reveal>
         </div>
       </section>
 
