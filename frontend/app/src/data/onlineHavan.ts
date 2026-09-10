@@ -118,14 +118,12 @@ export const PILLARS: Pillar[] = [
 
 export interface RitualStep {
   id: string;
-  /** Clock label as it is spoken to a devotee, not a machine time. */
-  time: L;
   name: L;
   /** Sanskrit/Hindi name of the step, shown as the eyebrow. */
   sanskrit: L;
   /** What happens at the kund. */
   pandit: L;
-  /** What the devotee does at that same minute, at home. */
+  /** What the devotee does at that same point, at home. */
   you: L;
   /** The mantra of that step, Devanagari with a roman line under it. */
   mantra?: { dev: string; roman: string };
@@ -138,7 +136,6 @@ export interface RitualStep {
 export const RITUAL_DAY: RitualStep[] = [
   {
     id: "brahma-muhurat",
-    time: { en: "4:00 – 6:00 AM", hi: "प्रातः 4:00 – 6:00" },
     sanskrit: { en: "Brahma Muhurat · Shuddhi", hi: "ब्रह्म मुहूर्त · शुद्धि" },
     name: { en: "Bathing and purification", hi: "स्नान एवं शुद्धिकरण" },
     pandit: {
@@ -152,7 +149,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "sthapana",
-    time: { en: "6:00 – 6:30 AM", hi: "प्रातः 6:00 – 6:30" },
     sanskrit: { en: "Havan Kund Sthapana", hi: "हवन कुंड स्थापना" },
     name: { en: "The kund is set and the fire prepared", hi: "कुंड की स्थापना एवं अग्नि की तैयारी" },
     pandit: {
@@ -166,7 +162,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "achaman",
-    time: { en: "6:30 AM", hi: "प्रातः 6:30" },
     sanskrit: { en: "Achaman · Pranayam", hi: "आचमन · प्राणायाम" },
     name: { en: "Water sipped, breath steadied", hi: "आचमन एवं प्राणायाम" },
     pandit: {
@@ -181,7 +176,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "ganesh",
-    time: { en: "6:40 AM", hi: "प्रातः 6:40" },
     sanskrit: { en: "Ganesh · Navagraha Pujan", hi: "गणेश · नवग्रह पूजन" },
     name: { en: "Ganesh ji first, then the nine grahas", hi: "प्रथम गणेश पूजन, फिर नवग्रह" },
     pandit: {
@@ -197,7 +191,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "avahan",
-    time: { en: "7:00 AM", hi: "प्रातः 7:00" },
     sanskrit: { en: "Kalash Sthapana · Devi Avahan", hi: "कलश स्थापना · देवी आवाहन" },
     name: { en: "The kalash is set, Maa is invoked", hi: "कलश स्थापना एवं माँ का आवाहन" },
     pandit: {
@@ -217,7 +210,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "sankalp",
-    time: { en: "7:20 AM", hi: "प्रातः 7:20" },
     sanskrit: { en: "Sankalp", hi: "संकल्प" },
     name: { en: "Your name enters the ritual", hi: "अनुष्ठान में आपका नाम" },
     pandit: {
@@ -232,7 +224,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "japa",
-    time: { en: "7:30 AM onwards", hi: "प्रातः 7:30 से आगे" },
     sanskrit: { en: "Mool Mantra Japa", hi: "मूल मंत्र जप" },
     name: { en: "The japa — the long part", hi: "जप — सबसे दीर्घ चरण" },
     pandit: {
@@ -251,7 +242,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "ahuti",
-    time: { en: "Late morning", hi: "पूर्वाह्न के अंत में" },
     sanskrit: { en: "Homa · Ahuti", hi: "हवन · आहुति" },
     name: { en: "The offerings into the fire", hi: "अग्नि में आहुतियाँ" },
     pandit: {
@@ -268,7 +258,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "purnahuti",
-    time: { en: "Midday", hi: "मध्याह्न" },
     sanskrit: { en: "Purnahuti", hi: "पूर्णाहुति" },
     name: { en: "The final offering", hi: "अंतिम आहुति" },
     pandit: {
@@ -283,7 +272,6 @@ export const RITUAL_DAY: RitualStep[] = [
   },
   {
     id: "aarti",
-    time: { en: "After the fire settles", hi: "अग्नि शांत होने पर" },
     sanskrit: { en: "Aarti · Bhasma Sangrah", hi: "आरती · भस्म संग्रह" },
     name: { en: "Aarti, ash and prasad", hi: "आरती, भस्म एवं प्रसाद" },
     pandit: {

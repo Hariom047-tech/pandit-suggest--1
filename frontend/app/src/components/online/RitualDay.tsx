@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Icon } from "../../lib/icons";
 import { useLang } from "../../lib/i18n";
 import { RITUAL_DAY, pick } from "../../data/onlineHavan";
 
@@ -9,16 +8,21 @@ import { RITUAL_DAY, pick } from "../../data/onlineHavan";
  *
  * Every other explanation of an online havan on the internet is a numbered
  * list of five marketing steps ("choose, pay, join, receive"). What a devotee
- * actually wants to know is finer than that: at 7:20 in the morning, what is
- * the pandit doing, and what am I supposed to be doing at the same minute?
- * So the two are drawn side by side for every step — the kund on one side,
- * your own room on the other — and the rail above marks the steps a devotee
- * is genuinely expected to be on the call for.
+ * actually wants to know is finer than that: at this point in the ritual,
+ * what is the pandit doing, and what am I supposed to be doing? So the two
+ * are drawn side by side for every step — the kund on one side, your own room
+ * on the other — and the rail above marks the steps a devotee is genuinely
+ * expected to be on the call for.
  *
- * It advances on its own so the day plays out without demanding a click, and
- * stops the moment the reader takes over. Autoplay never restarts itself
- * after that: a panel that resumes moving while someone is reading it is
- * worse than one that never moved.
+ * NO CLOCK TIMES. An earlier version put "4:00 – 6:00 AM" on every step,
+ * which reads as a timetable this site is committing to — and the schedule is
+ * not this site's to commit: the Pandit Ji sets it, per the sankalp and the
+ * muhurat. The steps are an order, so they are numbered and left at that.
+ *
+ * NO TRANSPORT CONTROLS either. It advances on its own so the day plays out
+ * without demanding a click, and stops for good the moment the reader touches
+ * anything inside it — a bead, or just the panel they are reading. That is
+ * why there is no pause button to miss: the act of reading is the pause.
  */
 
 const AUTOPLAY_MS = 9000;
@@ -26,22 +30,21 @@ const AUTOPLAY_MS = 9000;
 export function RitualDay() {
   const { t, lang } = useLang();
   const [active, setActive] = useState(0);
-  const [playing, setPlaying] = useState(true);
-  /** Autoplay only ever runs before the reader touches the rail. */
-  const [touched, setTouched] = useState(false);
+  /** Autoplay runs until the reader takes over, and never again after that. */
+  const [taken, setTaken] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
 
   const step = RITUAL_DAY[active];
   const total = RITUAL_DAY.length;
 
   useEffect(() => {
-    if (!playing || touched) return;
+    if (taken) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = window.setTimeout(() => {
       setActive((i) => (i + 1) % total);
     }, AUTOPLAY_MS);
     return () => window.clearTimeout(id);
-  }, [active, playing, touched, total]);
+  }, [active, taken, total]);
 
   /* Keep the active bead in view on narrow screens, where the rail scrolls
      horizontally — otherwise autoplay walks off the right edge unseen. */
@@ -57,13 +60,15 @@ export function RitualDay() {
   }, [active]);
 
   const go = (i: number) => {
-    setTouched(true);
-    setPlaying(false);
-    setActive((i + total) % total);
+    setTaken(true);
+    setActive(i);
   };
 
   return (
-    <div className="oh-day">
+    /* Any pointer landing anywhere in here ends autoplay — with the pause
+       button gone, this is what stops the panel moving under someone who has
+       started reading it. */
+    <div className="oh-day" onPointerDown={() => setTaken(true)}>
       {/* ── rail ── */}
       <div className="oh-day__railwrap">
         <div className="oh-day__rail" ref={railRef}>
@@ -97,36 +102,11 @@ export function RitualDay() {
                   {s.live && <span className="oh-day__bead-live" aria-hidden="true" />}
                   <span className="oh-day__bead-n">{i + 1}</span>
                 </span>
-                <span className="oh-day__bead-time">{pick(s.time, lang)}</span>
                 <span className="oh-day__bead-name">{pick(s.sanskrit, lang)}</span>
               </button>
             ))}
           </div>
         </div>
-      </div>
-
-      {/* ── controls ── */}
-      <div className="oh-day__controls">
-        <button type="button" className="oh-day__nav" onClick={() => go(active - 1)} aria-label={t("onlineHavan.prevStep")}>
-          <Icon name="chevron-left" size={18} />
-        </button>
-        <button
-          type="button"
-          className="oh-day__play"
-          onClick={() => {
-            setTouched(false);
-            setPlaying((p) => !p);
-          }}
-        >
-          <Icon name={playing && !touched ? "pause" : "play"} size={15} />
-          {playing && !touched ? t("onlineHavan.pause") : t("onlineHavan.playDay")}
-        </button>
-        <span className="oh-day__counter">
-          {t("onlineHavan.stepOf", { i: active + 1, n: total })}
-        </span>
-        <button type="button" className="oh-day__nav" onClick={() => go(active + 1)} aria-label={t("onlineHavan.nextStep")}>
-          <Icon name="chevron-right" size={18} />
-        </button>
       </div>
 
       {/* ── the step itself ── */}
@@ -145,7 +125,7 @@ export function RitualDay() {
           <header className="oh-day__head">
             <div>
               <span className="oh-day__eyebrow">
-                {pick(step.time, lang)} · {pick(step.sanskrit, lang)}
+                {t("onlineHavan.stepN", { i: active + 1 })} · {pick(step.sanskrit, lang)}
               </span>
               <h3 className="oh-day__title">{pick(step.name, lang)}</h3>
             </div>
