@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Icon } from "../lib/icons";
 import { useServices, useServiceCategories } from "../hooks/useData";
 import { normServices } from "../lib/normalize";
@@ -59,15 +59,23 @@ export default function Services() {
         tagline: c.tagline,
       }));
     }
-    return [
-      { cat: "life", label: t("services.catLife"), img: categoryImage("life"), pandits: 0, services: 0, tagline: null },
-      { cat: "daily", label: t("services.catDaily"), img: categoryImage("daily"), pandits: 0, services: 0, tagline: null },
-      { cat: "festival", label: t("services.catFestival"), img: categoryImage("festival"), pandits: 0, services: 0, tagline: null },
-      { cat: "shanti", label: t("services.catShanti"), img: categoryImage("shanti"), pandits: 0, services: 0, tagline: null },
-    ];
+    // No categories from the API means there genuinely are none. This used to
+    // fall back to four hardcoded tiles — Life Events / Daily Pooja / Festival
+    // Specials / Shanti Remedies — each carrying a "Popular" badge and a
+    // placeholder image, which rendered above an "All Services: 0 services
+    // found" list. Advertising four popular categories on an empty catalogue is
+    // a claim the site cannot back. Show nothing instead, exactly as the pandit
+    // and temple directories already do when they are empty.
+    return [];
   }, [apiCategories, t]);
   const [query] = useState("");
-  const [onlineOnly, setOnlineOnly] = useState(false);
+  /* Seeded from ?online=1 so the "See Pandit Jis" CTA on /online-havan can
+     land a devotee on this grid already filtered, rather than on the full
+     catalogue with the filter they asked for switched off. Read once — after
+     that the chip owns the state, and toggling it off should not have to
+     rewrite the URL to stick. */
+  const [params] = useSearchParams();
+  const [onlineOnly, setOnlineOnly] = useState(() => params.get("online") === "1");
   // Which "Most Booked" tile (if any) the grid below is currently filtered
   // to — those tiles used to be inert decoration with nothing to click
   // through to; this is what makes them do something.
@@ -139,7 +147,10 @@ export default function Services() {
           <HeroTicker />
         </section>
 
-        {/* ======================== MOST BOOKED ======================== */}
+        {/* ======================== MOST BOOKED ========================
+            Rendered only when the API actually returns categories. An empty
+            catalogue shows no section at all rather than an empty heading. */}
+        {MOST_BOOKED.length > 0 && (
         <section className="section" style={{ paddingTop: 40, paddingBottom: 30 }}>
           <div className="shell">
             <h2 className="sp-section-title">{t("services.mostBooked")}</h2>
@@ -175,6 +186,7 @@ export default function Services() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ======================== ALL SERVICES GRID ======================== */}
         <section className="section" style={{ paddingTop: 10, paddingBottom: 50 }} ref={allServicesRef}>
@@ -207,6 +219,14 @@ export default function Services() {
                 >
                   🌐 Online puja ({onlineCount})
                 </button>
+              )}
+              {/* The chip filters; this explains. Two different questions —
+                  "show me only these" and "how does that even work" — so the
+                  chip keeps its job and the explainer gets its own link. */}
+              {onlineCount > 0 && (
+                <Link className="sp-online-howto" to="/online-havan">
+                  {t("onlineHavan.servicesLink")} <Icon name="arrow-right" size={14} />
+                </Link>
               )}
             </div>
 

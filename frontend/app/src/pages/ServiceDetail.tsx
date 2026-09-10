@@ -27,7 +27,7 @@ const TAB_KEYS_HAVAN: readonly Tab[] = ["overview", "havan", "samagri", "pandits
 
 export default function ServiceDetail() {
   const { id } = useParams();
-  const { lang } = useLang();
+  const { t, lang } = useLang();
   const { data: rawService, loading, error } = useService(id || "");
   const { data: rawServices } = useServices();
   // 600: "limit" was never a real API param (silently ignored, falling back
@@ -392,6 +392,21 @@ export default function ServiceDetail() {
                           Online ke liye Pandit ji jald hi allocate honge.
                         </span>
                       )}
+
+                      {/* The card used to stop here — "online is possible",
+                          and nothing about what that actually involves, which
+                          is the exact point a devotee decides it sounds like
+                          a scam. /online-havan is the rest of the answer, and
+                          it carries this service through so its CTAs can hand
+                          the devotee back to the pandits who perform it. */}
+                      <Link className="sd-online-card__cta" to={`/online-havan?service=${s.id}`}>
+                        <span className="sd-online-card__cta-icon">🔥</span>
+                        <span className="sd-online-card__cta-body">
+                          <span className="sd-online-card__cta-title">{t("onlineHavan.cardCta")}</span>
+                          <span className="sd-online-card__cta-sub">{t("onlineHavan.cardCtaSub")}</span>
+                        </span>
+                        <Icon name="arrow-right" size={18} />
+                      </Link>
                     </div>
                   )}
 

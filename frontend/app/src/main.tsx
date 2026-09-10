@@ -10,6 +10,7 @@ import "./styles/base.css";
 import "./styles/enhance.css";
 import "./styles/service-detail.css";
 import "./styles/services-page.css";
+import "./styles/online-havan.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

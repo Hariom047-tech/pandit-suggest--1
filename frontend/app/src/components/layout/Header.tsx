@@ -18,6 +18,7 @@ const NAV = [
 // exists at /ai-recommender (linked from the drawer's bottom CTA) — it's just
 // not duplicated as its own drawer-menu row.
 const NAV_EXTRA = [
+  { to: "/online-havan", labelKey: "nav.onlineHavan", icon: "video" },
   { to: "/temple-map", labelKey: "nav.templeMap", icon: "map" },
   // Straight to the pandit sign-in screen, not the public /dashboard preview
   // page — someone tapping "Pandit Dashboard" from the menu wants to log in,
