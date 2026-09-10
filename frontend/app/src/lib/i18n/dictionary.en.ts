@@ -37,7 +37,7 @@ const en = {
    *  chrome is here. */
   onlineHavan: {
     pill: "Live from the havan kund — anywhere in the world",
-    title1: "A real fire, a real pandit,",
+    title1: "A real fire at the temple,",
     titleGold: "your name",
     title2: "spoken over it",
     sub: "An online havan is not a video of someone else's puja. It is your sankalp — your name, your gotra, your reason — taken at a physical kund at the temple, with you watching it happen. Here is the whole thing, hour by hour, with nothing skipped.",

@@ -129,8 +129,12 @@ export default function OnlineHavan() {
               <span className="oh-hero__pill-dot" />
               {t("onlineHavan.pill")}
             </span>
+            {/* The break is explicit, exactly as the homepage hero does it:
+                left to itself this headline wrapped to three or four heavy
+                lines on a phone. Copy is cut to the line length that hero
+                has already proven fits — roughly 20-25 characters. */}
             <h1 className="oh-hero__title">
-              {t("onlineHavan.title1")}{" "}
+              {t("onlineHavan.title1")} <br />
               <span className="gold-text">{t("onlineHavan.titleGold")}</span>{" "}
               {t("onlineHavan.title2")}
             </h1>
