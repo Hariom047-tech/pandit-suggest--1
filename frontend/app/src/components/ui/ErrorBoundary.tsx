@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { isChunkLoadError, reloadForNewBuild } from "../../lib/chunkReload";
 
 /**
  * Stops one broken component from taking down the entire site.
@@ -23,6 +24,13 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Kept in the console so the real stack is still one click away in devtools.
     console.error("[ErrorBoundary]", this.props.label ?? "", error, info.componentStack);
+
+    // A lazy chunk that 404s means this browser is running a build the server
+    // no longer has — not that the page is broken. Reload into the current
+    // build instead of showing a visitor a failure they can do nothing about.
+    // If the reload was declined (we already tried moments ago) the message
+    // below stands, which is the right answer for a genuinely missing file.
+    if (isChunkLoadError(error)) reloadForNewBuild();
   }
 
   render() {
