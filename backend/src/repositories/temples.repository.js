@@ -37,7 +37,9 @@ const BASE_SELECT = `
   SELECT id, slug, name, city, state, primary_deity AS deity, avg_rating AS rating,
          review_count AS reviews, pandit_count AS pandits,
          COALESCE(cover.media_url, cover_image_url) AS img,
-         short_description AS about
+         short_description AS about,
+         -- See the note on pandits.content_hi — same rule (migration 0012).
+         content_hi
   FROM temples
   ${COVER_JOIN}
 `;
@@ -86,10 +88,10 @@ async function getBySlug(slug, market) {
             address_line1, latitude AS lat, longitude AS lng, cover_image_url AS img,
             history, significance, established_year,
             ${hasCustomServices ? 'custom_services,' : "('[]'::jsonb) AS custom_services,"}
-            highlights,
+            highlights, content_hi,
             avg_rating AS rating, review_count AS reviews, pandit_count AS pandits, is_verified, is_featured,
             meta_title, meta_description
-     FROM temples WHERE slug = $1 AND deleted_at IS NULL`,
+     FROM temples WHERE slug = $1 AND deleted_at IS NULL AND is_active = TRUE`,
     [slug],
   );
   if (!rows[0]) return null;
