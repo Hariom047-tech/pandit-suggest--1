@@ -38,8 +38,13 @@
   margin: 0 0 34px;
   text-align: left;
 }
+/* The one thing on the page that is deliberately centred while its heading
+   stays left: the eyebrow reads as a small banner over the section rather
+   than as the first line of the title. Centred within .oh-head's own 760px
+   box, not the shell, so it stays tied to the title it belongs to. */
 .oh-head__eyebrow {
-  display: inline-block;
+  display: block;
+  text-align: center;
   font-size: var(--fs-200);
   font-weight: var(--fw-bold);
   letter-spacing: 0.12em;
