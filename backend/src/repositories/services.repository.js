@@ -7,7 +7,19 @@ const BASE_SELECT = `
          -- Admin-managed content that used to be hardcoded in
          -- frontend/app/src/data/serviceMeta.ts.
          s.benefits, s.process, s.faqs,
+         -- The Hindi version of all of the above (migration 0011). Sent
+         -- alongside rather than swapped in server-side: the language is the
+         -- reader's own switch, and the page falls back per field, so both
+         -- have to be in hand at render time.
+         s.content_hi,
          s.is_online_available, s.online_note,
+         -- Where this service sits in the homepage strip when an admin has
+         -- ticked "Show on home page" (is_popular). The column existed from
+         -- the beginning and nothing ever read it; the homepage grid was
+         -- ordered by name, so an admin could choose WHICH pujas were
+         -- featured but never in WHICH ORDER. Kept out of the catalogue's own
+         -- ORDER BY below on purpose — /services stays alphabetical.
+         s.display_order,
          s.meta_title, s.meta_description,
          (SELECT COUNT(*) FROM pandit_services ps WHERE ps.service_id = s.id AND ps.is_active = TRUE)::int AS pandit_count
   FROM services s JOIN service_categories sc ON sc.id = s.category_id
@@ -31,7 +43,13 @@ async function list({ q, cat, online }) {
  *  display — never both at once, so a devotee never sees the same question
  *  twice. No rows there (the common case today) leaves s.faqs untouched. */
 async function getBySlug(slug) {
-  const { rows } = await query(`${BASE_SELECT} WHERE s.slug = $1`, [slug]);
+  // is_active, not just the slug. Without it a service an admin has
+  // Deactivated stayed fully reachable at its own URL — HTTP 200, real title,
+  // full JSON-LD and the crawlable article — so a ritual taken off the site
+  // could still be crawled and indexed, and the admin's confirmation dialog
+  // ("It disappears from the public site") was not true by direct link. The
+  // listing already filtered it; only the detail lookup did not.
+  const { rows } = await query(`${BASE_SELECT} WHERE s.slug = $1 AND s.is_active = TRUE`, [slug]);
   const service = rows[0];
   if (!service) return null;
 

@@ -16,6 +16,10 @@ const STATIC_PAGES = [
   { path: '/contact', priority: '0.5' },
   { path: '/temple-map', priority: '0.5' },
   { path: '/ai-recommender', priority: '0.6' },
+  // High intent and its own server-rendered metadata/FAQPage since the
+  // SEO pass — it was absent here purely because nothing had routed it
+  // through the render layer before.
+  { path: '/online-havan', priority: '0.8' },
   { path: '/privacy', priority: '0.2' },
   { path: '/terms', priority: '0.2' },
 ];

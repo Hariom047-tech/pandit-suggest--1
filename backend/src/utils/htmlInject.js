@@ -96,4 +96,23 @@ function injectBootstrap(html, data, preloadUrls = []) {
   return html.replace('</head>', `${tags.join('\n')}\n</head>`);
 }
 
-module.exports = { injectSeo, injectBootstrap };
+/**
+ * Puts the crawlable <noscript> article into the document body.
+ *
+ * Before </body>, not inside #root: React's createRoot() empties its container
+ * on mount, so anything placed in #root would be built by the server, parsed
+ * by the browser and thrown away a moment later — and would flash on screen
+ * first on a slow connection. Outside it, the block is inert for anyone with
+ * JavaScript and is the whole page for anyone without.
+ *
+ * The article is already escaped by crawlableContent.js; it is markup by the
+ * time it arrives here, so it must NOT be escaped again.
+ */
+function injectCrawlableContent(html, blockHtml) {
+  if (!blockHtml) return html;
+  return html.includes('</body>')
+    ? html.replace('</body>', `${blockHtml}\n</body>`)
+    : html + blockHtml;
+}
+
+module.exports = { injectSeo, injectBootstrap, injectCrawlableContent, esc };
