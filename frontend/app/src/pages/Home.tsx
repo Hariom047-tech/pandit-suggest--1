@@ -114,8 +114,24 @@ export default function Home() {
   }, [rawPandits, pandits.length]);
   const temples = useMemo(() => normTemples(rawTemples), [rawTemples]);
   const services = useMemo(() => normServices(rawServices), [rawServices]);
+  /**
+   * The homepage puja grid: which services, and in which order.
+   *
+   * Both halves are the admin's, from the service editor — "Show on home
+   * page" picks them, "Home position" orders them (low first). Until this
+   * existed the order was whatever the catalogue returned, which is
+   * alphabetical by name, so an admin could feature a puja but never move it.
+   *
+   * Name is the tiebreaker rather than leaving equal positions to the
+   * server's row order: every service starts at position 0, so without it a
+   * freshly ticked set of pujas would sit in an order nobody chose and that
+   * could change between requests.
+   */
   const featuredServices = useMemo(
-    () => services.filter((s) => s.popular).slice(0, 6),
+    () => services
+      .filter((s) => s.popular)
+      .sort((a, b) => (a.homePosition ?? 0) - (b.homePosition ?? 0) || a.name.localeCompare(b.name))
+      .slice(0, 6),
     [services],
   );
 
@@ -134,7 +150,12 @@ export default function Home() {
   const onlinePujas = useMemo(() => {
     const online = services.filter((s) => s.onlineAvailable);
     return [...online]
-      .sort((a, b) => Number(Boolean(b.popular)) - Number(Boolean(a.popular)))
+      // Featured first, then the same "Home position" that orders the grid
+      // above — one number an admin sets once controls both homepage strips,
+      // rather than this one staying in an order they cannot influence.
+      .sort((a, b) => Number(Boolean(b.popular)) - Number(Boolean(a.popular))
+        || (a.homePosition ?? 0) - (b.homePosition ?? 0)
+        || a.name.localeCompare(b.name))
       .slice(0, 4);
   }, [services]);
   const reviews = useMemo(() => normReviews(rawReviews), [rawReviews]);
@@ -245,9 +266,25 @@ export default function Home() {
           )}
           <div className="shell ohp-hero-inner">
             <InViewFade>
+              {/* The same badge shape the page hero uses for "verified
+                  pandits" — a live dot and a plain statement of fact. It is
+                  what tells a scrolling reader this band is different from
+                  the cream sections either side of it. */}
+              <span className="ohp-pill"><i className="ohp-pill-dot" />{t("ohp.pill")}</span>
               <span className="eyebrow">{t("ohp.eyebrow")}</span>
-              <h2 className="ohp-hero-title">{t("ohp.heroTitle")}</h2>
+              {/* Split the same way the page hero splits its own headline —
+                  dark, gold, dark — so the two read as the same family of
+                  statement rather than a heading and a subheading. */}
+              <h2 className="ohp-hero-title">
+                {t("ohp.heroTitle1")} <span className="gold-text">{t("ohp.heroTitleGold")}</span>{t("ohp.heroTitle2")}
+              </h2>
               <p className="ohp-hero-sub">{t("ohp.heroSub")}</p>
+              {/* Jumps straight to the pujas. Without it the first clickable
+                  thing in this section is below four "how it works" steps, so
+                  interest peaked at the headline and then had nowhere to go. */}
+              <a className="btn btn-gold btn-lg ohp-hero-cta" href="#online-pujas">
+                {t("ohp.heroCta")} <Icon name="arrow-right" size={16} />
+              </a>
             </InViewFade>
           </div>
         </div>
@@ -277,7 +314,7 @@ export default function Home() {
 
         {/* ——— POPULAR PUJAS (admin-managed) ——— */}
         {onlinePujas.length > 0 && (
-        <div className="ohp-pujas-wrap">
+        <div className="ohp-pujas-wrap" id="online-pujas">
           <div className="shell">
             <h3 className="ohp-heading">{t("ohp.popularPujas")}</h3>
             <svg className="ornament" viewBox="0 0 190 16" aria-hidden="true"><path d="M6 8h64M120 8h64" fill="none" stroke="#d4a017" strokeWidth="1.6" /><path d="M84 8l11-6 11 6-11 6z" fill="none" stroke="#d4a017" strokeWidth="1.6" /></svg>
@@ -429,21 +466,16 @@ export default function Home() {
         <div className="shell">
           <div className="grid g-2 hp-trust-top" style={{ alignItems: "center" }}>
             <div>
-              <span className="eyebrow">Why PanditSuggest</span>
+              <span className="eyebrow">{t("homeTrust.eyebrow")}</span>
               <h2 className="section-title section-title--left" style={{ fontSize: "clamp(1.6rem,2.8vw,2.2rem)", marginTop: 10 }}>
-                Because some prayers deserve more than a stranger
+                {t("homeTrust.title")}
               </h2>
               <p className="section-sub" style={{ textAlign: "left", margin: "16px 0 0" }}>
-                A griha pravesh. A wedding. A prayer whispered for someone you love. These aren't
-                moments to gamble on — yet most families still find a pandit ji through guesswork,
-                or whoever a booking app happens to assign them.
+                {t("homeTrust.para1")}
               </p>
               <p className="section-sub" style={{ textAlign: "left", margin: "12px 0 0" }}>
-                Every Pandit ji and temple here is real: documents checked, video-verified, and
-                confirmed with the temple where they actually serve. You speak to them directly —
-                WhatsApp or call — and decide the vidhi, the date and the dakshina together. We
-                never take a cut, and we never choose for you.
-                {" "}<Link to="/how-it-works" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>See how it works →</Link>
+                {t("homeTrust.para2")}
+                {" "}<Link to="/how-it-works" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{t("homeTrust.howItWorks")}</Link>
               </p>
             </div>
 
@@ -468,23 +500,23 @@ export default function Home() {
           <div className="grid g-4 hp-whatis-grid" style={{ marginTop: 40 }}>
             <Link to="/pandits" className="card card--hover card-pad">
               <span className="hp-whatis-card__icon"><Icon name="users" size={24} /></span>
-              <h3 className="hp-whatis-card__title">Find Pandits</h3>
-              <p className="muted hp-whatis-card__desc">Verified profiles by city, language and specialization.</p>
+              <h3 className="hp-whatis-card__title">{t("homeTrust.findPandits")}</h3>
+              <p className="muted hp-whatis-card__desc">{t("homeTrust.findPanditsDesc")}</p>
             </Link>
             <Link to="/temples" className="card card--hover card-pad">
               <span className="hp-whatis-card__icon"><Icon name="temple" size={24} /></span>
-              <h3 className="hp-whatis-card__title">Explore Temples</h3>
-              <p className="muted hp-whatis-card__desc">Real temples with photos, timings and the Pandits who serve them.</p>
+              <h3 className="hp-whatis-card__title">{t("homeTrust.exploreTemples")}</h3>
+              <p className="muted hp-whatis-card__desc">{t("homeTrust.exploreTemplesDesc")}</p>
             </Link>
             <Link to="/services" className="card card--hover card-pad">
               <span className="hp-whatis-card__icon"><Icon name="sparkles" size={24} /></span>
-              <h3 className="hp-whatis-card__title">Puja &amp; Havan Services</h3>
-              <p className="muted hp-whatis-card__desc">What each ritual involves, and who performs it near you.</p>
+              <h3 className="hp-whatis-card__title">{t("homeTrust.services")}</h3>
+              <p className="muted hp-whatis-card__desc">{t("homeTrust.servicesDesc")}</p>
             </Link>
             <Link to="/ai-recommender" className="card card--hover card-pad">
               <span className="hp-whatis-card__icon"><Icon name="sparkles" size={24} /></span>
-              <h3 className="hp-whatis-card__title">AI Recommender</h3>
-              <p className="muted hp-whatis-card__desc">Not sure which puja you need? Describe your situation and get a starting point.</p>
+              <h3 className="hp-whatis-card__title">{t("homeTrust.aiRecommender")}</h3>
+              <p className="muted hp-whatis-card__desc">{t("homeTrust.aiRecommenderDesc")}</p>
             </Link>
           </div>
         </div>
@@ -494,7 +526,7 @@ export default function Home() {
       {displayFaqs.length > 0 && (
         <section className="section section--cream" id="faq">
           <div className="shell" style={{ maxWidth: 860 }}>
-            <h2 className="section-title">Frequently Asked Questions</h2>
+            <h2 className="section-title">{t("homeTrust.faqTitle")}</h2>
             <svg className="ornament" viewBox="0 0 190 16" aria-hidden="true"><path d="M6 8h64M120 8h64" fill="none" stroke="#d4a017" strokeWidth="1.6" /><path d="M84 8l11-6 11 6-11 6z" fill="none" stroke="#d4a017" strokeWidth="1.6" /></svg>
             <div style={{ marginTop: 34 }}>
               {displayFaqs.map((f, i) => <FaqItem q={f.q} a={f.a} key={f.q} defaultOpen={i === 0} />)}

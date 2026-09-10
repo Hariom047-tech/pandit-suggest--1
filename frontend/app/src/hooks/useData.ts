@@ -53,6 +53,7 @@ export interface ApiPandit {
   gotra?: string;
   edu?: string;
   about?: string;
+  display_order?: number;
   meta_title?: string | null;
   meta_description?: string | null;
 }
@@ -340,6 +341,15 @@ export function useBlogPost(slug: string) {
 }
 
 /* ═══════ UTILITY hooks ═══════ */
+
+/**
+ * Real count of verified, live pandits — the homepage trust badge's number.
+ * Cached for 5 minutes: it moves when an admin verifies someone, not per
+ * request, and the badge is above the fold on the most-hit page on the site.
+ */
+export function usePanditCount() {
+  return useApi<{ trusted: number }>("/pandits/count", { cacheTtl: 300_000 });
+}
 
 export function useStats() {
   return useApi<ApiStat[]>("/stats", { cacheTtl: 300_000 });

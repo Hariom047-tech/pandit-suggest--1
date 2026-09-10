@@ -57,7 +57,11 @@ export function normPandit(p: ApiPandit): Pandit {
   return {
     id: p.slug || p.id,
     name: p.name || "",
-    nameHi: p.name_hi,
+    // content_hi.name is a transliteration, not a translation — see the
+    // pandit entry in the backend's CONTENT_SPECS. The legacy p.name_hi is
+    // still honoured for any record that predates content_hi.
+    nameHi: (p as any).content_hi?.name || p.name_hi,
+    hi: (p as any).content_hi ?? null,
     city: p.city || "",
     state: p.state || "",
     exp: p.exp ?? p.experience_years ?? 0,
@@ -91,6 +95,7 @@ export function normTemple(t: ApiTemple): Temple {
   return {
     id: t.slug || t.id,
     name: t.name || "",
+    hi: (t as any).content_hi ?? null,
     city: t.city || "",
     state: t.state || "",
     deity: t.deity || t.primary_deity || "",
@@ -134,6 +139,7 @@ export function normService(s: ApiService): Service {
     img: s.img || s.image_url,
     priority: (s as any).priority,
     popular: Boolean((s as any).is_popular ?? (s as any).popular),
+    homePosition: Number((s as any).display_order) || 0,
     onlineAvailable: Boolean((s as any).is_online_available),
     onlineNote: (s as any).online_note ?? null,
   };

@@ -11,7 +11,13 @@ function jsonListOrNull(value, shape) {
 
 const asBenefit = (b) => {
   const title = String(b?.title ?? b ?? '').trim();
-  return title ? { title, detail: String(b?.detail ?? '').trim() } : null;
+  // `icon` is whatever emoji the admin picked for this benefit. Capped at a
+  // few characters because it is rendered in a fixed-size chip and a pasted
+  // sentence would break the layout — one emoji can be several code units, so
+  // the cap is deliberately not 1. Blank means "use the default om".
+  return title
+    ? { title, detail: String(b?.detail ?? '').trim(), icon: String(b?.icon ?? '').trim().slice(0, 8) }
+    : null;
 };
 const asStep = (p, i) => {
   const title = String(p?.title ?? p ?? '').trim();
@@ -30,6 +36,22 @@ const asSamagri = (x) => {
   const item = String(x?.item ?? x ?? '').trim();
   return item ? { item, qty: String(x?.qty ?? '').trim() } : null;
 };
+
+/**
+ * Homepage position: a whole number, or null meaning "leave it as it is".
+ *
+ * The admin form posts a string, and an empty box must not become 0 — that
+ * would silently jump an untouched service to the front of the homepage strip
+ * every time an admin saved an unrelated edit. Anything that is not a number
+ * (a blank, a pasted word) is treated the same way: don't touch it. Negative
+ * values are allowed on purpose, so one puja can be pinned above a row of
+ * zeros without renumbering the rest.
+ */
+function asPosition(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+}
 
 async function listCategories(q) {
   const { rows } = await q('SELECT * FROM service_categories ORDER BY display_order');
@@ -114,11 +136,12 @@ async function create(q, s) {
     `INSERT INTO services
        (category_id, name, slug, description, short_description, icon_name,
         estimated_duration, is_popular, recommended_muhurat,
-        benefits, process, faqs, samagri_list, is_online_available, online_note)
+        benefits, process, faqs, samagri_list, is_online_available, online_note,
+        display_order)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
              COALESCE($10::jsonb, '[]'::jsonb), COALESCE($11::jsonb, '[]'::jsonb),
              COALESCE($12::jsonb, '[]'::jsonb), COALESCE($13::jsonb, '[]'::jsonb),
-             COALESCE($14, FALSE), $15)
+             COALESCE($14, FALSE), $15, COALESCE($16, 0))
      RETURNING id, slug`,
     [s.categoryId, s.name, s.slug, s.description || null, s.shortDescription || null,
       s.iconName || null, s.estimatedDuration || null, !!s.isPopular, s.recommendedMuhurat || null,
@@ -126,7 +149,8 @@ async function create(q, s) {
       jsonListOrNull(s.process, asStep),
       jsonListOrNull(s.faqs, asFaq),
       jsonListOrNull(s.samagri, asSamagri),
-      s.isOnlineAvailable, s.onlineNote || null],
+      s.isOnlineAvailable, s.onlineNote || null,
+      asPosition(s.displayOrder)],
   );
   return rows[0];
 }
@@ -147,7 +171,8 @@ async function update(q, slug, fields) {
        faqs                = COALESCE($12::jsonb, faqs),
        samagri_list        = COALESCE($13::jsonb, samagri_list),
        is_online_available = COALESCE($14, is_online_available),
-       online_note         = COALESCE($15, online_note)
+       online_note         = COALESCE($15, online_note),
+       display_order       = COALESCE($16, display_order)
      WHERE slug = $1 RETURNING *`,
     [slug, fields.name, fields.description, fields.shortDescription, fields.iconName,
       fields.estimatedDuration, fields.isPopular, fields.isActive, fields.recommendedMuhurat,
@@ -155,7 +180,8 @@ async function update(q, slug, fields) {
       jsonListOrNull(fields.process, asStep),
       jsonListOrNull(fields.faqs, asFaq),
       jsonListOrNull(fields.samagri, asSamagri),
-      fields.isOnlineAvailable, fields.onlineNote],
+      fields.isOnlineAvailable, fields.onlineNote,
+      asPosition(fields.displayOrder)],
   );
   return rows[0] || null;
 }
@@ -184,6 +210,42 @@ async function softDelete(q, slug) {
   return rowCount > 0;
 }
 
+/**
+ * Really removes a service, as opposed to softDelete()'s is_active = FALSE.
+ *
+ * Left to the database to police. Of the twelve foreign keys pointing here,
+ * five CASCADE (pandit_services, temple_services, service_samagri and the two
+ * AI mapping tables — associations with no meaning once the service is gone),
+ * four SET NULL (qualified_leads, pandit_exposure, user_activity_events,
+ * ai_knowledge_documents — the record survives, it just stops pointing at a
+ * service), and three are NO ACTION: contact_clicks, inquiries and reviews.
+ * Those three are history a devotee created, so Postgres refuses the delete
+ * outright and the caller turns 23503 into "deactivate it instead".
+ *
+ * Counting those rows in JS first would be both a race and a lie; the
+ * constraint is the real rule.
+ */
+async function hardDelete(q, slug) {
+  const { rowCount } = await q('DELETE FROM services WHERE slug = $1', [slug]);
+  return rowCount > 0;
+}
+
+/** Same idea for a category: services.category_id is NO ACTION, so a category
+ *  that still holds services — even deactivated ones — cannot be removed. */
+async function hardDeleteCategory(q, id) {
+  const { rowCount } = await q('DELETE FROM service_categories WHERE id = $1', [id]);
+  return rowCount > 0;
+}
+
+/** Reactivates (or deactivates) without touching anything else — notably
+ *  without re-running the translator, which a full update() would. */
+async function setActive(q, slug, isActive) {
+  const { rowCount } = await q(
+    'UPDATE services SET is_active = $2 WHERE slug = $1', [slug, isActive],
+  );
+  return rowCount > 0;
+}
+
 async function listSamagri(q, serviceId) {
   const { rows } = await q('SELECT * FROM service_samagri WHERE service_id = $1 ORDER BY display_order', [serviceId]);
   return rows;
@@ -197,9 +259,27 @@ async function addSamagri(q, serviceId, item) {
   return rows[0];
 }
 
+/**
+ * Stores the Hindi content produced by the translator (migration 0011).
+ *
+ * Separate from update() rather than another COALESCE column in it: the Hindi
+ * is derived from what update() just wrote, so it can only be produced after
+ * that statement has run. Passing null clears it, which is what a caller does
+ * when the English changed and no fresh translation could be made — stale
+ * Hindi describing the previous version is worse than falling back to English.
+ */
+async function setContentHi(q, slug, contentHi) {
+  await q(
+    'UPDATE services SET content_hi = $2::jsonb WHERE slug = $1',
+    [slug, contentHi ? JSON.stringify(contentHi) : null],
+  );
+}
+
 module.exports = {
   findCategoryById, setCategoryImage,
   getBySlug, setImage,
   listCategories, createCategory, updateCategory, deleteCategory,
   list, findIdBySlug, create, update, softDelete, listSamagri, addSamagri,
+  hardDelete, hardDeleteCategory, setActive,
+  setContentHi,
 };

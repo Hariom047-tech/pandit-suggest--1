@@ -18,6 +18,7 @@ interface ServiceFull extends ServiceRow {
   is_online_available: boolean;
   online_note: string | null;
   recommended_muhurat: string | null;
+  display_order: number | null;
   image_url: string | null;
   benefits: ListRow[] | null;
   process: ListRow[] | null;
@@ -100,6 +101,7 @@ export default function AdminServices() {
           estimatedDuration: data.get("estimatedDuration"),
           recommendedMuhurat: data.get("recommendedMuhurat"),
           isPopular: data.get("isPopular") === "on",
+          displayOrder: data.get("displayOrder"),
           isOnlineAvailable: data.get("isOnlineAvailable") === "on",
           onlineNote: data.get("onlineNote"),
           benefits, process, faqs, samagri,
@@ -112,6 +114,7 @@ export default function AdminServices() {
           estimatedDuration: data.get("estimatedDuration"),
           recommendedMuhurat: data.get("recommendedMuhurat"),
           isPopular: data.get("isPopular") === "on",
+          displayOrder: data.get("displayOrder"),
           isOnlineAvailable: data.get("isOnlineAvailable") === "on",
           onlineNote: data.get("onlineNote"),
           benefits, process, faqs, samagri,
@@ -125,9 +128,41 @@ export default function AdminServices() {
   }
 
   async function removeService(slug: string) {
-    if (!confirm(`Deactivate service "${slug}"?`)) return;
+    if (!confirm(`Deactivate service "${slug}"?\n\nIt disappears from the public site. Nothing is lost and you can activate it again.`)) return;
     await adminApi.del(`/services/${slug}`);
     await loadServices();
+  }
+
+  async function activateService(slug: string) {
+    await adminApi.patch(`/services/${slug}/active`, { isActive: true });
+    await loadServices();
+  }
+
+  /**
+   * The real one. Deactivating only hides a service; this removes the row.
+   *
+   * The server refuses (409) when a devotee has ever clicked, enquired about
+   * or reviewed it — that history is what makes the record worth keeping — so
+   * the error is surfaced as-is rather than swallowed.
+   */
+  async function destroyService(slug: string, name: string) {
+    if (!confirm(`Delete "${name}" permanently?\n\nThis cannot be undone. The service, its samagri list and its pandit/temple links are removed. Deactivate instead if you only want it off the site.`)) return;
+    try {
+      await adminApi.del(`/services/${slug}/permanent`);
+      await loadServices();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete this service");
+    }
+  }
+
+  async function destroyCategory(id: string, name: string) {
+    if (!confirm(`Delete category "${name}" permanently?\n\nOnly possible while no service belongs to it.`)) return;
+    try {
+      await adminApi.del(`/service-categories/${id}/permanent`);
+      await loadCategories();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete this category");
+    }
   }
 
   return (
@@ -149,7 +184,16 @@ export default function AdminServices() {
         <div className="admin-panel__head"><h2>Categories</h2></div>
         <div className="admin-panel__body row wrap" style={{ gap: 8 }}>
           {categories.map((c) => (
-            <span key={c.id} className={`admin-pill ${c.is_active ? "admin-pill--gold" : "admin-pill--gray"}`}>{c.name}</span>
+            <span key={c.id} className={`admin-pill ${c.is_active ? "admin-pill--gold" : "admin-pill--gray"}`}>
+              {c.name}
+              <button
+                type="button"
+                onClick={() => destroyCategory(c.id, c.name)}
+                title={`Delete ${c.name}`}
+                aria-label={`Delete category ${c.name}`}
+                style={{ marginLeft: 6, border: "none", background: "none", cursor: "pointer", font: "inherit", opacity: 0.65, padding: 0 }}
+              >✕</button>
+            </span>
           ))}
           {!categories.length && <span className="muted">No categories yet.</span>}
         </div>
@@ -178,7 +222,16 @@ export default function AdminServices() {
                     <td><span className={`admin-pill ${s.is_active ? "admin-pill--green" : "admin-pill--red"}`}>{s.is_active ? "active" : "inactive"}</span></td>
                     <td className="row" style={{ gap: 6 }}>
                       <button className="btn btn-outline btn-sm" onClick={() => beginEdit(s)}>Edit</button>
-                      {s.is_active && <button className="btn btn-ghost btn-sm" onClick={() => removeService(s.slug)}>Deactivate</button>}
+                      {/* Deactivating used to be one-way: the button vanished
+                          with is_active and nothing brought the service back. */}
+                      {s.is_active
+                        ? <button className="btn btn-ghost btn-sm" onClick={() => removeService(s.slug)}>Deactivate</button>
+                        : <button className="btn btn-ghost btn-sm" onClick={() => activateService(s.slug)}>Activate</button>}
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: "#b91c1c" }}
+                        onClick={() => destroyService(s.slug, s.name)}
+                      >Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -209,7 +262,31 @@ export default function AdminServices() {
               </div>
             )}
             <div className="admin-field"><label>Estimated duration</label><input className="input" name="estimatedDuration" placeholder="e.g. 2-3 hours" defaultValue={full?.estimated_duration || ""} /></div>
-            <div className="admin-field"><label className="row" style={{ gap: 8, marginTop: 22 }}><input type="checkbox" name="isPopular" defaultChecked={full?.is_popular} /> Mark as popular</label></div>
+            {/* "Mark as popular" was the only homepage control, and its name
+                said nothing about what it did: it decides which pujas the
+                homepage grid shows. Position was not settable at all — the
+                grid came out alphabetical. Both live here now, together, so
+                it is clear they are one decision. */}
+            <div className="admin-field admin-field--full" style={{ background: "#fffdf7", border: "1px solid var(--admin-line, #e8d5b7)", borderRadius: 10, padding: 12 }}>
+              <label className="row" style={{ gap: 8, fontWeight: 700 }}>
+                <input type="checkbox" name="isPopular" defaultChecked={full?.is_popular} />
+                🏠 Home page par dikhayein
+              </label>
+              <p style={{ fontSize: ".8rem", opacity: .72, margin: "6px 0 8px" }}>
+                Tick karne par yeh puja home page ki services grid me aayegi.
+                Position se tay hota hai kaun pehle aayega — chhota number pehle
+                (1, 2, 3 …). Grid me sabse upar wali <strong>6</strong> pujas
+                dikhti hain, to 6 se zyada tick karne par position hi decide
+                karegi kaun si 6 aayengi.
+              </p>
+              <label style={{ fontSize: ".8rem", fontWeight: 600 }}>Home position</label>
+              <input
+                className="input" name="displayOrder" type="number" step={1}
+                style={{ maxWidth: 160 }}
+                placeholder="e.g. 1"
+                defaultValue={full?.display_order ?? 0}
+              />
+            </div>
             <div className="admin-field admin-field--full"><label>Short description</label><input className="input" name="shortDescription" defaultValue={full?.short_description || ""} /></div>
             <div className="admin-field admin-field--full"><label>Description</label><textarea className="textarea" name="description" defaultValue={full?.description || ""} /></div>
             <div className="admin-field admin-field--full" style={{ background: "#fffdf7", border: "1px solid var(--admin-line, #e8d5b7)", borderRadius: 10, padding: 12 }}>
@@ -245,6 +322,7 @@ export default function AdminServices() {
               hint="Public page ke 'blessings' section me dikhenge."
               rows={benefits} onChange={setBenefits}
               fields={[
+                { key: "icon", label: "Icon", icon: true, width: "full" },
                 { key: "title", label: "Benefit", placeholder: "Shatru baadha se raksha" },
                 { key: "detail", label: "Detail", placeholder: "Short explanation", width: "full", multiline: true },
               ]}
