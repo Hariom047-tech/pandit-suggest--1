@@ -179,7 +179,22 @@ async function main() {
   if (!migrations.length) fail(`no migration files found under ${DB_DIR}`);
 
   const client = new Client({
-    connectionString: url,
+    // `sslmode` is stripped from the URL, not honoured. node-postgres parses
+    // it out of the connection string and builds its OWN ssl config from it,
+    // which wins over the `ssl` option below — and that config carries no CA,
+    // so verification falls back to the system trust store, which does not
+    // contain the Amazon RDS roots. The failure is SELF_SIGNED_CERT_IN_CHAIN
+    // against a certificate chain that is perfectly valid, which reads as a
+    // certificate problem and is not one. Proven by connecting with a
+    // deliberately wrong password: with ?sslmode=verify-full the connection
+    // dies at SELF_SIGNED_CERT_IN_CHAIN, without it the server answers 28P01
+    // (bad password) — i.e. TLS verified and the CA bundle was used.
+    //
+    // sslConfig() below already asks for exactly what verify-full means:
+    // rejectUnauthorized with the RDS CA bundle pinned. Dropping the
+    // parameter keeps the URL in docs/PRODUCTION_DB_RUNBOOK.md working as
+    // written instead of silently failing every migration run.
+    connectionString: stripSslMode(url),
     application_name: 'panditsuggest-migrate',
     ssl: sslConfig(url),
   });
@@ -342,6 +357,25 @@ async function applySessionPolicy(client) {
   await client.query('SET row_security = on');
   await client.query('SET check_function_bodies = on');
   await client.query('RESET search_path');
+}
+
+/**
+ * Removes `sslmode` from a connection string, leaving everything else as-is.
+ *
+ * See the note at the Client construction above for why. A URL with no query
+ * string, or none of this parameter, comes back unchanged.
+ */
+function stripSslMode(url) {
+  try {
+    const u = new URL(url);
+    if (!u.searchParams.has('sslmode')) return url;
+    u.searchParams.delete('sslmode');
+    return u.toString();
+  } catch {
+    // Not a parseable URL — hand it to pg untouched and let pg complain
+    // about it, rather than this helper failing on the caller's behalf.
+    return url;
+  }
 }
 
 /** RDS requires TLS with real CA verification. Local docker has no TLS. */

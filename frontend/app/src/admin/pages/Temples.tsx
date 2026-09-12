@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { adminApi, qs, type Paged } from "../lib/adminApi";
 import { Icon } from "../../lib/icons";
@@ -133,8 +133,20 @@ export default function AdminTemples() {
     setParams(next);
   }
 
+  /**
+   * Same guard as the service editor's, for the same reason: clicking one
+   * temple and then another before the first has loaded lands both replies,
+   * and the slower one calls beginEdit() with a record the admin is no
+   * longer looking at — overwriting the open form's name, slug and location
+   * with a different temple's. Saving then writes that temple's content
+   * under this one's slug. See Services.tsx's editSeq for the full note.
+   */
+  const editSeq = useRef(0);
+
   async function openEdit(targetSlug: string) {
+    const seq = ++editSeq.current;
     const full = await adminApi.get<TempleFull>(`/temples/${targetSlug}`);
+    if (seq !== editSeq.current) return;
     beginEdit(full);
   }
 
@@ -190,6 +202,7 @@ export default function AdminTemples() {
           setError(`Saved, lekin ye services nahi mile: ${res.unknown.join(", ")}`);
         }
       }
+      editSeq.current++;
       setEditing(null);
       await load();
     } catch (err) {
@@ -293,7 +306,7 @@ export default function AdminTemples() {
         )}
       </div>
 
-      <Modal open={editing !== null} onClose={() => setEditing(null)} size="full">
+      <Modal open={editing !== null} onClose={() => { editSeq.current++; setEditing(null); }} size="full">
         <div style={{ padding: 24 }}>
         <h3 style={{ fontSize: "1.3rem" }}>{editing === "new" ? "Add a temple" : `Edit ${(editing as TempleFull)?.name || ""}`}</h3>
         <form onSubmit={onSave} style={{ marginTop: 16 }}>

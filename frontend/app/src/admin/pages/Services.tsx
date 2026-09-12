@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { adminApi, qs, type Paged } from "../lib/adminApi";
 import { Icon } from "../../lib/icons";
 import { Pager } from "../../components/ui/Pager";
@@ -43,8 +43,28 @@ export default function AdminServices() {
   const [samagri, setSamagri] = useState<ListRow[]>([]);
   const [faqs, setFaqs] = useState<ListRow[]>([]);
 
+  /**
+   * Which "open the editor" click is the current one.
+   *
+   * Clearing the form before each fetch (below) fixed opening B after A had
+   * finished loading. It did NOT fix opening B while A was still in flight:
+   * both responses land, and if A's arrives second it calls setFull(A),
+   * which remounts the form — via its `key` — with A's name, description and
+   * meta tags while `editing` is still B. Pressing Save then PUTs to B's slug
+   * carrying A's content. Clicking one service and then another before the
+   * first has loaded is an ordinary thing to do, and it is how services came
+   * to hold a neighbour's copy.
+   *
+   * Every response is checked against this counter and a superseded one is
+   * dropped, the same rule lib/useApi.ts applies to public fetches. Closing
+   * the modal or saving bumps it too, so a reply that arrives after the
+   * editor is gone cannot repopulate it either.
+   */
+  const editSeq = useRef(0);
+
   /** Opens the editor, pulling the full record for an existing service. */
   async function beginEdit(target: ServiceRow | "new") {
+    const seq = ++editSeq.current;
     setEditing(target);
     // Cleared FIRST, every time. The plain inputs below are uncontrolled and
     // read `full` through defaultValue, which React applies only when the
@@ -60,12 +80,17 @@ export default function AdminServices() {
     if (target === "new") return;
     try {
       const detail = await adminApi.get<ServiceFull>(`/services/${target.slug}/detail`);
+      // A later click (or a close) already superseded this one — dropping it
+      // is the whole point; writing it would put this record into someone
+      // else's open form.
+      if (seq !== editSeq.current) return;
       setFull(detail);
       setBenefits(asRows(detail.benefits));
       setProcess(asRows(detail.process));
       setSamagri(asRows(detail.samagri_list));
       setFaqs(asRows(detail.faqs));
     } catch (err) {
+      if (seq !== editSeq.current) return;
       setError(err instanceof Error ? err.message : "Could not load service");
     }
   }
@@ -134,6 +159,7 @@ export default function AdminServices() {
           benefits, process, faqs, samagri,
         });
       }
+      editSeq.current++;
       setEditing(null);
       await loadServices();
     } catch (err) {
@@ -260,7 +286,7 @@ export default function AdminServices() {
         )}
       </div>
 
-      <Modal open={editing !== null} onClose={() => setEditing(null)} size="full">
+      <Modal open={editing !== null} onClose={() => { editSeq.current++; setEditing(null); }} size="full">
         <div style={{ padding: 24 }}>
         <h3 style={{ fontSize: "1.3rem" }}>{editing === "new" ? "Add a service" : `Edit ${(editing as ServiceRow)?.name || ""}`}</h3>
         {editing !== "new" && !full ? (
