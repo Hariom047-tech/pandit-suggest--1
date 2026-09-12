@@ -1,152 +1,103 @@
 #!/usr/bin/env node
 /**
- * Regenerates services.content_hi / pandits.content_hi / temples.content_hi
- * for rows that already exist.
+ * Regenerates the Hindi for rows that have none.
  *
- * The translator only runs on save (see services/hindiContent.service.js), so
- * anything written before the feature — or before a fix to the field spec, or
- * to the prompt — keeps whatever Hindi it had, including none. This is the
- * way to catch those up without an admin opening and re-saving every record.
+ * Why this exists
+ * ---------------
+ * Migration 0016 restored the English on fourteen Maa Baglamukhi services and
+ * set their content_hi to NULL, because the Hindi had been scrambled onto a
+ * different permutation than the English and could not be put back by pairing
+ * it with anything. Clearing it was the right call — a Hindi paragraph about a
+ * different ritual is worse than falling back to English — but it leaves those
+ * pages half-English for a Hindi reader until something re-translates them.
  *
- * It was written after exactly that: the service spec asked for `question`/
- * `answer` while FAQs are stored as `q`/`a`, so every service's FAQ list was
- * silently dropped as untranslatable and stayed English under a Hindi page.
+ * The application already does exactly that on an admin save
+ * (controllers/admin/services.controller.js -> refreshHindiContent). This is
+ * that same call, for rows nobody has re-saved, so the pages do not wait on
+ * someone opening fourteen editors and pressing Save in each.
  *
- * Usage:
- *   node scripts/backfill-hindi.js                 # every row missing Hindi
- *   node scripts/backfill-hindi.js --all           # every row, re-translating
- *   node scripts/backfill-hindi.js --kind=service  # one kind only
- *   node scripts/backfill-hindi.js --dry-run
+ * Usage
+ * -----
+ *   node scripts/backfill-hindi.js --dry-run     # list what it would do
+ *   node scripts/backfill-hindi.js               # only rows with NO Hindi
+ *   node scripts/backfill-hindi.js --force       # re-translate every row
+ *   node scripts/backfill-hindi.js --slug=a,b    # just these
+ *
+ * Runs as the runtime app role, not the migrator: this writes content, not
+ * schema, and it is the same write the admin panel makes. Needs OPENAI_API_KEY
+ * — without it translateToHindi returns nothing and every row is left alone
+ * rather than cleared, which is the library's own behaviour on a forced run.
  */
-'use strict';
 
 require('dotenv').config();
-const { query, withUserContext } = require('../src/config/db');
-const { translateToHindi } = require('../src/services/translation.service');
+const { Pool } = require('pg');
+const { refreshHindiContent } = require('../src/services/hindiContent.service');
 
-const ARGS = process.argv.slice(2);
-const DRY_RUN = ARGS.includes('--dry-run');
-const FORCE = ARGS.includes('--all');
-const ONLY = (ARGS.find((a) => a.startsWith('--kind=')) || '').split('=')[1] || null;
+const DRY_RUN = process.argv.includes('--dry-run');
+const FORCE = process.argv.includes('--force');
+const slugArg = process.argv.find((a) => a.startsWith('--slug='));
+const ONLY = slugArg ? slugArg.slice('--slug='.length).split(',').map((s) => s.trim()).filter(Boolean) : null;
 
-/**
- * Each kind's rows, the shape the translator wants, and how to write the
- * result back.
- *
- * `pandits` has RLS enabled and allows UPDATE only to the pandit themselves or
- * an admin, so its write runs inside that pandit's OWN user context — the same
- * policy the pandit's dashboard uses. services and temples have RLS disabled,
- * so a plain UPDATE is enough. A script that ignored this would not fail: RLS
- * filters rows out of an UPDATE rather than raising, so it would report
- * success and change nothing.
- */
-const KINDS = {
-  service: {
-    select: `SELECT slug AS key, name, short_description, description, estimated_duration,
-                    recommended_muhurat, online_note, benefits, process, faqs, samagri_list,
-                    (content_hi IS NOT NULL) AS has_hindi
-               FROM services WHERE is_active = TRUE`,
-    map: (r) => ({
-      name: r.name,
-      shortDescription: r.short_description,
-      description: r.description,
-      estimatedDuration: r.estimated_duration,
-      recommendedMuhurat: r.recommended_muhurat,
-      onlineNote: r.online_note,
-      benefits: r.benefits,
-      process: r.process,
-      faqs: r.faqs,
-      samagri: r.samagri_list,
-    }),
-    write: (row, hindi) => query(
-      'UPDATE services SET content_hi = $2::jsonb WHERE slug = $1',
-      [row.key, hindi ? JSON.stringify(hindi) : null],
-    ),
-  },
-  pandit: {
-    select: `SELECT p.id AS key, p.user_id, u.full_name AS name, p.title, p.short_bio, p.bio,
-                    p.primary_specialization, p.vedic_education, p.gotra, p.tradition,
-                    p.responds_within, u.city, u.state,
-                    (p.content_hi IS NOT NULL) AS has_hindi
-               FROM pandits p JOIN users u ON u.id = p.user_id
-              WHERE p.deleted_at IS NULL`,
-    map: (r) => ({
-      name: r.name,
-      title: r.title,
-      shortBio: r.short_bio,
-      bio: r.bio,
-      primarySpecialization: r.primary_specialization,
-      vedicEducation: r.vedic_education,
-      gotra: r.gotra,
-      tradition: r.tradition,
-      respondsWithin: r.responds_within,
-      city: r.city,
-      state: r.state,
-    }),
-    write: (row, hindi) => withUserContext(row.user_id, (q) => q(
-      'UPDATE pandits SET content_hi = $2::jsonb WHERE id = $1',
-      [row.key, hindi ? JSON.stringify(hindi) : null],
-    )),
-  },
-  temple: {
-    select: `SELECT id AS key, name, short_description, description, primary_deity, temple_type,
-                    architectural_style, history, significance, how_to_reach, nearest_railway,
-                    nearest_airport, city, district, state, highlights, custom_services,
-                    (content_hi IS NOT NULL) AS has_hindi
-               FROM temples WHERE deleted_at IS NULL`,
-    map: (r) => ({
-      name: r.name,
-      shortDescription: r.short_description,
-      description: r.description,
-      primaryDeity: r.primary_deity,
-      templeType: r.temple_type,
-      architecturalStyle: r.architectural_style,
-      history: r.history,
-      significance: r.significance,
-      howToReach: r.how_to_reach,
-      nearestRailway: r.nearest_railway,
-      nearestAirport: r.nearest_airport,
-      city: r.city,
-      district: r.district,
-      state: r.state,
-      highlights: r.highlights,
-      customServices: r.custom_services,
-    }),
-    write: (row, hindi) => query(
-      'UPDATE temples SET content_hi = $2::jsonb WHERE id = $1',
-      [row.key, hindi ? JSON.stringify(hindi) : null],
-    ),
-  },
-};
-
-async function run() {
-  const kinds = ONLY ? [ONLY] : Object.keys(KINDS);
-  for (const kind of kinds) {
-    const spec = KINDS[kind];
-    if (!spec) {
-      console.error(`unknown --kind=${kind}; expected one of ${Object.keys(KINDS).join(', ')}`);
-      process.exitCode = 1;
-      return;
-    }
-
-    const { rows } = await query(spec.select);
-    // Sequential on purpose: this hits a rate-limited API, and a handful of
-    // rows finishing a few seconds later costs nothing.
-    const todo = FORCE ? rows : rows.filter((r) => !r.has_hindi);
-    console.log(`\n[${kind}] ${rows.length} row(s), ${todo.length} to translate${FORCE ? ' (--all)' : ''}`);
-
-    for (const row of todo) {
-      const label = row.key;
-      if (DRY_RUN) { console.log(`  would translate ${label}`); continue; }
-      const hindi = await translateToHindi(kind, spec.map(row));
-      if (!hindi) { console.log(`  SKIP  ${label} — translator returned nothing`); continue; }
-      await spec.write(row, hindi);
-      const keys = Object.keys(hindi).filter((k) => k !== 'translatedAt' && k !== 'model');
-      console.log(`  ok    ${label} — ${keys.length} field(s): ${keys.join(', ')}`);
-    }
-  }
+function sslFor(url) {
+  if (!/rds\.amazonaws\.com/.test(url)) return false;
+  const fs = require('fs');
+  const path = require('path');
+  const ca = process.env.RDS_CA_BUNDLE
+    || path.join(__dirname, '..', '..', 'certs', 'rds-global-bundle.pem');
+  if (!fs.existsSync(ca)) throw new Error(`RDS needs the CA bundle at ${ca}`);
+  return { rejectUnauthorized: true, ca: fs.readFileSync(ca, 'utf8') };
 }
 
-run()
-  .then(() => { console.log('\ndone'); process.exit(0); })
-  .catch((err) => { console.error('\nbackfill failed:', err); process.exit(1); });
+/** See scripts/migrate.js: pg builds its own ssl config from a `sslmode` in
+ *  the URL and that one wins, CA and all. Strip it and keep ours. */
+function stripSslMode(url) {
+  try {
+    const u = new URL(url);
+    if (!u.searchParams.has('sslmode')) return url;
+    u.searchParams.delete('sslmode');
+    return u.toString();
+  } catch { return url; }
+}
+
+async function main() {
+  const url = process.env.DATABASE_URL;
+  if (!url) { console.error('DATABASE_URL is not set.'); process.exit(1); }
+  if (!process.env.OPENAI_API_KEY && !DRY_RUN) {
+    console.error('OPENAI_API_KEY is not set — every row would be skipped. Stopping.');
+    process.exit(1);
+  }
+
+  const pool = new Pool({ connectionString: stripSslMode(url), ssl: sslFor(url) });
+  const q = (text, params) => pool.query(text, params);
+
+  const where = [];
+  const params = [];
+  if (!FORCE) where.push('content_hi IS NULL');
+  if (ONLY) { params.push(ONLY); where.push(`slug = ANY($${params.length})`); }
+  const sql = `SELECT * FROM services${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY slug`;
+
+  const { rows } = await q(sql, params);
+  console.log(`[hindi] ${rows.length} service row(s) to process${DRY_RUN ? ' (dry run)' : ''}`);
+  if (!rows.length) { await pool.end(); return; }
+
+  let done = 0; let skipped = 0;
+  for (const row of rows) {
+    if (DRY_RUN) { console.log(`  would translate  ${row.slug}`); continue; }
+    try {
+      // force: the stored Hindi is absent or known-wrong, which no
+      // fingerprint comparison can work out on its own.
+      const result = await refreshHindiContent(q, {
+        kind: 'service', table: 'services', key: row.slug, row, force: true,
+      });
+      if (result) { done += 1; console.log(`  ok     ${row.slug}`); }
+      else { skipped += 1; console.log(`  SKIPPED ${row.slug} (translator returned nothing; left as it was)`); }
+    } catch (err) {
+      skipped += 1;
+      console.log(`  FAILED ${row.slug}: ${err.message}`);
+    }
+  }
+  console.log(`[hindi] translated ${done}, left alone ${skipped}`);
+  await pool.end();
+}
+
+main().catch((err) => { console.error(err); process.exit(1); });
