@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "../lib/icons";
+import { VerifiedName } from "../components/ui/VerifiedName";
 import { usePanditContact } from "../lib/usePanditContact";
 import { onImgError } from "../lib/format";
 import { StarRow } from "../components/ui/StarRating";
@@ -444,9 +445,20 @@ function AiPandit({ p, index, messageId }: { p: AiPanditCard; index: number; mes
           onError={onImgError("pandit")}
         />
         <div className="aig-pandit__info">
+          {/* Badge inside the name, not beside it: as a flex sibling it was
+              centred against a name that had wrapped to two lines instead of
+              sitting after the surname. See components/ui/VerifiedName.tsx. */}
           <div className="aig-pandit__namerow">
-            <strong>{p.name}</strong>
-            {p.verified && <span className="aig-verified" title="Verified"><Icon name="check" size={11} /></span>}
+            <strong>
+              <VerifiedName
+                name={p.name}
+                verified={p.verified}
+                title="Verified"
+                icon="check"
+                size={11}
+                badgeClass="aig-verified"
+              />
+            </strong>
           </div>
 
           <span className="aig-match">{p.matchLabel}</span>

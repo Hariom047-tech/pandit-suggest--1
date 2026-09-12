@@ -302,10 +302,13 @@
 .aig-pandit__info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .aig-pandit__namerow { display: flex; align-items: center; gap: 6px; }
 .aig-pandit__namerow strong { font-size: var(--fs-400); overflow-wrap: anywhere; }
+/* Sits inside the name now (VerifiedName), so it needs the gap the flex row
+   used to give it and a baseline it can sit on next to the letters. */
 .aig-verified {
   display: inline-flex; align-items: center; justify-content: center;
   width: 16px; height: 16px; flex: none;
   border-radius: 50%; background: #1f9d55; color: #fff;
+  margin-left: 6px; vertical-align: -3px;
 }
 .aig-match {
   align-self: flex-start;

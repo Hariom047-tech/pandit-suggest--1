@@ -8,6 +8,7 @@ import { SacredBackground } from "../components/ui/SacredBackground";
 import { HeroTicker } from "../components/ui/HeroTicker";
 import { useLang } from "../lib/i18n";
 import { Seo } from "../lib/Seo";
+import { useStructuredData, organizationSchema, websiteSchema, webPageSchema, breadcrumbSchema, itemListSchema } from "../lib/structuredData";
 import { useSiteImages, type SiteImageSlot } from "../lib/siteImages";
 
 /**
@@ -24,7 +25,10 @@ const CATEGORY_SLOTS: Record<string, SiteImageSlot> = {
 };
 
 export default function Services() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  /** The Hindi name when the reader is in Hindi and one exists, else English. */
+  const svcName = (s: { name: string; hi?: { name?: string } | null }) =>
+    (lang === "hi" ? s.hi?.name : null) || s.name;
   const siteImg = useSiteImages();
   const categoryImage = (slug: string, own?: string | null) =>
     own || siteImg.src(CATEGORY_SLOTS[slug] || "services.fallback_puja");
@@ -34,6 +38,28 @@ export default function Services() {
   const heroImg = siteImg.src("services.hero");
   const { data: rawServices } = useServices();
   const services = useMemo(() => normServices(rawServices), [rawServices]);
+
+  /* ── Structured data ──
+     This page had none at all — server-side or client-side — while every
+     detail page beneath it carries a full graph, so a crawler understood
+     each individual entry better than the catalogue listing them, and had
+     nothing telling it what this page was called. Mirrors exactly what
+     backend/src/utils/seoMeta.js injects for the same URL; the ItemList
+     describes the rows actually rendered, so it is built from the same
+     array the grid below maps over. */
+  useStructuredData([
+    organizationSchema(),
+    websiteSchema(),
+    webPageSchema({ path: "/services", name: "All Puja & Havan Services — Book a Pandit" }),
+    breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Services", path: "/services" }]),
+    services.length
+      ? itemListSchema({
+          path: "/services",
+          name: "Puja and havan services",
+          items: services.map((r) => ({ name: r.name, path: `/services/${r.id}` })),
+        })
+      : null,
+  ]);
 
   /**
    * "Most booked" tiles, admin-curated.
@@ -52,11 +78,14 @@ export default function Services() {
     if (apiCategories?.length) {
       return apiCategories.map((c) => ({
         cat: c.slug,
-        label: c.name,
+        // Hindi name for a Hindi reader once the category has one; English
+        // until then, and for everyone reading in English. Same rule the
+        // service cards below already follow.
+        label: (lang === "hi" ? (c as { content_hi?: { name?: string } | null }).content_hi?.name : null) || c.name,
+        tagline: (lang === "hi" ? (c as { content_hi?: { tagline?: string } | null }).content_hi?.tagline : null) || c.tagline,
         img: categoryImage(c.slug, c.image_url),
         pandits: c.pandit_count,
         services: c.service_count,
-        tagline: c.tagline,
       }));
     }
     // No categories from the API means there genuinely are none. This used to
@@ -84,7 +113,7 @@ export default function Services() {
 
   const filtered = useMemo(() => {
     return services.filter((s) => {
-      if (query && !`${s.name} ${s.tag} ${s.desc}`.toLowerCase().includes(query.toLowerCase())) return false;
+      if (query && !`${s.name} ${s.hi?.name ?? ""} ${s.tag} ${s.desc}`.toLowerCase().includes(query.toLowerCase())) return false;
       if (onlineOnly && !s.onlineAvailable) return false;
       if (categoryFilter && s.cat !== categoryFilter) return false;
       return true;
@@ -102,7 +131,11 @@ export default function Services() {
     <div className="hp-sacred-section" style={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
       <Seo
         title="All Puja & Havan Services — Book a Pandit"
-        description="33+ traditional rituals, from daily aarti to Griha Pravesh, Rudrabhishek and Satyanarayan Katha — with samagri lists and verified Pandits who perform each service."
+        /* The real catalogue size once it has loaded, and no number at all
+           before that — "33+" was hardcoded and wrong (there are 32). Same
+           sentence the server injects for this URL (seoMeta.js's
+           servicesMeta), which this overwrites when React mounts. */
+        description={`${services.length ? `${services.length} traditional rituals` : "Traditional rituals"}, from daily aarti to Griha Pravesh, Rudrabhishek and Satyanarayan Katha — with samagri lists and verified Pandits who perform each service.`}
         path="/services"
       />
       <SacredBackground />
@@ -175,7 +208,7 @@ export default function Services() {
                       {mb.pandits > 0
                         ? <span>{mb.pandits} {t("services.pandits")}</span>
                         : mb.services > 0
-                          ? <span>{mb.services} {mb.services === 1 ? "service" : "services"}</span>
+                          ? <span>{mb.services} {mb.services === 1 ? t("services.serviceCountOne") : t("services.serviceCountMany")}</span>
                           : mb.tagline
                             ? <span>{mb.tagline}</span>
                             : null}
@@ -215,7 +248,10 @@ export default function Services() {
                   type="button"
                   className={`sp-online-toggle sp-all-header__online${onlineOnly ? " is-on" : ""}`}
                   aria-pressed={onlineOnly}
-                  onClick={() => setOnlineOnly((v) => !v)}
+                  onClick={() => setOnlineOnly((v) => {
+                    if (!v) setCategoryFilter(null);
+                    return !v;
+                  })}
                 >
                   🌐 Online puja ({onlineCount})
                 </button>
@@ -244,7 +280,7 @@ export default function Services() {
                     {(s.img ? s.img.replace('.jpg', '_new.jpg') : serviceFallback(s.name)) && (
                       <img
                         src={s.img ? s.img.replace('.jpg', '_new.jpg') : serviceFallback(s.name)}
-                        alt={s.name}
+                        alt={svcName(s)}
                         className="sp-all-card__img"
                         loading="lazy"
                         onError={(e) => {
@@ -254,9 +290,8 @@ export default function Services() {
                       />
                     )}
                     <div className="sp-all-card__overlay" />
-                    {s.onlineAvailable && <span className="sp-online-badge">🌐 Online</span>}
                     <div className="sp-all-card__bottom">
-                      <h4 className="sp-all-card__name">{s.name}</h4>
+                      <h4 className="sp-all-card__name">{svcName(s)}</h4>
                       <p className="sp-all-card__tag">{s.tag}</p>
                       <div className="sp-all-card__meta">
                         <span className="sp-all-card__meta-dur"><Icon name="clock" size={13} /> {s.dur}</span>

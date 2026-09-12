@@ -158,10 +158,16 @@ const en = {
     about: "About Us",
     contact: "Contact",
     myProfile: "My Profile",
+    // Short form for the bottom bar's fifth tab, where "My Profile" wraps.
+    profile: "Profile",
     login: "Login",
     signOut: "Sign Out",
     whichPoojaDoINeed: "Which pooja do I need?",
-    onlineHavan: "Online Havan",
+    // ONE label per URL, used by the header nav, the drawer and the footer
+    // alike (Footer.tsx's EXPLORE points at these same nav keys). Three
+    // different anchor texts for one page is three weaker signals about what
+    // that page is called instead of one strong one.
+    onlinePuja: "Online Puja",
   },
   common: {
     loading: "Loading…",
@@ -223,6 +229,7 @@ const en = {
     allServices: "All Services",
     templeMap: "Temple Map",
     aiPoojaGuide: "AI Pooja Guide",
+    havanTypes: "Types of Havan",
     aboutUs: "About Us",
     howItWorks: "How It Works",
     spiritualBlog: "Spiritual Blog",
@@ -301,7 +308,7 @@ const en = {
     step4Title: "Receive Prasad",
     step4Desc: "Blessed prasad & puja certificate shipped to your doorstep",
     pill: "Available online — from anywhere",
-    heroCta: "See the pujas",
+    heroCta: "How online havan works",
     popularPujas: "Popular Pujas",
     live: "Live",
     enquire: "Enquire",
@@ -323,8 +330,8 @@ const en = {
     receive6: "All Samagri",
   },
   pandits: {
-    heroTitle1: "Your trusted",
-    heroTitleGold: "pandit connection",
+    heroTitle1: "Find a verified Pandit",
+    heroTitleGold: "across India",
     heroCheck1: "Talk directly — No middlemen, 100% Dakshina goes to Pandit ji",
     heroCheck2: "Every pandit is verified — Video KYC & Vedic qualification audits",
     heroCheck3: "500+ experienced pandits across 60+ cities, available for all rituals",
@@ -354,8 +361,8 @@ const en = {
     viaCall: "Via Call",
   },
   temples: {
-    heroTitle1: "Every temple tells a",
-    heroTitleGold: "divine story",
+    heroTitle1: "Temples across India,",
+    heroTitleGold: "each with its own story",
     heroCheck1: "Darshan timings, sevas & festivals — all details at your fingertips",
     heroCheck2: "Find pandits associated with each temple for authentic rituals",
     heroCheck3: "From Varanasi to Rameshwaram — {count}+ temples across India",
@@ -375,9 +382,11 @@ const en = {
     title: "All Services",
     subtitle: "33 rituals, from daily aarti to a seven-day Bhagwat Katha — with samagri lists and muhurat guidance.",
     servicesFound: "services found",
+    serviceCountOne: "service",
+    serviceCountMany: "services",
     findPandits: "Find Pandits",
-    heroTitle1: "Divine rituals,",
-    heroTitleGold: "delivered with devotion",
+    heroTitle1: "Puja & havan services,",
+    heroTitleGold: "performed with devotion",
     heroCheck1: "Complete vidhi with all samagri — nothing for you to arrange",
     heroCheck2: "From griha pravesh to shanti path — every ritual your family needs",
     heroCheck3: "Transparent pricing, no hidden costs — book with complete peace of mind",
@@ -453,7 +462,6 @@ const en = {
     noReviewsYet: "No reviews yet.",
     noReviewsInvite: "After the puja, you can leave the first review.",
     newOnPlatform: "New on PanditSuggest",
-    responseTimeTitle: "Response time",
   },
   contact: {
     breadcrumbHome: "Home",

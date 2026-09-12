@@ -40,12 +40,17 @@ async function create(req, res) {
 }
 
 async function update(req, res) {
+  // Read before the write: `previousRow` is how the translator tells a field
+  // this save rewrote from one it left alone, on a row that has no translation
+  // fingerprints yet. See services/hindiContent.service.js.
+  const before = await repo.getBySlug(req.db, req.params.id);
   const updated = await repo.update(req.db, req.params.id, req.body || {});
   if (!updated) return res.status(404).json({ error: 'Temple not found' });
   // Translated from the saved row, not the request body — an update carries
   // only the changed fields. See services/hindiContent.service.js.
   await refreshHindiContent(req.db, {
-    kind: 'temple', table: 'temples', key: updated.id, row: updated, explicit: req.body?.contentHi,
+    kind: 'temple', table: 'temples', key: updated.id, row: updated, previousRow: before,
+    explicit: req.body?.contentHi,
   });
   await logAdminAction({ adminUserId: req.adminUser.id, action: 'TEMPLE_UPDATED', targetType: 'temple', targetId: updated.id, details: req.body, ip: req.ip });
   res.json(updated);

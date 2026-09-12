@@ -845,10 +845,4 @@
 }
 .sp-online-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
-.sp-online-badge {
-  position: absolute; top: 10px; left: 10px; z-index: 2;
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 999px;
-  background: rgba(28, 79, 124, .92); color: #fff;
-  font-size: var(--fs-100); font-weight: var(--fw-bold); letter-spacing: .01em;
-}
+

@@ -15,6 +15,8 @@
  *   - a failed translation CLEARS the Hindi for the fields it was asked to
  *     translate. Hindi describing the previous version of a paragraph is
  *     worse than falling back to English.
+ *   - `force` re-translates everything, for when the stored Hindi is wrong
+ *     rather than stale (a bad machine rendering an admin wants redone).
  *   - ONLY the fields whose English actually changed are re-translated. The
  *     English each field was translated from is fingerprinted into
  *     content_hi._source, so a save that changed an image, a price, a
@@ -29,6 +31,7 @@ const { translateToHindi, sourceFingerprints, CONTENT_SPECS } = require('./trans
  * interpolation below safe — a table name can never come from a caller.
  */
 const TABLES = {
+  service_categories: 'slug',
   services: 'slug',
   pandits: 'id',
   temples: 'id',
@@ -43,6 +46,11 @@ const TABLES = {
  * would be one rename away from silently translating nothing.
  */
 const FROM_ROW = {
+  serviceCategory: (r) => ({
+    name: r.name,
+    tagline: r.tagline,
+    description: r.description,
+  }),
   service: (r) => ({
     name: r.name,
     shortDescription: r.short_description,
@@ -50,6 +58,8 @@ const FROM_ROW = {
     estimatedDuration: r.estimated_duration,
     recommendedMuhurat: r.recommended_muhurat,
     onlineNote: r.online_note,
+    metaTitle: r.meta_title,
+    metaDescription: r.meta_description,
     benefits: r.benefits,
     process: r.process,
     faqs: r.faqs,
@@ -110,22 +120,32 @@ function contentKeys(kind) {
  * A field qualifies when its English differs from the English the stored
  * Hindi was made from, or when it has no Hindi at all. The second half is
  * what makes a previously failed field retry, and what translates a record
- * saved before fingerprints existed (no _source -> nothing matches -> the
- * fields that are missing Hindi get done, the ones already translated are
- * trusted and simply re-fingerprinted).
+ * saved before fingerprints existed (no _source -> the fields that are missing
+ * Hindi get done; for the rest `priorEnglish`, the row as it was before this
+ * save, decides — and where even that is unavailable they are trusted and
+ * simply re-fingerprinted).
  */
-function needsTranslation(kind, live, previous) {
+function needsTranslation(kind, live, previous, priorEnglish) {
   const before = previous?._source;
   return Object.keys(live).filter((key) => {
     // Never translated, or a previous attempt produced nothing usable.
     if (!hasHindi(previous?.[key])) return true;
-    // A row translated before fingerprints existed. Its Hindi is trusted
-    // rather than redone: until this change every save re-translated
-    // everything, so whatever is stored was made from exactly this English.
-    // Redoing it would spend money to replace good Hindi — including any an
-    // admin had corrected — with a fresh machine attempt.
-    if (!before) return false;
-    return before[key] !== live[key];
+    if (before) return before[key] !== live[key];
+    // No fingerprints: a row last translated before they existed. Its Hindi
+    // was trusted outright, which was wrong for exactly one case — the save
+    // that is CHANGING the English right now. That is what left a pandit
+    // renamed from "Acharya Ankit Sharma" to "Pandit Ankit Sharma" reading
+    // "आचार्य अंकित शर्मा" in Hindi for good: the name was trusted, and then
+    // fingerprinted against its NEW English below, so no later save saw a
+    // change either.
+    //
+    // The row as it stood before this save answers it properly. Fields this
+    // save left alone keep their Hindi and cost nothing (the original point
+    // of trusting them); a field whose English just moved is retranslated.
+    if (priorEnglish) return priorEnglish[key] !== live[key];
+    // Nothing to compare against — a create, or a caller that cannot read the
+    // row it is about to overwrite. Trust what is stored, as before.
+    return false;
   });
 }
 
@@ -150,10 +170,10 @@ async function writeContentHi(q, table, keyValue, contentHi) {
  * result as soon as the save returns; never throws, because a save must not
  * fail over a translation.
  */
-async function refreshHindiContent(q, { kind, table, key, row, explicit }) {
+async function refreshHindiContent(q, { kind, table, key, row, previousRow, explicit, force }) {
   if (explicit !== undefined) {
     await writeContentHi(q, table, key, explicit || null);
-    return;
+    return explicit || null;
   }
   const mapper = FROM_ROW[kind];
   if (!mapper) throw new Error(`refreshHindiContent: unknown kind "${kind}"`);
@@ -161,13 +181,27 @@ async function refreshHindiContent(q, { kind, table, key, row, explicit }) {
   const content = mapper(row);
   const live = sourceFingerprints(kind, content);      // English as it stands now
   const previous = await readContentHi(q, table, key); // Hindi as it stands now
-  const stale = needsTranslation(kind, live, previous);
+  // The English this save replaced, when the caller read the row first. Only
+  // consulted for a row that has no fingerprints yet — see needsTranslation.
+  const priorEnglish = previousRow ? sourceFingerprints(kind, mapper(previousRow)) : null;
+  // `force` is the admin saying the stored Hindi is wrong, which no comparison
+  // can work out on its own: the fingerprints say the English has not moved,
+  // and they are right — it is the Hindi that is bad. Every field with English
+  // goes back to the model.
+  const stale = force ? Object.keys(live) : needsTranslation(kind, live, previous, priorEnglish);
 
   // The whole point: the model is reached ONLY when words actually changed.
   // Saving after swapping an image, ticking a flag, moving a homepage
   // position — or pressing Save having changed nothing — costs nothing and
   // leaves Hindi an admin may have corrected by hand exactly as it was.
   const fresh = stale.length ? await translateToHindi(kind, content, { only: stale }) : null;
+
+  // A forced re-translation that came back with nothing (no API key, a
+  // timeout) is a failed action, not an instruction to erase what is there.
+  // Everywhere else an empty result deliberately clears the fields it covered
+  // — but there the English had changed, so the old Hindi was describing text
+  // that no longer exists. Here it is still the best the row has.
+  if (force && !fresh) return null;
 
   // Rebuilt field by field rather than merged over `previous`, so Hindi whose
   // English has since been deleted goes with it instead of lingering under a
@@ -188,10 +222,10 @@ async function refreshHindiContent(q, { kind, table, key, row, explicit }) {
 
   if (!Object.keys(merged).length) {
     await writeContentHi(q, table, key, null);
-    return;
+    return null;
   }
 
-  await writeContentHi(q, table, key, {
+  const contentHi = {
     ...merged,
     // Only fingerprint the fields that actually ended up with Hindi, so one
     // that failed is treated as still outstanding and retried on the next
@@ -203,7 +237,12 @@ async function refreshHindiContent(q, { kind, table, key, row, explicit }) {
     // produced, not when the row was last saved.
     translatedAt: stale.length ? new Date().toISOString() : previous?.translatedAt,
     model: fresh?.model || previous?.model,
-  });
+  };
+  await writeContentHi(q, table, key, contentHi);
+  // Returned so a caller that asked for this on purpose (the admin's
+  // "re-translate" action) can show what came back. Every other caller
+  // ignores it, exactly as before.
+  return contentHi;
 }
 
 module.exports = { refreshHindiContent, writeContentHi };

@@ -14,6 +14,7 @@ import { StarRow } from "../components/ui/StarRating";
 import { SacredBackground } from "../components/ui/SacredBackground";
 import { HeroTicker } from "../components/ui/HeroTicker";
 import { Seo } from "../lib/Seo";
+import { useStructuredData, organizationSchema, websiteSchema, webPageSchema, breadcrumbSchema, itemListSchema } from "../lib/structuredData";
 import { useSiteImages } from "../lib/siteImages";
 
 // Falls back to this while /settings hasn't loaded yet or the admin has
@@ -46,6 +47,28 @@ export default function Pandits() {
   const { data: rawSvcs } = useServices();
   const { data: publicSettings } = usePublicSettings();
   const pandits = useMemo(() => normPandits(rawPandits), [rawPandits]);
+
+  /* ── Structured data ──
+     This page had none at all — server-side or client-side — while every
+     detail page beneath it carries a full graph, so a crawler understood
+     each individual entry better than the catalogue listing them, and had
+     nothing telling it what this page was called. Mirrors exactly what
+     backend/src/utils/seoMeta.js injects for the same URL; the ItemList
+     describes the rows actually rendered, so it is built from the same
+     array the grid below maps over. */
+  useStructuredData([
+    organizationSchema(),
+    websiteSchema(),
+    webPageSchema({ path: "/pandits", name: "Find a Pandit — Verified Profiles Across India" }),
+    breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Pandits", path: "/pandits" }]),
+    pandits.length
+      ? itemListSchema({
+          path: "/pandits",
+          name: "Verified Pandits",
+          items: pandits.map((r) => ({ name: r.name, path: `/pandits/${r.id}` })),
+        })
+      : null,
+  ]);
   const allServices = useMemo(() => normServices(rawSvcs), [rawSvcs]);
   const perPage = publicSettings?.pandits_per_page || DEFAULT_PER_PAGE;
 

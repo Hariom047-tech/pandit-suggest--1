@@ -6,24 +6,51 @@ const { readPaging, paginationEnvelope } = require('../../utils/paginate');
 const { logAdminAction } = require('../../utils/adminLog');
 const { refreshHindiContent } = require('../../services/hindiContent.service');
 
-/** See services/hindiContent.service.js — same rule for all three content types. */
-const refreshHindi = (req, saved, explicit) => refreshHindiContent(req.db, {
-  kind: 'service', table: 'services', key: saved.slug, row: saved, explicit,
+/** See services/hindiContent.service.js — same rule for all three content types.
+ *  `previousRow` is the record as it stood before the save, and is what lets a
+ *  row with no translation fingerprints yet still tell a renamed field from an
+ *  untouched one. Absent on create, where there is nothing before. */
+const refreshHindi = (req, saved, explicit, previousRow) => refreshHindiContent(req.db, {
+  kind: 'service', table: 'services', key: saved.slug, row: saved, previousRow, explicit,
 });
 
 const listCategories = async (req, res) => res.json(await repo.listCategories(req.db));
+
+/**
+ * Categories translate on save like services, pandits and temples do — until
+ * now they were the one admin-authored surface with no Hindi at all, so the
+ * four names on /services stayed English for a Hindi reader.
+ *
+ * Wrapped in its own try/catch rather than sharing the service helper's:
+ * service_categories.content_hi arrives in migration 0015, and this code has
+ * to be deployable before that runs. A missing column must cost the admin a
+ * missing translation, never a failed save.
+ */
+async function refreshCategoryHindi(req, saved, explicit, previousRow) {
+  try {
+    await refreshHindiContent(req.db, {
+      kind: 'serviceCategory', table: 'service_categories', key: saved.slug, row: saved,
+      previousRow, explicit,
+    });
+  } catch (err) {
+    console.warn('[admin] category Hindi skipped:', err.message);
+  }
+}
 
 async function createCategory(req, res) {
   const { name, slug } = req.body || {};
   if (!name || !slug) return res.status(400).json({ error: 'name and slug are required' });
   const category = await repo.createCategory(req.db, req.body);
+  await refreshCategoryHindi(req, category, req.body?.contentHi);
   await logAdminAction({ adminUserId: req.adminUser.id, action: 'SERVICE_CATEGORY_CREATED', targetType: 'service_category', targetId: category.id, ip: req.ip });
   res.status(201).json(category);
 }
 
 async function updateCategory(req, res) {
+  const before = await repo.findCategoryById(req.db, req.params.id);
   const category = await repo.updateCategory(req.db, req.params.id, req.body || {});
   if (!category) return res.status(404).json({ error: 'Category not found' });
+  await refreshCategoryHindi(req, category, req.body?.contentHi, before);
   res.json(category);
 }
 
@@ -50,9 +77,12 @@ async function create(req, res) {
 }
 
 async function update(req, res) {
+  // Before the write, so the translator can see which words changed — see the
+  // refreshHindi helper above.
+  const before = await repo.getBySlug(req.db, req.params.id);
   const updated = await repo.update(req.db, req.params.id, req.body || {});
   if (!updated) return res.status(404).json({ error: 'Service not found' });
-  await refreshHindi(req, updated, req.body?.contentHi);
+  await refreshHindi(req, updated, req.body?.contentHi, before);
   await logAdminAction({ adminUserId: req.adminUser.id, action: 'SERVICE_UPDATED', targetType: 'service', targetId: updated.id, details: req.body, ip: req.ip });
   // Re-read so the response carries the Hindi that was just written, rather
   // than the pre-translation row update() returned.

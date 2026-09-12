@@ -17,8 +17,12 @@ export const siteConfig = {
   // somehow unset.
   url: (isProd ? undefined : envSiteUrl) || "https://www.panditsuggest.com",
   defaultTitle: "PanditSuggest — Connect with Trusted Pandits Across India",
+  // The fallback any page without its own description inherits — which is
+  // why it must not lead with a part of the site that may be empty. It used
+  // to open "Browse temples across India", and that sentence was what Google
+  // printed under a 404 page it had indexed.
   defaultDescription:
-    "Browse temples across India, view verified Pandit profiles and contact them directly on WhatsApp or call. No middleman, no commission on your puja.",
+    "Find verified Pandits for puja, havan and anushthan across India. Compare profiles by city and language, and contact pandit ji directly on WhatsApp or call. No middleman, no commission on your puja.",
   defaultOgImage: "/assets/img/logo-new.png",
 
   /**

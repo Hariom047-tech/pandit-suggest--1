@@ -6,8 +6,17 @@ import { onImgError } from "../../lib/format";
 import { usePanditContact } from "../../lib/usePanditContact";
 import { useLang } from "../../lib/i18n";
 import { useInViewOnce } from "../../lib/useInViewOnce";
+import { VerifiedName } from "./VerifiedName";
 
-export function PanditCard({ p, index = 0, sourceSurface }: { p: Pandit; index?: number; sourceSurface?: string }) {
+export function PanditCard({ p, index = 0, sourceSurface, serviceSlug }: {
+  p: Pandit;
+  index?: number;
+  sourceSurface?: string;
+  /** The puja this card is being shown under, on a service page. Travels with
+   *  a Chat/Call press so the lead — and the homepage's popular-puja ranking —
+   *  know which ritual it was about. */
+  serviceSlug?: string;
+}) {
   const { t, lang } = useLang();
   const displayName = lang === "hi" && p.nameHi ? p.nameHi : p.name;
   /**
@@ -47,6 +56,7 @@ export function PanditCard({ p, index = 0, sourceSurface }: { p: Pandit; index?:
       // Falls back to the pre-existing generic value for any caller that
       // hasn't been updated to pass one.
       source: sourceSurface || "pandit_card",
+      service: serviceSlug,
     });
   };
 
@@ -66,19 +76,25 @@ export function PanditCard({ p, index = 0, sourceSurface }: { p: Pandit; index?:
 
           <div className="astro-card__header-info">
             <div className="astro-card__name-row">
-              {/* The badge lives INSIDE the heading, so it flows with the text
-                  and lands right after the last word of the name instead of
-                  floating beside the whole (possibly 2-line) name block.
-                  There is deliberately no whitespace between the name and the
-                  badge: without a break opportunity the two can never be split
-                  across lines, so the tick always stays on the surname. */}
+              {/* The heading is a fixed-height box that centres whatever name
+                  it is given (see .astro-card__name): one line sits in the
+                  middle of the reserved space instead of at the top with the
+                  rest of the space left dangling under it, and a two-line name
+                  fills it exactly. Every card in a row still lines up, which
+                  is what the reserved height was always for.
+
+                  VerifiedName keeps the tick glued to the surname — removing
+                  the space alone did not, because the SVG itself is a legal
+                  break point. */}
               <h3 className="astro-card__name">
-                {displayName}
-                {p.verified && (
-                  <span className="astro-card__verified" title={t("common.verified")}>
-                    <Icon name="verified" size={16} />
-                  </span>
-                )}
+                <span className="astro-card__name-text">
+                  <VerifiedName
+                    name={displayName}
+                    verified={p.verified}
+                    title={t("common.verified")}
+                    badgeClass="astro-card__verified"
+                  />
+                </span>
               </h3>
             </div>
             <div className="astro-card__meta-short">

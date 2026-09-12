@@ -218,6 +218,13 @@ async function update(req, res) {
     vedicEducation, gotra, tradition, respondsWithin, acceptsOnline, services, temples,
   } = req.body || {};
 
+  // Read BEFORE the write: the record as it stands now is what tells the
+  // translator which words this save is actually changing. Without it a row
+  // that predates the content_hi fingerprints keeps its old Hindi for a field
+  // whose English was just rewritten — which is how a pandit renamed from
+  // "Acharya …" to "Pandit …" stayed "आचार्य …" to every Hindi reader.
+  const before = await repo.getFullById(req.db, pandit.id);
+
   await repo.update(req.db, pandit.id, pandit.user_id, {
     name, city, state, phone, bio, shortBio, experienceYears, primarySpecialization,
     specializations, whatsappNumber, publicPhone, isAvailable, languages,
@@ -231,10 +238,36 @@ async function update(req, res) {
   // services/hindiContent.service.js. getFullById already joins the users row,
   // so `name` here is the pandit's display name.
   await refreshHindiContent(req.db, {
-    kind: 'pandit', table: 'pandits', key: pandit.id, row: full, explicit: req.body?.contentHi,
+    kind: 'pandit', table: 'pandits', key: pandit.id, row: full, previousRow: before,
+    explicit: req.body?.contentHi,
   });
   await logAdminAction({ adminUserId: req.adminUser.id, action: 'PANDIT_UPDATED', targetType: 'pandit', targetId: pandit.id, details: req.body, ip: req.ip });
   // Re-read so the response carries the Hindi that was just written.
+  res.json(await repo.getFullById(req.db, pandit.id));
+}
+
+/**
+ * POST <secret>/pandits/:id/retranslate-hindi
+ *
+ * The repair hatch for Hindi that is wrong rather than out of date. Saving
+ * again cannot fix that: the stored fingerprints correctly report that the
+ * English has not moved, so nothing is retranslated and the bad Hindi stays.
+ * This says "ignore the fingerprints, do it all again" — which is also how a
+ * row translated under an older, worse prompt gets the current one.
+ */
+async function retranslateHindi(req, res) {
+  const pandit = await repo.findIdBySlug(req.db, req.params.id);
+  if (!pandit) return res.status(404).json({ error: 'Pandit not found' });
+
+  const full = await repo.getFullById(req.db, pandit.id);
+  const contentHi = await refreshHindiContent(req.db, {
+    kind: 'pandit', table: 'pandits', key: pandit.id, row: full, force: true,
+  });
+  // Null means the model gave nothing back and the old Hindi was left alone —
+  // a failed action the admin has to be told about, not a silent no-op.
+  if (!contentHi) return res.status(502).json({ error: 'Hindi translate nahi ho payi. Thodi der baad phir try karein.' });
+
+  await logAdminAction({ adminUserId: req.adminUser.id, action: 'PANDIT_HINDI_RETRANSLATED', targetType: 'pandit', targetId: pandit.id, ip: req.ip });
   res.json(await repo.getFullById(req.db, pandit.id));
 }
 
@@ -371,5 +404,5 @@ async function leads(req, res) {
 
 module.exports = {
   resetPassword, setDateOfBirth, list, verificationQueue, create, getById, update, verify, toggleFeatured,
-  analytics, analyticsDetail, setSubscription, setPaused, leads,
+  analytics, analyticsDetail, setSubscription, setPaused, leads, retranslateHindi,
 };

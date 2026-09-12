@@ -138,6 +138,12 @@ export function normService(s: ApiService): Service {
     samagri: s.samagri || [],
     img: s.img || s.image_url,
     priority: (s as any).priority,
+    // The translator has been filling content_hi for services all along and
+    // this was the one normaliser that dropped it, so every listing card
+    // rendered the English name to a Hindi reader while the furniture around
+    // it — "0 पंडित", "सभी सेवाएं" — was already Hindi. normTemple and
+    // normPandit both carry it; this now matches them.
+    hi: (s as any).content_hi ?? null,
     popular: Boolean((s as any).is_popular ?? (s as any).popular),
     homePosition: Number((s as any).display_order) || 0,
     onlineAvailable: Boolean((s as any).is_online_available),

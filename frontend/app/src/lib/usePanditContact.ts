@@ -37,10 +37,12 @@ export function usePanditContact() {
     /** Prefilled WhatsApp text. Preserves the greeting the old waLink() sent. */
     waMessage?: string;
     source?: string;
+    /** The puja this press is about, when the surface knows one. */
+    service?: string;
     /** Called with the server's verdict, e.g. so a profile page can refresh. */
     onResult?: (result: ContactResult) => void;
   }) => {
-    const { panditSlug, action, phone, whatsapp, waMessage, source, onResult } = opts;
+    const { panditSlug, action, phone, whatsapp, waMessage, source, service, onResult } = opts;
     const key = `${panditSlug}:${action}`;
 
     // Guards a double tap on the same button before the first request lands.
@@ -100,7 +102,7 @@ export function usePanditContact() {
     setPendingKey(key);
     let result: ContactResult | null = null;
     try {
-      result = await api.trackClick(panditSlug, action, source);
+      result = await api.trackClick(panditSlug, action, source, service);
       onResult?.(result);
     } catch {
       // The contact itself must not be held hostage by our analytics. If the

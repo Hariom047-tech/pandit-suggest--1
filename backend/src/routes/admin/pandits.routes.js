@@ -19,6 +19,9 @@ router.get('/:id/analytics/detail', adminHandler(ctrl.analyticsDetail));
 router.get('/:id/leads', adminHandler(ctrl.leads));
 router.post('/:id/subscription', adminHandler(ctrl.setSubscription));
 router.post('/:id/pause', adminHandler(ctrl.setPaused));
+// Rebuilds this pandit's Hindi from scratch — for Hindi that is wrong rather
+// than stale, which re-saving deliberately will not touch. See the controller.
+router.post('/:id/retranslate-hindi', adminHandler(ctrl.retranslateHindi));
 
 // Support path for a locked-out pandit. A reset, never a reveal: the stored
 // value is a bcrypt hash, so the old password cannot be recovered by design.

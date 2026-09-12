@@ -3,6 +3,7 @@ import { Icon } from "../lib/icons";
 import { Seo } from "../lib/Seo";
 import { useLang } from "../lib/i18n";
 import { useStructuredData, organizationSchema, websiteSchema, webPageSchema, breadcrumbSchema } from "../lib/structuredData";
+import { useHasTemples } from "../hooks/useHasTemples";
 
 /** Only the icon lives here now — the words come from the dictionary, so the
  *  page reads in whichever language the devotee has chosen. */
@@ -15,6 +16,7 @@ const STEPS = [
 
 export default function HowItWorks() {
   const { t } = useLang();
+  const hasTemples = useHasTemples();
   useStructuredData([
     organizationSchema(),
     websiteSchema(),
@@ -59,7 +61,11 @@ export default function HowItWorks() {
           <h2 className="section-title">{t("howItWorks.ready")}</h2>
           <div className="row" style={{ justifyContent: "center", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
             <Link className="btn btn-gold btn-lg" to="/pandits">{t("howItWorks.findPandits")}</Link>
-            <Link className="btn btn-outline btn-lg" to="/temples">{t("howItWorks.exploreTemples")}</Link>
+            {/* Only once an admin has published a temple — the directory
+                behind this button is empty until then (useHasTemples.ts). */}
+            {hasTemples && (
+              <Link className="btn btn-outline btn-lg" to="/temples">{t("howItWorks.exploreTemples")}</Link>
+            )}
             <Link className="btn btn-outline btn-lg" to="/about">{t("howItWorks.about")}</Link>
           </div>
         </div>

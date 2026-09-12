@@ -134,11 +134,13 @@ export default function Search() {
           <div className="search-bar-wrap">
             <div className="search-bar">
               <Icon name="search" size={22} className="search-bar__icon" />
+              {/* The word "temples" only belongs in the placeholder while
+                  there are temples to find — see hooks/useHasTemples.ts. */}
               <input
                 ref={inputRef}
                 type="text"
                 className="search-bar__input"
-                placeholder="Search pujas, pandits, temples..."
+                placeholder={temples.length > 0 ? "Search pujas, pandits, temples..." : "Search pujas and pandits..."}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -313,7 +315,7 @@ export default function Search() {
                     <Icon name="search" size={48} />
                   </div>
                   <h3>No results found for "{query}"</h3>
-                  <p>Try searching for a puja, temple, or pandit by name or location.</p>
+                  <p>Try searching for a puja{temples.length > 0 ? ", temple," : ""} or pandit by name or location.</p>
                   <button className="btn btn-outline" onClick={handleClear} style={{ marginTop: 20 }}>
                     Clear Search
                   </button>

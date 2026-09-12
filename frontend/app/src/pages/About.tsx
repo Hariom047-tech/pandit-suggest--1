@@ -10,6 +10,7 @@ import { useReviews } from "../hooks/useData";
 import { normReviews } from "../lib/normalize";
 import { ReviewCard } from "../components/ui/ReviewCard";
 import { Seo } from "../lib/Seo";
+import { useHasTemples } from "../hooks/useHasTemples";
 
 const VERIFY_STEPS = [
   { icon: "inbox", h: "Document check", p: "Government ID, address proof and the pandit ji's temple association letter are collected and cross-checked." },
@@ -30,6 +31,7 @@ const DIFF: [string, string][] = [
 ];
 
 export default function About() {
+  const hasTemples = useHasTemples();
   // Reviews of PanditSuggest itself, not of any one pandit or temple.
   const { data: rawPlatformReviews } = useReviews("platform");
   const platformReviews = useMemo(() => normReviews(rawPlatformReviews), [rawPlatformReviews]);
@@ -180,7 +182,12 @@ export default function About() {
               <p>Free to browse, free to list, free to connect. Always.</p>
             </div>
             <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
-              <Link className="btn btn-outline btn-lg" to="/temples">Explore temples</Link>
+              {/* Hidden until the temple directory has something in it — see
+                  hooks/useHasTemples.ts. The mission copy above stays: it
+                  describes what the platform is for, not a page to visit. */}
+              {hasTemples && (
+                <Link className="btn btn-outline btn-lg" to="/temples">Explore temples</Link>
+              )}
               <Link className="btn btn-outline btn-lg" to="/dashboard">List as a Pandit</Link>
             </div>
           </div>

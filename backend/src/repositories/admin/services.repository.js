@@ -137,11 +137,11 @@ async function create(q, s) {
        (category_id, name, slug, description, short_description, icon_name,
         estimated_duration, is_popular, recommended_muhurat,
         benefits, process, faqs, samagri_list, is_online_available, online_note,
-        display_order)
+        display_order, meta_title, meta_description)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
              COALESCE($10::jsonb, '[]'::jsonb), COALESCE($11::jsonb, '[]'::jsonb),
              COALESCE($12::jsonb, '[]'::jsonb), COALESCE($13::jsonb, '[]'::jsonb),
-             COALESCE($14, FALSE), $15, COALESCE($16, 0))
+             COALESCE($14, FALSE), $15, COALESCE($16, 0), $17, $18)
      RETURNING id, slug`,
     [s.categoryId, s.name, s.slug, s.description || null, s.shortDescription || null,
       s.iconName || null, s.estimatedDuration || null, !!s.isPopular, s.recommendedMuhurat || null,
@@ -150,7 +150,7 @@ async function create(q, s) {
       jsonListOrNull(s.faqs, asFaq),
       jsonListOrNull(s.samagri, asSamagri),
       s.isOnlineAvailable, s.onlineNote || null,
-      asPosition(s.displayOrder)],
+      asPosition(s.displayOrder), s.metaTitle || null, s.metaDescription || null],
   );
   return rows[0];
 }
@@ -172,7 +172,12 @@ async function update(q, slug, fields) {
        samagri_list        = COALESCE($13::jsonb, samagri_list),
        is_online_available = COALESCE($14, is_online_available),
        online_note         = COALESCE($15, online_note),
-       display_order       = COALESCE($16, display_order)
+       display_order       = COALESCE($16, display_order),
+       -- Nullable BY DESIGN: blank means "no override, derive it from the
+       -- name and short description" (see backend/src/utils/seoMeta.js), so
+       -- COALESCE would make clearing an override impossible.
+       meta_title          = CASE WHEN $17::boolean THEN $18 ELSE meta_title END,
+       meta_description    = CASE WHEN $19::boolean THEN $20 ELSE meta_description END
      WHERE slug = $1 RETURNING *`,
     [slug, fields.name, fields.description, fields.shortDescription, fields.iconName,
       fields.estimatedDuration, fields.isPopular, fields.isActive, fields.recommendedMuhurat,
@@ -181,7 +186,9 @@ async function update(q, slug, fields) {
       jsonListOrNull(fields.faqs, asFaq),
       jsonListOrNull(fields.samagri, asSamagri),
       fields.isOnlineAvailable, fields.onlineNote,
-      asPosition(fields.displayOrder)],
+      asPosition(fields.displayOrder),
+      fields.metaTitle !== undefined, fields.metaTitle || null,
+      fields.metaDescription !== undefined, fields.metaDescription || null],
   );
   return rows[0] || null;
 }

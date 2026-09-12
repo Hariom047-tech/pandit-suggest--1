@@ -6,9 +6,8 @@ import { Icon } from "../lib/icons";
 import { PanditCard } from "../components/ui/PanditCard";
 import { TempleCard } from "../components/ui/TempleCard";
 import { ReviewCard } from "../components/ui/ReviewCard";
-import { Loading } from "../components/ui/DataState";
 
-import { usePandits, useTemples, useServices, useReviews, useFaqs } from "../hooks/useData";
+import { usePandits, useTemples, useServices, useReviews, useFaqs, usePopularOnlineServices } from "../hooks/useData";
 import { normPandits, normTemples, normServices, normReviews } from "../lib/normalize";
 import { useFairRanking, useReportExposure } from "../lib/api";
 import { useLang } from "../lib/i18n";
@@ -64,8 +63,29 @@ function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultO
   );
 }
 
+/**
+ * The puja that always holds the first tile of the online-havan strip.
+ *
+ * Maa Baglamukhi Havan at Nalkheda is what this business is known for and
+ * what most visitors arrive looking for, so it is not left to compete with
+ * the rest on view counts — a quiet week must not be able to push it out of
+ * sight. Everything after it is ordered by real demand.
+ *
+ * A slug that no longer exists (renamed, deactivated, taken off online) pins
+ * nothing and the strip simply orders itself normally — no blank tile, no
+ * error.
+ */
+const PINNED_ONLINE_PUJA = "maa-baglamukhi-havan";
+
+/** How many cards the strip shows. Eight fills two full rows on desktop
+ *  (4-up) and four on a phone (2-up), with no ragged last row either way. */
+const ONLINE_PUJA_COUNT = 8;
+
 export default function Home() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  /** Hindi name for a Hindi reader, English otherwise. */
+  const svcName = (s: { name: string; hi?: { name?: string } | null }) =>
+    (lang === "hi" ? s.hi?.name : null) || s.name;
   const siteImg = useSiteImages();
   const trustImg = siteImg.src("home.trust");
   /**
@@ -99,10 +119,13 @@ export default function Home() {
   }, []);
 
   /* ── Fetch data from API ── */
-  const { data: rawPandits, loading: panditsLoading } = usePandits({ perPage: 20 });
-  const { data: rawTemples, loading: templesLoading } = useTemples({ perPage: 20, sort: "reviews" });
-  const { data: rawServices, loading: servicesLoading } = useServices();
-  const { data: rawReviews, loading: reviewsLoading } = useReviews();
+  const { data: rawPandits } = usePandits({ perPage: 20 });
+  const { data: rawTemples } = useTemples({ perPage: 20, sort: "reviews" });
+  const { data: rawServices } = useServices();
+  // Best-effort: if this never arrives the strip below simply keeps the
+  // admin's ordering, which is what it showed before any of this existed.
+  const { data: popularOnline } = usePopularOnlineServices();
+  const { data: rawReviews } = useReviews();
 
   const pandits = useMemo(() => normPandits(rawPandits), [rawPandits]);
   // Real platform-wide count, not this page's 20-row fetch — meta.total is
@@ -136,28 +159,48 @@ export default function Home() {
   );
 
   /**
-   * The "Popular Pujas" strip in the online-havan section.
+   * The "Popular Pujas" strip in the online-havan section — 8 cards, ordered
+   * by what devotees are ACTUALLY doing.
+   *
+   * Three rules, in this order:
+   *
+   *   1. PINNED_ONLINE_PUJA is always first. Maa Baglamukhi is not one puja
+   *      among many here — it is the ritual this business is built on and the
+   *      reason most visitors arrive — so it holds the first tile no matter
+   *      what the numbers say. Nothing else is pinned.
+   *   2. Then real demand: /services/popular ranks the rest by views plus
+   *      contacts over the last 30 days (see the backend's popularOnline).
+   *      It is a rolling window, so the strip follows the season instead of
+   *      freezing whatever was popular the month the site launched.
+   *   3. Then the admin's own order, which is ALL there is today: nothing has
+   *      been viewed yet, so `rank` is empty and every card falls through to
+   *      "Mark as popular" → "Home position" → name, exactly as before. The
+   *      strip fills with 8 sensible pujas from day one and re-sorts itself
+   *      as traffic arrives, with nothing for anyone to switch on.
    *
    * Was four hardcoded cards whose names, descriptions and durations lived in
    * the i18n dictionary (ohp.puja1Name … puja4Dur) — editing one meant a code
    * change and a redeploy, and the four slugs were fixed regardless of what
    * the database actually contained.
-   *
-   * Admin owns it now through two flags already on every service:
-   *   "Online puja / havan available"  → eligible for this strip
-   *   "Mark as popular"                → sorted to the front
    */
   const onlinePujas = useMemo(() => {
-    const online = services.filter((s) => s.onlineAvailable);
-    return [...online]
-      // Featured first, then the same "Home position" that orders the grid
-      // above — one number an admin sets once controls both homepage strips,
-      // rather than this one staying in an order they cannot influence.
-      .sort((a, b) => Number(Boolean(b.popular)) - Number(Boolean(a.popular))
+    // slug -> position in the real-usage ranking. A puja nobody has touched is
+    // not in the map at all and sorts after every puja that is.
+    const rank = new Map((popularOnline?.data || []).map((row, i) => [row.slug, i]));
+    const rankOf = (slug: string) => rank.get(slug) ?? Number.MAX_SAFE_INTEGER;
+    const pinned = (slug: string) => (slug === PINNED_ONLINE_PUJA ? 0 : 1);
+
+    return services
+      .filter((s) => s.onlineAvailable)
+      .sort((a, b) =>
+        pinned(a.id) - pinned(b.id)
+        || rankOf(a.id) - rankOf(b.id)
+        // No usage data for either one yet: the admin's order decides.
+        || Number(Boolean(b.popular)) - Number(Boolean(a.popular))
         || (a.homePosition ?? 0) - (b.homePosition ?? 0)
         || a.name.localeCompare(b.name))
-      .slice(0, 4);
-  }, [services]);
+      .slice(0, ONLINE_PUJA_COUNT);
+  }, [services, popularOnline]);
   const reviews = useMemo(() => normReviews(rawReviews), [rawReviews]);
 
   const topPandits = useMemo(() => {
@@ -185,7 +228,7 @@ export default function Home() {
     <div className="hp-sacred-section" style={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
       <Seo
         title="PanditSuggest — Connect with Trusted Pandits Across India"
-        description="Discover verified Pandits for puja, havan and anushthan at temples, online, or at your home. Browse temples, compare Pandit profiles by city and language, and contact them directly on WhatsApp or call — no middleman, no commission."
+        description="Find a verified Pandit for any puja, havan or anushthan — at your home, online, or at a temple. Compare Pandit profiles by city, language and experience, and contact them directly on WhatsApp or call — no middleman, no commission."
         path="/"
       />
       <SacredBackground />
@@ -193,16 +236,18 @@ export default function Home() {
         <HeroAstrotalk />
 
         {/* ============================== SERVICES ============================== */}
+      {/* Same rule as the temples section below: a heading with nothing under
+          it is worse than no heading. Services are embedded in the HTML by the
+          render layer, so this is a guard against an empty catalogue rather
+          than against a slow one. */}
+      {services.length > 0 && (
       <section className="section" style={{ position: "relative", overflow: "hidden" }}>
         <div className="shell" style={{ position: "relative", zIndex: 1 }}>
           <h2 className="section-title">{t("home.servicesTitle")}</h2>
           <svg className="ornament" viewBox="0 0 190 16" aria-hidden="true"><path d="M6 8h64M120 8h64" fill="none" stroke="#d4a017" strokeWidth="1.6" /><path d="M84 8l11-6 11 6-11 6z" fill="none" stroke="#d4a017" strokeWidth="1.6" /></svg>
           <p className="section-sub">{t("home.servicesSub")}</p>
           
-          {servicesLoading && !services.length
-            ? <Loading type="card" lines={3} />
-            : (
-              <div className="hp-services-grid">
+          <div className="hp-services-grid">
                 {/* `priority` only ever existed on the bundled content.ts records —
                     the API does not return it, so this filter silently emptied the
                     entire grid once the site read from the database. Admin-managed
@@ -212,26 +257,27 @@ export default function Home() {
                   .map((s) => (
                     <Link to={`/services/${s.id}`} key={s.id} className="hp-service-tile regular">
                       {serviceTileImg(s) && (
-                        <img src={serviceTileImg(s)} alt={s.name} className="hp-service-tile__img" loading="lazy" />
+                        <img src={serviceTileImg(s)} alt={svcName(s)} className="hp-service-tile__img" loading="lazy" />
                       )}
                       <div className="hp-service-tile__overlay" />
                       <div className="hp-service-tile__content">
-                        <h3 className="hp-service-tile__title">{s.name}</h3>
+                        <h3 className="hp-service-tile__title">{svcName(s)}</h3>
                         <p className="hp-service-tile__desc">{s.desc.substring(0, 80)}...</p>
                         <div className="hp-service-tile__link">{t("home.findPandits")} <Icon name="arrow-right" size={16} /></div>
                       </div>
                     </Link>
                 ))}
-              </div>
-            )}
+          </div>
 
           <div className="text-c" style={{ marginTop: 36 }}>
             <Link className="btn btn-gold btn-lg" to="/services">{t("home.seeAllServices")}</Link>
           </div>
         </div>
       </section>
+      )}
 
       {/* =========================== FEATURED PANDITS =========================== */}
+      {topPandits.length > 0 && (
       <section className="section">
         <div className="shell">
           <div className="row-between" style={{ marginBottom: 34, flexWrap: "wrap" }}>
@@ -240,18 +286,15 @@ export default function Home() {
               <h2 className="section-title section-title--left" style={{ marginTop: 8 }}>{t("home.featuredTitle")}</h2>
             </div>
           </div>
-          {panditsLoading && !topPandits.length
-            ? <Loading type="card" lines={3} />
-            : (
-              <div className="grid g-3 hp-cards-2up">
-                {topPandits.map((p, i) => <PanditCard p={p} key={p.id} index={i} sourceSurface="home" />)}
-              </div>
-            )}
+          <div className="grid g-3 hp-cards-2up">
+            {topPandits.map((p, i) => <PanditCard p={p} key={p.id} index={i} sourceSurface="home" />)}
+          </div>
           <div className="text-c" style={{ marginTop: 32 }}>
             <Link className="btn btn-outline" to="/pandits">{t("home.allPandits", { count: panditsTotal })}</Link>
           </div>
         </div>
       </section>
+      )}
 
       {/* ==================== ONLINE HAVAN & PUJA SEVA ==================== */}
       <section className="ohp-section">
@@ -279,12 +322,22 @@ export default function Home() {
                 {t("ohp.heroTitle1")} <span className="gold-text">{t("ohp.heroTitleGold")}</span>{t("ohp.heroTitle2")}
               </h2>
               <p className="ohp-hero-sub">{t("ohp.heroSub")}</p>
-              {/* Jumps straight to the pujas. Without it the first clickable
-                  thing in this section is below four "how it works" steps, so
-                  interest peaked at the headline and then had nowhere to go. */}
-              <a className="btn btn-gold btn-lg ohp-hero-cta" href="#online-pujas">
+              {/* Goes to /online-havan, where the whole ritual is laid out —
+                  the hour-by-hour journey, what a sankalp needs, what the
+                  reader actually does during the live call, what arrives
+                  afterwards. This section can only summarise that in four
+                  steps; someone whose interest peaks at the headline is
+                  exactly the person with questions, and this is the page that
+                  answers them. It used to jump down to the puja grid, which is
+                  still right below for anyone ready to book instead of read.
+
+                  Same anchor text the site already uses for this destination
+                  (the /services explainer link and the server-rendered link
+                  list in render.controller.js), so every route to the page
+                  reads as the same promise. */}
+              <Link className="btn btn-gold btn-lg ohp-hero-cta" to="/online-havan">
                 {t("ohp.heroCta")} <Icon name="arrow-right" size={16} />
-              </a>
+              </Link>
             </InViewFade>
           </div>
         </div>
@@ -323,9 +376,16 @@ export default function Home() {
               {onlinePujas.map((s, i) => (
                 <InViewFade className="ohp-puja-card" delay={i * 80} key={s.id}>
                   {s.img
-                    ? <img className="ohp-puja-img" src={s.img} alt={s.name} loading="lazy" />
+                    ? <img className="ohp-puja-img" src={s.img} alt={svcName(s)} loading="lazy" />
                     : <span className="ohp-puja-emoji">{serviceEmoji(s.icon)}</span>}
-                  <h4 className="ohp-puja-name">{s.name}</h4>
+                  {/* The name gets a fixed three-line box that CENTRES what
+                      it holds (see .ohp-puja-name): one-line and three-line
+                      puja names now occupy exactly the same height, so every
+                      "Inquire Now" in the grid sits on the same line instead
+                      of riding up and down with the length of the name. */}
+                  <h4 className="ohp-puja-name">
+                    <span className="ohp-puja-name-text">{svcName(s)}</span>
+                  </h4>
                   {(s.tag || s.desc) && (
                     <p className="ohp-puja-desc">{s.tag || s.desc}</p>
                   )}
@@ -399,6 +459,15 @@ export default function Home() {
       </section>
 
       {/* =========================== POPULAR TEMPLES =========================== */}
+      {/* Rendered only when there is at least one temple to put in it.
+          With none, the section still drew its eyebrow, its heading and an
+          "On the map" / "All temples" pair of buttons above an empty grid —
+          a homepage promising a directory the site cannot show yet, and two
+          links straight into a blank page. Same rule the online-puja strip
+          and the FAQ block below already follow. It comes back on its own
+          the moment an admin adds a temple; nothing else has to be switched
+          on. */}
+      {popularTemples.length > 0 && (
       <section className="section" style={{ position: "relative" }}>
         <img src="/assets/img/lotus.svg" className="watermark watermark--tr" alt="" style={{ width: 260 }} />
         <div className="shell">
@@ -412,17 +481,17 @@ export default function Home() {
               <Link className="btn btn-outline" to="/temples">{t("home.allTemples")}</Link>
             </div>
           </div>
-          {templesLoading && !popularTemples.length
-            ? <Loading type="card" lines={3} />
-            : (
-              <div className="grid g-3 hp-cards-2up">
-                {popularTemples.map((t, i) => <TempleCard t={t} key={t.id} index={i} />)}
-              </div>
-            )}
+          <div className="grid g-3 hp-cards-2up">
+            {popularTemples.map((t, i) => <TempleCard t={t} key={t.id} index={i} />)}
+          </div>
         </div>
       </section>
+      )}
 
       {/* ============================ ADVANCED TESTIMONIALS CAROUSEL ============================ */}
+      {/* No reviews yet means no testimonials heading — an empty carousel under
+          "what devotees say" reads as a site nobody has used. */}
+      {reviews.length > 0 && (
       <section className="hp-reviews-section">
         {/* The 3D transparent Pandit background */}
         {reviewsBg && (
@@ -437,16 +506,13 @@ export default function Home() {
           <svg className="ornament" viewBox="0 0 190 16" aria-hidden="true"><path d="M6 8h64M120 8h64" fill="none" stroke="#d4a017" strokeWidth="1.6" /><path d="M84 8l11-6 11 6-11 6z" fill="none" stroke="#d4a017" strokeWidth="1.6" /></svg>
         </div>
 
-        {reviewsLoading && !reviews.length
-          ? <Loading type="card" lines={3} />
-          : (
-            <div className="hp-reviews-carousel">
-              {reviews.map((r) => (
-                <ReviewCard key={r.name} r={r} />
-              ))}
-            </div>
-          )}
+        <div className="hp-reviews-carousel">
+          {reviews.map((r) => (
+            <ReviewCard key={r.name} r={r} />
+          ))}
+        </div>
       </section>
+      )}
 
       {/* ============================== WHY PANDITSUGGEST ============================== */}
       {/* Visible-HTML explanation of the platform for a first-time visitor
@@ -497,17 +563,23 @@ export default function Home() {
             )}
           </div>
 
-          <div className="grid g-4 hp-whatis-grid" style={{ marginTop: 40 }}>
+          {/* Three columns instead of four while the temple directory is
+              empty — the Temples card is dropped on the same rule as the
+              section above, and a four-column grid with a hole in it would
+              read as a broken card rather than a deliberate one. */}
+          <div className={`grid ${temples.length > 0 ? "g-4" : "g-3"} hp-whatis-grid`} style={{ marginTop: 40 }}>
             <Link to="/pandits" className="card card--hover card-pad">
               <span className="hp-whatis-card__icon"><Icon name="users" size={24} /></span>
               <h3 className="hp-whatis-card__title">{t("homeTrust.findPandits")}</h3>
               <p className="muted hp-whatis-card__desc">{t("homeTrust.findPanditsDesc")}</p>
             </Link>
-            <Link to="/temples" className="card card--hover card-pad">
-              <span className="hp-whatis-card__icon"><Icon name="temple" size={24} /></span>
-              <h3 className="hp-whatis-card__title">{t("homeTrust.exploreTemples")}</h3>
-              <p className="muted hp-whatis-card__desc">{t("homeTrust.exploreTemplesDesc")}</p>
-            </Link>
+            {temples.length > 0 && (
+              <Link to="/temples" className="card card--hover card-pad">
+                <span className="hp-whatis-card__icon"><Icon name="temple" size={24} /></span>
+                <h3 className="hp-whatis-card__title">{t("homeTrust.exploreTemples")}</h3>
+                <p className="muted hp-whatis-card__desc">{t("homeTrust.exploreTemplesDesc")}</p>
+              </Link>
+            )}
             <Link to="/services" className="card card--hover card-pad">
               <span className="hp-whatis-card__icon"><Icon name="sparkles" size={24} /></span>
               <h3 className="hp-whatis-card__title">{t("homeTrust.services")}</h3>

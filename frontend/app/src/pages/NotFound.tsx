@@ -7,7 +7,15 @@ export default function NotFound() {
   const { t } = useLang();
   return (
     <div className="notfound">
-      <Seo title="Page Not Found" noindex />
+      {/* A description of its own, not the site-wide fallback. With none,
+          this page inherited siteConfig.defaultDescription — marketing copy
+          for the whole site — and that is the text Google printed under a
+          404 URL it had indexed (/index.html, now redirected in nginx). */}
+      <Seo
+        title="Page Not Found"
+        description="This page does not exist on PanditSuggest. Browse verified Pandits or the full list of puja and havan services instead."
+        noindex
+      />
       <div className="om-mark"><Icon name="om" size={72} /></div>
       <h1 className="section-title" style={{ marginTop: 14 }}>{t("notFound.title")}</h1>
       <p className="section-sub">{t("notFound.text")}</p>

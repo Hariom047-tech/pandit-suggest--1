@@ -87,7 +87,7 @@ export default function ServicePandits() {
         {pandits.length ? (
           <>
             <div className="grid g-3 grid-2up-mobile" style={{ marginTop: 28 }}>
-              {pageItems.map((p, i) => <PanditCard p={p} key={p.id} index={i} sourceSurface="service_pandits_page" />)}
+              {pageItems.map((p, i) => <PanditCard p={p} key={p.id} index={i} sourceSurface="service_pandits_page" serviceSlug={id} />)}
             </div>
             <div className="text-c" style={{ marginTop: 30 }}>
               <Pager page={clampedPage} pages={pages} onChange={setPage} />

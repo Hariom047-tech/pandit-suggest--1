@@ -352,6 +352,12 @@ async function getFullById(q, id) {
             p.vedic_education, p.gotra, p.tradition, p.responds_within,
             p.verification_status, p.current_tier, p.is_featured, p.is_available, p.avg_rating, p.review_count,
             p.is_paused, p.paused_reason, p.paused_at,
+            -- The stored Hindi (migration 0012). The edit screen shows the
+            -- Hindi name back to the admin: it is machine-made, it is what
+            -- every Hindi reader sees in place of the English name, and until
+            -- now the only way to find out what it said was to switch the
+            -- live site to Hindi and look.
+            p.content_hi,
             u.id AS user_id, u.full_name AS name, u.email, u.phone, u.city, u.state
      FROM pandits p JOIN users u ON u.id = p.user_id WHERE p.id = $1`,
     [id],

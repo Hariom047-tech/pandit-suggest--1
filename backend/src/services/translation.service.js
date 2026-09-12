@@ -40,6 +40,7 @@ const SYSTEM_PROMPT = `You translate Hindu puja and ritual content from English 
 Rules:
 - Write the Hindi a real devotee would read: clear, warm, everyday Devanagari. Not literary or archaic Hindi.
 - Deity names, ritual names, mantra names and samagri names stay as themselves, written in Devanagari (Baglamukhi -> बगलामुखी, havan -> हवन, sankalp -> संकल्प, prasad -> प्रसाद).
+- PanditSuggest is a brand name. Always write it exactly as "PanditSuggest" in Latin script, never transliterated into Devanagari.
 - Translate EVERY English word. The only exceptions are these everyday loanwords, which stay as they are: online, booking, video call, WhatsApp, PDF, email. Nothing else. Words like invocation, purification, ceremony, offering, devotee and blessing all have ordinary Hindi and must be translated — leaving one in English mid-sentence is the most common failure here.
 - Keep the meaning exact. Never add claims, promises or benefits that are not in the English.
 - Preserve the structure exactly: same number of array items, in the same order.
@@ -61,8 +62,14 @@ Rules:
  */
 const CONTENT_SPECS = {
   service: {
+    // metaTitle/metaDescription are what a Hindi reader sees in a search
+    // result before they ever reach the page, so they belong here with the
+    // rest of the prose. They stay OUT of the server-injected tags, which
+    // are language-agnostic (see backend/src/utils/seoMeta.js) — this is for
+    // the client-side <Seo> swap once the reader's language is known.
     text: ['name', 'shortDescription', 'description',
-      'estimatedDuration', 'recommendedMuhurat', 'onlineNote'],
+      'estimatedDuration', 'recommendedMuhurat', 'onlineNote',
+      'metaTitle', 'metaDescription'],
     lists: {
       benefits: ['title', 'detail'],
       process: ['title', 'detail', 'duration'],
@@ -76,6 +83,14 @@ const CONTENT_SPECS = {
       // a model rewriting "2 kg" is a risk with nothing to gain.
       samagri: ['item'],
     },
+    stringLists: [],
+  },
+  serviceCategory: {
+    // Name, the one-line tagline under it on the "Most booked" tile, and the
+    // paragraph on the category itself. Slug and icon are identifiers, not
+    // prose, and stay out for the same reason phone numbers and URLs do.
+    text: ['name', 'tagline', 'description'],
+    lists: {},
     stringLists: [],
   },
   pandit: {
@@ -170,9 +185,17 @@ function sanitise(spec, raw, payload) {
 
 /** Extra instruction for kinds where "translate" would be the wrong verb. */
 const KIND_HINT = {
-  // A person's name is transliterated, never translated: "Acharya Ankit
-  // Sharma" is "आचार्य अंकित शर्मा", not a rendering of what the words mean.
-  pandit: 'The `name`, `gotra`, `tradition`, `city` and `state` values are proper names — write them in Devanagari as they sound (or with their established Hindi spelling for a place), do not translate their meaning.',
+  // A person's name is transliterated, never translated.
+  //
+  // The honorific rule is spelled out because this is where it went wrong in
+  // production: a pandit renamed from "Acharya …" to "Pandit …" came back as
+  // "आचार्य …" again. Pandit, Acharya, Shastri and Guru are near-synonyms in
+  // meaning, so a model asked to "translate" happily swaps one for another —
+  // and the example that used to live in this very instruction ("Acharya Ankit
+  // Sharma" -> "आचार्य अंकित शर्मा") was, for that pandit, an invitation to do
+  // exactly that. The honorific is part of what the man is called, so it is
+  // transliterated like the rest of the name and never substituted.
+  pandit: 'The `name`, `gotra`, `tradition`, `city` and `state` values are proper names — write them in Devanagari as they sound (or with their established Hindi spelling for a place), do not translate their meaning. An honorific inside `name` is part of the name: transliterate it exactly as written (Pandit -> पंडित, Acharya -> आचार्य, Shastri -> शास्त्री, Guru -> गुरु, Swami -> स्वामी, Ji -> जी) and never replace one honorific with a different one.',
   temple: 'The `name`, `primaryDeity`, `city`, `district`, `state`, `nearestRailway` and `nearestAirport` values are proper names — use their established Hindi spelling, do not translate their meaning.',
 };
 

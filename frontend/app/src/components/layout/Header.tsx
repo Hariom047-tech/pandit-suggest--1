@@ -3,12 +3,34 @@ import { Link, NavLink } from "react-router-dom";
 import { Icon } from "../../lib/icons";
 import { useAuth } from "../../lib/Auth";
 import { useLang } from "../../lib/i18n";
+import { useHasTemples } from "../../hooks/useHasTemples";
+import { useSiteImages } from "../../lib/siteImages";
 
-const NAV = [
+/** A nav row. `temples: true` marks one that only exists once an admin has
+ *  published a temple — until then it points at an empty directory, so it is
+ *  filtered out of every nav below (see hooks/useHasTemples.ts). */
+interface NavRow {
+  to: string;
+  labelKey: string;
+  temples?: boolean;
+}
+/** A nav row that also carries an icon (the drawer extras and bottom bar). */
+interface NavIconRow extends NavRow {
+  icon: string;
+}
+
+// The site's primary navigation, and deliberately the set of pages we want
+// search engines to treat as the site's main sections. Online Puja was
+// reachable only from the drawer and two in-page CTAs — three links in the
+// whole app — while Services and Pandits had the nav, the footer and a dozen
+// CTAs each. A page the site itself barely links to is not one a search
+// engine will offer as a shortcut to it.
+const NAV: NavRow[] = [
   { to: "/", labelKey: "nav.home" },
-  { to: "/temples", labelKey: "nav.temples" },
+  { to: "/temples", labelKey: "nav.temples", temples: true },
   { to: "/pandits", labelKey: "nav.pandits" },
   { to: "/services", labelKey: "nav.services" },
+  { to: "/online-havan", labelKey: "nav.onlinePuja" },
   { to: "/blog", labelKey: "nav.blog" },
 ];
 
@@ -17,9 +39,10 @@ const NAV = [
 // the knowledge base and real pandit data. The AI Pooja Guide surface still
 // exists at /ai-recommender (linked from the drawer's bottom CTA) — it's just
 // not duplicated as its own drawer-menu row.
-const NAV_EXTRA = [
-  { to: "/online-havan", labelKey: "nav.onlineHavan", icon: "video" },
-  { to: "/temple-map", labelKey: "nav.templeMap", icon: "map" },
+const NAV_EXTRA: NavIconRow[] = [
+  // Online Puja has moved into NAV above — the drawer renders NAV first and
+  // NAV_EXTRA after it, so it is still in the menu, just not listed twice.
+  { to: "/temple-map", labelKey: "nav.templeMap", icon: "map", temples: true },
   // Straight to the pandit sign-in screen, not the public /dashboard preview
   // page — someone tapping "Pandit Dashboard" from the menu wants to log in,
   // not read marketing copy about the dashboard.
@@ -28,18 +51,34 @@ const NAV_EXTRA = [
   { to: "/contact", labelKey: "nav.contact", icon: "mail" },
 ];
 
-const BOTTOM = [
+// The fifth slot is Temples once temples exist, and the visitor's own
+// profile until then — a five-tab bar with a dead tab in it is worse than
+// either, and "My Profile" is the thing people were reaching the drawer for
+// on a phone anyway.
+const BOTTOM: NavIconRow[] = [
   { to: "/", labelKey: "nav.home", icon: "diya" },
   { to: "/services", labelKey: "nav.services", icon: "flame" },
   { to: "/search", labelKey: "common.search", icon: "search" },
   { to: "/pandits", labelKey: "nav.pandits", icon: "users" },
-  { to: "/temples", labelKey: "nav.temples", icon: "temple" },
+  { to: "/temples", labelKey: "nav.temples", icon: "temple", temples: true },
 ];
 
+/** The build's own logo. Used only until an admin uploads one into the
+ *  `brand.logo` slot (Admin Panel -> Page Images -> Brand), and kept as the
+ *  fallback so a header is never logo-less. */
+const BUNDLED_LOGO = "/assets/img/logo-header.webp";
+
 function Brand({ size }: { size?: string }) {
+  const { srcOr } = useSiteImages();
   return (
     <Link className="brand" to="/" aria-label="PanditSuggest home">
-      <img src="/assets/img/logo-header.webp" alt="PanditSuggest Logo" width={60} height={60} style={{ objectFit: 'contain' }} />
+      {/* alt="" on purpose. The link already says "Pandit Suggest" in text
+          right next to it, so the image adds nothing a screen reader needs —
+          and an alt on a linked image becomes part of that link's anchor
+          text. This one said "PanditSuggest Logo", on every page, in the
+          most-repeated internal link on the site, and Google used it to
+          title pages it could not title any other way. */}
+      <img src={srcOr("brand.logo", BUNDLED_LOGO)} alt="" width={60} height={60} style={{ objectFit: 'contain' }} />
       <span className="brand-name" style={size ? { fontSize: size } : undefined}>
         Pandit <span>Suggest</span>
       </span>
@@ -119,6 +158,22 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const { user, loading } = useAuth();
   const { t } = useLang();
+  const hasTemples = useHasTemples();
+
+  // One filter, three navs.
+  const nav = hasTemples ? NAV : NAV.filter((n) => !n.temples);
+  const navExtra = hasTemples ? NAV_EXTRA : NAV_EXTRA.filter((n) => !n.temples);
+  const bottom: NavIconRow[] = hasTemples
+    ? BOTTOM
+    : [
+        ...BOTTOM.filter((n) => !n.temples),
+        // Always /dashboard, not the header's `user ? dashboard : login` —
+        // that would read `user` before the auth check has resolved and send
+        // an already-signed-in visitor to the login screen. Dashboard.tsx
+        // waits for the check itself and forwards a signed-out visitor to
+        // /login with a `from`, so they land back here afterwards.
+        { to: "/dashboard", labelKey: "nav.profile", icon: "user" },
+      ];
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -145,7 +200,7 @@ export function Header() {
           <Brand />
 
           <nav className="main-nav" aria-label="Main">
-            {NAV.map((n) => (
+            {nav.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.to === "/"} className={({ isActive }) => (isActive ? "is-active" : "")}>
                 {t(n.labelKey)}
               </NavLink>
@@ -224,26 +279,24 @@ export function Header() {
           </button>
         </div>
         <nav className="drawer-links">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.to === "/"} className={({ isActive }) => (isActive ? "is-active" : "")} onClick={() => setOpen(false)}>
               {t(n.labelKey)}
             </NavLink>
           ))}
-          {/* Temple Map, then My Profile/Login, then the rest — grouped with
-              Pandit Dashboard rather than sitting at the very top of the
-              menu. Mirrors the desktop header-cta's My Profile/Login link
-              (same destination logic). */}
-          <NavLink to={NAV_EXTRA[0].to} className={({ isActive }) => (isActive ? "is-active" : "")} onClick={() => setOpen(false)}>
-            <Icon name={NAV_EXTRA[0].icon} size={19} />
-            {t(NAV_EXTRA[0].labelKey)}
-          </NavLink>
+          {/* My Profile/Login heads the secondary group, below the real
+              sections above. This used to pull navExtra[0] out ahead of it,
+              which only made sense while that index happened to be Online
+              Havan; that row is part of NAV now, so the special case is gone
+              and the list renders whole. Mirrors the desktop header-cta's
+              My Profile/Login link (same destination logic). */}
           {!loading && (
             <NavLink to={user ? "/dashboard" : "/login"} className={({ isActive }) => (isActive ? "is-active" : "")} onClick={() => setOpen(false)}>
               <Icon name="user" size={19} />
               {user ? t("nav.myProfile") : t("nav.login")}
             </NavLink>
           )}
-          {NAV_EXTRA.slice(1).map((n) => (
+          {navExtra.map((n) => (
             <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? "is-active" : "")} onClick={() => setOpen(false)}>
               <Icon name={n.icon} size={19} />
               {t(n.labelKey)}
@@ -257,7 +310,7 @@ export function Header() {
 
       <nav className="bottom-nav" aria-label="Quick navigation">
         <ul>
-          {BOTTOM.map((n) => (
+          {bottom.map((n) => (
             <li key={n.to}>
               <NavLink to={n.to} end={n.to === "/"} className={({ isActive }) => (isActive ? "is-active" : "")}>
                 <Icon name={n.icon} size={22} />

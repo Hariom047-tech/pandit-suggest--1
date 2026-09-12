@@ -59,10 +59,25 @@ function organizationSchema() {
   };
 }
 
+/**
+ * `potentialAction` is the sitelinks searchbox declaration — the one piece
+ * of markup Google documents as feeding the sitelinks area, as opposed to
+ * the schema types it treats as descriptive only. It points at the site's
+ * real search page, which already reads ?q= (frontend Search.tsx); a target
+ * that did not work would be worse than declaring nothing.
+ *
+ * That page is noindex, and deliberately so — the searchbox target is
+ * followed by a visitor, not indexed as a landing page.
+ */
 function websiteSchema() {
   return {
     '@type': 'WebSite', '@id': websiteId(),
     name: SITE_NAME, url: publicSiteUrl, publisher: { '@id': organizationId() },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${publicSiteUrl}/search?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
   };
 }
 
@@ -77,6 +92,28 @@ function webPageSchema({ path, name, aboutId }) {
   };
 }
 
+/**
+ * A directory page's rows, as the ItemList it visibly is.
+ *
+ * /services, /pandits and /temples shipped no JSON-LD at all — the only
+ * significant pages on the site that didn't, while every individual puja
+ * page underneath them carries seven schema types. So Google understood each
+ * ritual better than it understood the catalogue listing them, and had
+ * nothing at all telling it what the catalogue page was called or where it
+ * sat in the site. Named `url` entries rather than bare positions, so the
+ * list is about the pages it links to and not just a count of them.
+ */
+function itemListSchema({ path, name, items }) {
+  return {
+    '@type': 'ItemList', '@id': `${absoluteUrl(path)}#itemlist`,
+    name,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem', position: i + 1, name: item.name, url: absoluteUrl(item.path),
+    })),
+  };
+}
+
 function breadcrumbSchema(items) {
   return {
     '@type': 'BreadcrumbList',
@@ -88,7 +125,12 @@ function breadcrumbSchema(items) {
 
 function homeMeta() {
   const title = 'PanditSuggest — Connect with Trusted Pandits Across India';
-  const description = 'Discover verified Pandits for puja, havan and anushthan at temples, online, or at your home. Browse temples, compare Pandit profiles by city and language, and contact them directly on WhatsApp or call — no middleman, no commission.';
+  // Leads with the Pandit, not the temple directory: "Browse temples" was
+  // the promise this snippet made in Google's results while the temple
+  // directory had nothing in it. Kept in sync by hand with the same string
+  // in frontend/app/src/pages/Home.tsx — the client overwrites this tag with
+  // its own copy once React mounts, so the two must say the same thing.
+  const description = 'Find a verified Pandit for any puja, havan or anushthan — at your home, online, or at a temple. Compare Pandit profiles by city, language and experience, and contact them directly on WhatsApp or call — no middleman, no commission.';
   return {
     title, description, canonicalPath: '/', ogImage: DEFAULT_OG_IMAGE,
     structuredData: [
@@ -304,22 +346,85 @@ function panditMeta(pandit) {
  *  these three either (docs/SEO_ARCHITECTURE.md §8: "no change to list/
  *  utility pages"); inventing schema here just to raise a count would violate
  *  "structured data must match visible content". */
-function servicesMeta() {
+/** @param {{slug: string, name: string}[]} [rows] the catalogue this page
+ *  lists, for the ItemList. Optional: a caller without the rows still gets
+ *  correct page-level schema, just no list. */
+function servicesMeta(rows = []) {
   const title = 'All Puja & Havan Services — Book a Pandit';
-  const description = '33+ traditional rituals, from daily aarti to Griha Pravesh, Rudrabhishek and Satyanarayan Katha — with samagri lists and verified Pandits who perform each service.';
-  return { title, description, canonicalPath: '/services', ogImage: DEFAULT_OG_IMAGE, structuredData: [] };
+  // The real catalogue size, not a hardcoded "33+" — there are 32 services,
+  // so that number was simply wrong, and it would drift again the next time
+  // one was added. The count is dropped entirely when the caller has no rows,
+  // rather than guessed. frontend/app/src/pages/Services.tsx builds the same
+  // sentence from its own loaded list; the two must agree, because the client
+  // overwrites this tag once React mounts.
+  const description = `${rows.length ? `${rows.length} traditional rituals` : 'Traditional rituals'}, from daily aarti to Griha Pravesh, Rudrabhishek and Satyanarayan Katha — with samagri lists and verified Pandits who perform each service.`;
+  return {
+    title, description, canonicalPath: '/services', ogImage: DEFAULT_OG_IMAGE,
+    structuredData: [
+      organizationSchema(), websiteSchema(),
+      webPageSchema({ path: '/services', name: title }),
+      breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Services', path: '/services' }]),
+      ...(rows.length ? [itemListSchema({
+        path: '/services',
+        name: 'Puja and havan services',
+        items: rows.map((r) => ({ name: r.name, path: `/services/${r.slug}` })),
+      })] : []),
+    ],
+  };
 }
 
-function templesMeta() {
+/** @param {number} [count] published temples — 0 makes this page noindex,
+ *  the same rule servicePanditsMeta uses for an empty list. Until an admin
+ *  adds the first temple the frontend hides every link into the directory
+ *  and redirects the route home (frontend/app/src/hooks/useHasTemples.ts),
+ *  so this must not stand in the index on its own either. */
+/** @param {{slug: string, name: string}[]} [rows] the published temples — see
+ *  servicesMeta. An EMPTY array makes this page noindex, the same rule
+ *  servicePanditsMeta uses for an empty list: until an admin adds the first
+ *  temple the frontend hides every link into the directory and redirects the
+ *  route home (frontend/app/src/hooks/useHasTemples.ts), so this must not
+ *  stand in the index on its own either. `undefined` (a caller that has no
+ *  rows to hand) leaves indexability alone. */
+function templesMeta(rows) {
+  const list = Array.isArray(rows) ? rows : null;
   const title = 'Temples Across India — Puja, Havan & Pandits';
   const description = 'Browse temples across India by city and deity. See available puja and havan services at each temple, and connect directly with verified Pandits associated with it.';
-  return { title, description, canonicalPath: '/temples', ogImage: DEFAULT_OG_IMAGE, structuredData: [] };
+  return {
+    title, description, canonicalPath: '/temples', ogImage: DEFAULT_OG_IMAGE,
+    ...(list ? { noindex: list.length === 0 } : {}),
+    structuredData: [
+      organizationSchema(), websiteSchema(),
+      webPageSchema({ path: '/temples', name: title }),
+      breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Temples', path: '/temples' }]),
+      ...(list && list.length ? [itemListSchema({
+        path: '/temples',
+        name: 'Temples across India',
+        items: list.map((r) => ({ name: r.name, path: `/temples/${r.slug}` })),
+      })] : []),
+    ],
+  };
 }
 
-function panditsMeta() {
+/** @param {{slug: string, name: string}[]} [rows] see servicesMeta. */
+function panditsMeta(rows = []) {
   const title = 'Find a Pandit — Verified Profiles Across India';
   const description = 'Search verified Pandits by city, service and language. Compare profiles, ratings and experience, then contact directly on WhatsApp or call — no middleman, no commission.';
-  return { title, description, canonicalPath: '/pandits', ogImage: DEFAULT_OG_IMAGE, structuredData: [] };
+  return {
+    title, description, canonicalPath: '/pandits', ogImage: DEFAULT_OG_IMAGE,
+    structuredData: [
+      organizationSchema(), websiteSchema(),
+      webPageSchema({ path: '/pandits', name: title }),
+      breadcrumbSchema([{ name: 'Home', path: '/' }, { name: 'Pandits', path: '/pandits' }]),
+      ...(rows.length ? [itemListSchema({
+        path: '/pandits',
+        name: 'Verified Pandits',
+        // The plain name, not withPanditHonorific(): the cards this list
+        // describes render p.name as-is (PanditCard.tsx), and an ItemList
+        // must name the items the visitor actually sees.
+        items: rows.map((r) => ({ name: r.name, path: `/pandits/${r.slug}` })),
+      })] : []),
+    ],
+  };
 }
 
 /** Mirrors AiRecommender.tsx's <Seo>/useStructuredData call, including the
@@ -470,12 +575,15 @@ function contactMeta() {
   };
 }
 
-function templeMapMeta() {
+/** @param {number} [count] published temples — see templesMeta; a map with
+ *  no pins on it is the same empty page by another route. */
+function templeMapMeta(count) {
   const path = '/temple-map';
   const title = 'Temple Map — Explore Temples Across India';
   const description = 'An interactive map of temples across India. Find one near you and see the Pandits and puja services associated with it.';
   return {
     title: withSiteName(title), description, canonicalPath: path, ogImage: DEFAULT_OG_IMAGE,
+    noindex: count === 0,
     structuredData: [organizationSchema(), websiteSchema(), webPageSchema({ path, name: title })],
   };
 }

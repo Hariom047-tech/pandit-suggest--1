@@ -4,7 +4,9 @@ import { Link, useParams } from "react-router-dom";
 import { Icon } from "../lib/icons";
 import { useService, useServices, usePandits, useTemples } from "../hooks/useData";
 import { normService, normServices, normPandits, normTemples } from "../lib/normalize";
-import { useFairRanking, useReportExposure } from "../lib/api";
+// Aliased: this file already binds `api` to the raw service payload further
+// down, and that local shadows the whole function scope.
+import { api as apiClient, useFairRanking, useReportExposure } from "../lib/api";
 import { useUrlTab } from "../hooks/useUrlTab";
 import { Loading, ErrorState } from "../components/ui/DataState";
 import { getServiceMeta } from "../data/serviceMeta";
@@ -119,6 +121,22 @@ export default function ServiceDetail() {
     service: s?.id,
     enabled: Boolean(s),
   });
+
+  /**
+   * "Someone opened this puja." The one write behind the homepage's
+   * popular-online-pujas order — without it that strip can only ever show the
+   * admin's own guess at what is popular.
+   *
+   * Keyed on the slug, not the loaded object, so React StrictMode's double
+   * mount and every re-render after it do not each count as a visit; the
+   * server dedups per visitor per hour on top of that. Failure is ignored on
+   * purpose — a devotee reading about a puja must never see an analytics
+   * error, and a lost view is worth nothing.
+   */
+  useEffect(() => {
+    if (!s?.id) return;
+    apiClient.trackServiceView(s.id).catch(() => {});
+  }, [s?.id]);
 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 620);
   useEffect(() => {
@@ -265,8 +283,8 @@ export default function ServiceDetail() {
   return (
     <div className="hp-sacred-section" style={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
       <Seo
-        title={api?.meta_title || `${s.name} — Puja & Havan Service`}
-        description={api?.meta_description || tagline || `${s.name}: traditional significance, process and samagri, with verified Pandits available to perform it at your temple, online, or at home.`}
+        title={hi?.metaTitle || api?.meta_title || `${s.name} — Puja & Havan Service`}
+        description={hi?.metaDescription || api?.meta_description || tagline || `${s.name}: traditional significance, process and samagri, with verified Pandits available to perform it at your temple, online, or at home.`}
         path={`/services/${s.id}`}
         image={heroImg}
         noindex={!isServiceIndexable(s)}
@@ -517,7 +535,7 @@ export default function ServiceDetail() {
                       </Link>
                     </div>
                     <div className="grid g-3 grid-2up-mobile" style={{ marginTop: 14 }}>
-                      {previewPandits.map((p, i) => <PanditCard p={p} key={p.id} index={i} sourceSurface="service_detail_preview" />)}
+                      {previewPandits.map((p, i) => <PanditCard p={p} key={p.id} index={i} sourceSurface="service_detail_preview" serviceSlug={s.id} />)}
                     </div>
                   </div>
                 )}
@@ -614,7 +632,7 @@ export default function ServiceDetail() {
               </h2>
               {pandits.length ? (
                 <>
-                  <div className="grid g-3 grid-2up-mobile">{pandits.slice(0, 9).map((p, i) => <PanditCard p={p} key={p.id} index={i} sourceSurface="service_detail" />)}</div>
+                  <div className="grid g-3 grid-2up-mobile">{pandits.slice(0, 9).map((p, i) => <PanditCard p={p} key={p.id} index={i} sourceSurface="service_detail" serviceSlug={s.id} />)}</div>
                   {pandits.length > 9 && (
                     <div className="text-c" style={{ marginTop: 26 }}>
                       <Link className="btn btn-outline" to={`/services/${s.id}/pandits`}>See all {pandits.length} pandits</Link>
@@ -659,7 +677,13 @@ export default function ServiceDetail() {
                 )}
                 <div style={{ marginTop: 24, display: "flex", justifyContent: "center", gap: 40 }}>
                   <div><strong style={{ fontSize: "1.6rem", color: "var(--gold-deep)" }}>{pandits.length}</strong><br /><span className="muted">Pandits</span></div>
-                  <div><strong style={{ fontSize: "1.6rem", color: "var(--gold-deep)" }}>{temples.length}</strong><br /><span className="muted">Temples</span></div>
+                  {/* A "0 Temples" counter is not a fact worth printing —
+                      it just tells a devotee the directory is empty. The
+                      tile appears with the first temple that offers this
+                      puja, like the section further up the page. */}
+                  {temples.length > 0 && (
+                    <div><strong style={{ fontSize: "1.6rem", color: "var(--gold-deep)" }}>{temples.length}</strong><br /><span className="muted">Temples</span></div>
+                  )}
                 </div>
               </div>
             </div>

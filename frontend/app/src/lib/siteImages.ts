@@ -19,6 +19,7 @@ import { useApi } from "./useApi";
  */
 
 export type SiteImageSlot =
+  | "brand.logo"
   | "home.trust"
   | "home.epuja_bg"
   | "home.reviews_bg"
@@ -58,6 +59,16 @@ export function useSiteImages() {
     const src = (slot: SiteImageSlot): string | undefined => map[slot]?.url;
     /** Admin-supplied alt text, falling back to the caller's own wording. */
     const alt = (slot: SiteImageSlot, fallback = "") => map[slot]?.alt || fallback;
-    return { src, alt };
+    /**
+     * The one slot that DOES take a built-in default.
+     *
+     * Everything above is page decoration, and a missing decoration should
+     * draw nothing. The header logo is not decoration — a header with no
+     * logo reads as a broken site, and this map is also empty for the first
+     * moment of any page the server did not bootstrap. So this one falls
+     * back to the file in the build, and an admin upload replaces it.
+     */
+    const srcOr = (slot: SiteImageSlot, fallback: string): string => map[slot]?.url || fallback;
+    return { src, srcOr, alt };
   }, [data]);
 }

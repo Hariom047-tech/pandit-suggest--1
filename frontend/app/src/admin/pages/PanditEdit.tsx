@@ -37,6 +37,9 @@ interface FullPandit {
   responds_within?: string | null;
   accepts_online?: boolean;
   temples: { slug: string; name: string; association_type: string; is_primary: boolean }[];
+  /** Machine-made Hindi for this profile (content_hi). `name` here is what a
+   *  Hindi reader sees on every card instead of the English name. */
+  content_hi?: { name?: string } | null;
 }
 interface ServiceOpt { slug: string; name: string; is_online_available?: boolean; }
 interface TempleOpt { slug: string; name: string; city: string; }
@@ -121,6 +124,29 @@ export default function PanditEdit() {
     } finally {
       setSaving(false);
     }
+  }
+
+  const [hindiBusy, setHindiBusy] = useState(false);
+
+  /**
+   * Rebuilds the Hindi from the English that is saved now.
+   *
+   * Saving the profile again does NOT do this: translation is fingerprinted
+   * per field, so text whose English has not changed is deliberately left
+   * alone. That is right when the Hindi is merely old and wrong when the
+   * Hindi itself is wrong — a bad rendering of the name, say. This is the
+   * button for that case.
+   */
+  async function retranslateHindi() {
+    if (!pandit) return;
+    setHindiBusy(true); setError(""); setNotice("");
+    try {
+      const fresh = await adminApi.post<FullPandit>(`/pandits/${pandit.slug}/retranslate-hindi`, {});
+      setPandit(fresh);
+      setNotice(`Hindi dobara ban gayi${fresh.content_hi?.name ? `: ${fresh.content_hi.name}` : "."}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Hindi translate nahi ho payi.");
+    } finally { setHindiBusy(false); }
   }
 
   async function verify(action: "approve" | "reject") {
@@ -243,7 +269,25 @@ export default function PanditEdit() {
           <div className="admin-panel__head"><h2>Profile</h2></div>
           <div className="admin-panel__body">
             <div className="admin-form-grid">
-              <div className="admin-field"><label>Full name</label><input className="input" name="name" defaultValue={pandit.name} required /></div>
+              <div className="admin-field">
+                <label>Full name</label>
+                <input className="input" name="name" defaultValue={pandit.name} required />
+                {/* What a Hindi reader actually sees in place of this name.
+                    It is translated on save, but only when the English has
+                    changed — so when it is simply a bad rendering (an
+                    honorific swapped for another, say) the button is the only
+                    way to get a new one. */}
+                <div className="hint" style={{ marginTop: 6 }}>
+                  Hindi: {pandit.content_hi?.name || "— (abhi nahi bani)"}
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ marginLeft: 8 }}
+                    onClick={retranslateHindi}
+                    disabled={hindiBusy}
+                  >{hindiBusy ? "Ban rahi hai…" : "Hindi dobara banao"}</button>
+                </div>
+              </div>
               <div className="admin-field"><label>Phone</label><input className="input" name="phone" defaultValue={pandit.phone || ""} /></div>
               <div className="admin-field"><label>City</label><input className="input" name="city" defaultValue={pandit.city} required /></div>
               <div className="admin-field"><label>State</label><input className="input" name="state" defaultValue={pandit.state} required /></div>

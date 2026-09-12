@@ -8,6 +8,7 @@ import { DecorativeQr } from "../lib/qr";
 import { onImgError } from "../lib/format";
 import { VideoReels, type ReelVideo } from "../components/ui/VideoReels";
 import { ContactBar } from "../components/ui/ContactBar";
+import { VerifiedName } from "../components/ui/VerifiedName";
 import { WriteReview } from "../components/ui/WriteReview";
 import "../styles/pandit-profile.css";
 import { useToast } from "../components/ui/Toast";
@@ -145,11 +146,19 @@ export default function PanditProfile() {
               </div>
               {/* All text content below the avatar */}
               <div className="profile-id__body">
+                {/* The tick rides on the surname rather than trailing the
+                    whole name: on a phone "Pandit Ram Krishna Chaturvedi"
+                    wraps, and a badge with a break opportunity in front of it
+                    ends up centred on a line of its own under the name.
+                    See components/ui/VerifiedName.tsx. */}
                 <h1>
-                  {displayName}{" "}
-                  {p.verified && (
-                    <span className="verified-dot" title={t("panditProfile.verifiedPandit")}><Icon name="verified" size={28} /></span>
-                  )}
+                  <VerifiedName
+                    name={displayName}
+                    verified={p.verified}
+                    title={t("panditProfile.verifiedPandit")}
+                    size={28}
+                    badgeClass="verified-dot"
+                  />
                 </h1>
                 {/* A pandit with no reviews yet showed "0.0/5 · 0 reviews", which
                     reads as a BAD pandit rather than a new one — actively worse
@@ -272,12 +281,10 @@ export default function PanditProfile() {
                   "Busy" on a day he was free and cost him the enquiry. If real
                   availability is wanted, pandit_availability and
                   pandit_blocked_dates already exist to hold it. */}
-              {p.respondsWithin && (
-                <div className="card card-pad info-card">
-                  <h3>{t("panditProfile.responseTimeTitle")}</h3>
-                  <p style={{ marginTop: 8 }}>{hi?.respondsWithin || p.respondsWithin}</p>
-                </div>
-              )}
+              {/* The "Response time" card was removed from this page. The
+                  value is still collected in the admin (pandits.responds_within)
+                  and still translated — it is simply not a claim this page
+                  makes to a devotee, because nothing measures or enforces it. */}
 
               <div className="card card-pad info-card">
                 <div className="row" style={{ justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>

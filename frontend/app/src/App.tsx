@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { lazy, Suspense, type ReactElement } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { ToastProvider } from "./components/ui/Toast";
 import { EnquiryModalProvider } from "./components/ui/EnquiryModal";
@@ -10,6 +10,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 // backend API prefix is still resolved at runtime and never bundled.
 import Home from "./pages/Home";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
+import { useTemplePresence } from "./hooks/useHasTemples";
 
 const Temples = lazy(() => import("./pages/Temples"));
 const TempleDetail = lazy(() => import("./pages/TempleDetail"));
@@ -66,6 +67,23 @@ function RouteFallback() {
   );
 }
 
+/**
+ * The temple directory and the temple map exist, work, and have nothing in
+ * them until an admin adds the first temple. Every link into them is hidden
+ * until then (hooks/useHasTemples.ts), so this only catches what is left: an
+ * old bookmark, a search result from before, a hand-typed URL. Those go to
+ * the homepage rather than to an empty page.
+ *
+ * Waits for the real answer before redirecting — bouncing someone off
+ * /temples for the half-second the check is in flight would be far worse
+ * than the spinner, and it would do it on a site that HAS temples.
+ */
+function TempleRoute({ children }: { children: ReactElement }) {
+  const { hasTemples, resolved } = useTemplePresence();
+  if (!resolved) return <RouteFallback />;
+  return hasTemples ? children : <Navigate to="/" replace />;
+}
+
 export default function App() {
   return (
     <GoogleOAuthProvider clientId={(import.meta.env.VITE_GOOGLE_CLIENT_ID as string) || ""}>
@@ -91,7 +109,10 @@ export default function App() {
             <Route path="pandit/*" element={<PanditApp />} />
             <Route element={<Layout />}>
               <Route index element={<Home />} />
-              <Route path="temples" element={<Temples />} />
+              <Route path="temples" element={<TempleRoute><Temples /></TempleRoute>} />
+              {/* No guard on the detail route: with no temples published
+                  there is no slug that resolves, and TempleDetail already
+                  shows its own not-found for one that doesn't. */}
               <Route path="temples/:id" element={<TempleDetail />} />
               <Route path="pandits" element={<Pandits />} />
               <Route path="pandits/:id" element={<PanditProfile />} />
@@ -102,7 +123,7 @@ export default function App() {
                   service page and from the Online filter on /services. */}
               <Route path="online-havan" element={<OnlineHavan />} />
               <Route path="search" element={<Search />} />
-              <Route path="temple-map" element={<TempleMap />} />
+              <Route path="temple-map" element={<TempleRoute><TempleMap /></TempleRoute>} />
               <Route path="ai-recommender" element={<AiRecommender />} />
               <Route path="blog" element={<Blog />} />
               <Route path="dashboard" element={<Dashboard />} />

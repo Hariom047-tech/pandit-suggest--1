@@ -19,6 +19,8 @@ interface ServiceFull extends ServiceRow {
   online_note: string | null;
   recommended_muhurat: string | null;
   display_order: number | null;
+  meta_title: string | null;
+  meta_description: string | null;
   image_url: string | null;
   benefits: ListRow[] | null;
   process: ListRow[] | null;
@@ -44,10 +46,18 @@ export default function AdminServices() {
   /** Opens the editor, pulling the full record for an existing service. */
   async function beginEdit(target: ServiceRow | "new") {
     setEditing(target);
-    if (target === "new") {
-      setFull(null); setBenefits([]); setProcess([]); setSamagri([]); setFaqs([]);
-      return;
-    }
+    // Cleared FIRST, every time. The plain inputs below are uncontrolled and
+    // read `full` through defaultValue, which React applies only when the
+    // input mounts — a later setFull() does not update a field that is
+    // already on screen. Opening service B straight after service A therefore
+    // mounted the form with A's name, description, duration, muhurat, meta
+    // tags and online note still in it, and pressing Save wrote A's values
+    // onto B. That is how eighteen services ended up carrying their
+    // neighbour's copy. Clearing here, plus the `key` on the form and the
+    // loading guard below, means the form can only ever mount once the right
+    // record is in hand.
+    setFull(null); setBenefits([]); setProcess([]); setSamagri([]); setFaqs([]);
+    if (target === "new") return;
     try {
       const detail = await adminApi.get<ServiceFull>(`/services/${target.slug}/detail`);
       setFull(detail);
@@ -102,6 +112,8 @@ export default function AdminServices() {
           recommendedMuhurat: data.get("recommendedMuhurat"),
           isPopular: data.get("isPopular") === "on",
           displayOrder: data.get("displayOrder"),
+          metaTitle: data.get("metaTitle"),
+          metaDescription: data.get("metaDescription"),
           isOnlineAvailable: data.get("isOnlineAvailable") === "on",
           onlineNote: data.get("onlineNote"),
           benefits, process, faqs, samagri,
@@ -115,6 +127,8 @@ export default function AdminServices() {
           recommendedMuhurat: data.get("recommendedMuhurat"),
           isPopular: data.get("isPopular") === "on",
           displayOrder: data.get("displayOrder"),
+          metaTitle: data.get("metaTitle"),
+          metaDescription: data.get("metaDescription"),
           isOnlineAvailable: data.get("isOnlineAvailable") === "on",
           onlineNote: data.get("onlineNote"),
           benefits, process, faqs, samagri,
@@ -249,7 +263,10 @@ export default function AdminServices() {
       <Modal open={editing !== null} onClose={() => setEditing(null)} size="full">
         <div style={{ padding: 24 }}>
         <h3 style={{ fontSize: "1.3rem" }}>{editing === "new" ? "Add a service" : `Edit ${(editing as ServiceRow)?.name || ""}`}</h3>
-        <form onSubmit={onSaveService} style={{ marginTop: 16 }}>
+        {editing !== "new" && !full ? (
+          <p className="muted" style={{ marginTop: 16 }}>Loading…</p>
+        ) : (
+        <form key={full?.slug ?? "new"} onSubmit={onSaveService} style={{ marginTop: 16 }}>
           <div className="admin-form-grid">
             <div className="admin-field"><label>Name</label><input className="input" name="name" required defaultValue={editing !== "new" ? editing?.name : ""} /></div>
             <div className="admin-field"><label>Slug</label><input className="input" name="slug" required disabled={editing !== "new"} defaultValue={editing !== "new" ? editing?.slug : ""} /></div>
@@ -305,6 +322,28 @@ export default function AdminServices() {
               />
             </div>
 
+            {/* These two columns have existed since the beginning and the
+                editor never exposed them, so the only way to set a page's
+                search title or snippet was a direct database write. Blank is
+                meaningful: seoMeta.js then derives them from the name and
+                short description, which is the right default for most
+                services. */}
+            <div className="admin-field admin-field--full" style={{ background: "#fffdf7", border: "1px solid var(--admin-line, #e8d5b7)", borderRadius: 10, padding: 12 }}>
+              <label className="row" style={{ gap: 8, fontWeight: 700 }}>🔍 Google search me kaise dikhe</label>
+              <p style={{ fontSize: ".8rem", opacity: .72, margin: "6px 0 8px" }}>
+                Khaali chhod dein to naam aur short description se apne aap ban
+                jayega. Bharein tabhi jab Google me kuch alag dikhana ho.
+              </p>
+              <label style={{ fontSize: ".8rem", fontWeight: 600 }}>Meta title <span style={{ opacity: .6 }}>(~60 characters)</span></label>
+              <input className="input" name="metaTitle" maxLength={200}
+                placeholder="e.g. Rudrabhishek Puja | PanditSuggest"
+                defaultValue={full?.meta_title || ""} />
+              <label style={{ fontSize: ".8rem", fontWeight: 600, marginTop: 8, display: "block" }}>Meta description <span style={{ opacity: .6 }}>(~155 characters)</span></label>
+              <textarea className="textarea" name="metaDescription" maxLength={500} rows={2}
+                placeholder="Ek line jo search result me dikhegi"
+                defaultValue={full?.meta_description || ""} />
+            </div>
+
             <div className="admin-field admin-field--full"><label>Recommended muhurat</label><input className="input" name="recommendedMuhurat" placeholder="e.g. Brahma Muhurat, 4:30–6:00 AM" defaultValue={full?.recommended_muhurat || ""} /></div>
 
             {editing !== "new" && full && (
@@ -357,6 +396,7 @@ export default function AdminServices() {
           </div>
           <button className="btn btn-gold btn-block" type="submit" style={{ marginTop: 18 }}>Save</button>
         </form>
+        )}
         </div>
       </Modal>
 

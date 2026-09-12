@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { Service } from "../../data/types";
+import { useLang } from "../../lib/i18n";
 import { serviceEmoji } from "../../lib/serviceEmoji";
 
 interface ServiceCardProps {
@@ -18,6 +19,11 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ s, index = 0, variant = "row", hideTag = false }: ServiceCardProps) {
+  const { lang } = useLang();
+  /** Hindi name for a Hindi reader, English otherwise — same rule as
+   *  TempleCard and PanditCard already follow. */
+  const displayName = (lang === "hi" ? s.hi?.name : null) || s.name;
+
   if (variant === "grid") {
     return (
       <motion.article
@@ -28,7 +34,7 @@ export function ServiceCard({ s, index = 0, variant = "row", hideTag = false }: 
         transition={{ duration: 0.35, delay: Math.min(index, 6) * 0.05 }}
       >
         <span className="svc-grid-card__emoji">{serviceEmoji(s.icon)}</span>
-        <span className="svc-grid-card__name">{s.name}</span>
+        <span className="svc-grid-card__name">{displayName}</span>
         {s.tag && !hideTag && <span className="svc-grid-card__tag">{s.tag}</span>}
         <Link className="svc-grid-card__cta" to={`/services/${s.id}`}>
           View <span aria-hidden>›</span>
@@ -47,7 +53,7 @@ export function ServiceCard({ s, index = 0, variant = "row", hideTag = false }: 
     >
       <span className="svc-row-card__emoji">{serviceEmoji(s.icon)}</span>
       <div className="svc-row-card__body">
-        <span className="svc-row-card__name">{s.name}</span>
+        <span className="svc-row-card__name">{displayName}</span>
         {s.tag && <span className="svc-row-card__tag">{s.tag}</span>}
       </div>
       <Link className="svc-row-card__cta" to={`/services/${s.id}`}>

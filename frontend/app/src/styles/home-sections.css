@@ -571,20 +571,26 @@
 }
 
 /* Emoji / image container */
+/* Look only — the SIZE of both of these lives in one place further down this
+   file (search "Admin-uploaded service image"). It used to be set here too,
+   and the later block quietly won, so editing these numbers changed nothing. */
 .ohp-puja-emoji {
   font-size: var(--fs-1100);
-  margin-bottom: 4px;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
-.ohp-puja-img {
-  width: 56px; height: 56px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #f0e6c8;
-  margin-bottom: 4px;
-}
 
+/* A fixed three-line box, whatever the name inside it is.
+   "Graha Shanti Puja" is one line and "Tantra Badha / Negative Energy
+   Protection Puja" is three, so a box that hugged its text made every card in
+   the row a different shape and pushed each Inquire button to its own height.
+   Three lines is the reserve because three is what the longest names in this
+   catalogue actually need.
+   The lines are CENTRED in that reserve rather than stacked at the top: a
+   one-line name sits on the middle line with the spare line split evenly above
+   and below it, instead of leaving two empty lines hanging underneath. */
 .ohp-puja-name {
   font-family: var(--font-head);
   font-size: var(--fs-400);
@@ -592,6 +598,24 @@
   color: var(--text);
   margin: 0;
   line-height: var(--lh-snug);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(var(--fs-400) * var(--lh-snug) * 3);
+}
+/* The clamp lives on the inner span because the heading itself is now the
+   flex box doing the centring, and one element cannot be both a flex
+   container and the -webkit-box that -webkit-line-clamp needs. A name longer
+   than three lines is cut with an ellipsis rather than being allowed to grow
+   the card. */
+.ohp-puja-name-text {
+  width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ohp-puja-desc {
@@ -624,19 +648,41 @@
 }
 @keyframes ohp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-/* Small compact pill button — NOT full width */
-.ohp-puja-btn {
+/* Small compact pill button, sized like the Chat/Call buttons on the pandit
+   card (.astro-card__btn): 6px/10px padding and a 24px radius. It used to
+   carry noticeably more padding than those, which made it read as a much
+   heavier control than the rest of the homepage's cards.
+
+   The selector is compounded with the card ON PURPOSE. base.css ends with
+   `@media (max-width: 620px) { .btn { white-space: normal; padding: 12px 20px } }`
+   — same specificity as a bare .ohp-puja-btn and loaded later, so it won a
+   tie it should not have been in: on a phone the padding tripled and
+   "Inquire Now" broke across two lines inside a pill built for one. The
+   pandit card's buttons escape the same rule the same way, which is why
+   they look right and this did not.
+
+   margin-top:auto is what actually holds the row together: the grid already
+   stretches every card to the tallest one, and this pushes the button to the
+   bottom of that shared height, so the buttons line up even if something
+   above them (an image that failed to load, a description shown on desktop
+   and hidden on mobile) is not the same size on every card.
+
+   Width is left to the text — every card carries the same label, so every
+   pill comes out the same width anyway, and a Hindi label that needs a few
+   more pixels simply gets them instead of wrapping. */
+.ohp-puja-card .ohp-puja-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 16px;
+  padding: 6px 10px;
   font-size: var(--fs-200);
   font-weight: var(--fw-semibold);
-  border-radius: 50px;
-  width: auto !important;
+  border-radius: 24px;
+  width: auto;
+  max-width: 100%;
   min-width: 0;
-  max-width: 140px;
-  margin-top: 4px;
+  height: auto;
+  margin-top: auto;
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
@@ -716,13 +762,13 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .ohp-puja-card { padding: 16px 10px 14px; gap: 6px; }
-  .ohp-puja-img { width: 46px; height: 46px; }
-  .ohp-puja-emoji { font-size: var(--fs-1000); margin-bottom: 2px; }
-  .ohp-puja-name { font-size: var(--fs-300); }
+  .ohp-puja-emoji { font-size: var(--fs-1000); }
+  .ohp-puja-name { font-size: var(--fs-300); min-height: calc(var(--fs-300) * var(--lh-snug) * 3); }
   /* Hide description and meta on small mobile — icon + name + button only */
   .ohp-puja-desc { display: none; }
   .ohp-puja-meta { display: none; }
-  .ohp-puja-btn { padding: 6px 14px; font-size: var(--fs-200); min-width: 80px; }
+  /* Exactly what Chat/Call drop to on a 2-up phone grid. */
+  .ohp-puja-card .ohp-puja-btn { padding: 6px 12px; font-size: var(--fs-100); }
   .ohp-sankalp-card { padding: 28px 20px 24px; }
   .ohp-sankalp-grid { grid-template-columns: 1fr; }
   .ohp-receive-row { gap: 16px; }
@@ -1094,20 +1140,36 @@
 
 
 
-/* Admin-uploaded service image in the Popular Pujas card. Occupies the same
-   box as the emoji fallback so a card with an image and one without stay the
-   same height and the grid does not jag. */
+/* THE round icon on a Popular Pujas card — admin-uploaded image, or the emoji
+   that stands in when a puja has no photo. Both are sized together here, and
+   ONLY here: they have to occupy the identical box or a card with a photo and
+   one without start their names at different heights and the grid jags.
+   (The earlier .ohp-puja-img/.ohp-puja-emoji rules in this file are look only
+   — this block is later, so it is the one that decides size.)
+
+   Deliberately larger than it was: the name box below now reserves three
+   lines whatever the name, and at 64px the icon left the card looking mostly
+   empty. */
+.ohp-puja-img,
+.ohp-puja-emoji {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 10px;
+}
 .ohp-puja-img {
-  width: 64px;
-  height: 64px;
   border-radius: 50%;
   object-fit: cover;
   display: block;
-  margin: 0 auto 10px;
   background: var(--ivory);
+  /* Kept from the rule this block absorbed — the soft gold ring that separates
+     a dark puja photo from the cream card behind it. */
+  border: 2px solid #f0e6c8;
+}
+@media (max-width: 620px) {
+  .ohp-puja-img, .ohp-puja-emoji { width: 66px; height: 66px; margin-bottom: 6px; }
 }
 @media (max-width: 420px) {
-  .ohp-puja-img { width: 54px; height: 54px; }
+  .ohp-puja-img, .ohp-puja-emoji { width: 60px; height: 60px; }
 }
 
 /* ── Review title, date and photo thumbnails ─────────────────────── */

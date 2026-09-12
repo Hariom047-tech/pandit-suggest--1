@@ -160,17 +160,39 @@ const home = withShell(
     // The homepage is the page every crawl starts from and the one carrying
     // the most authority, so it is where a link matters most. Kept to the
     // sections plus the catalogue: a link block, not a copy of the page.
-    const services = await servicesRepo.list({});
+    const [services, temples] = await Promise.all([
+      servicesRepo.list({}),
+      templesRepo.list({ page: 1, perPage: 1 }),
+    ]);
     return {
       ...seoMeta.homeMeta(),
       article: linkListArticle({
-        h1: 'PanditSuggest — Verified Pandits, Temples and Puja Services',
-        intro: 'Find a verified Pandit for any puja or havan, at a temple, at home, or online.',
+        // Same words as the homepage's own <h1> (dictionary.en.ts home
+        // heroTitle1 + heroTitleGold + heroTitlePlatform) — see the note on
+        // the directory listings below for why the two must not drift. The
+        // old heading also named Temples, a section the site hides while the
+        // directory is empty.
+        h1: "India's most trusted pandit connection platform",
+        intro: 'Find a verified Pandit for any puja or havan — at your home, online, or at a temple.',
+        // The site's main sections first, labelled with the SAME words the
+        // header nav and footer use for them (frontend dictionary.en.ts's
+        // nav.* keys). This block is the only set of links a crawler that
+        // does not run JavaScript can see, so a page missing from it is a
+        // page the site appears not to link to at all — which is how
+        // /ai-recommender came to be absent from here while being one of the
+        // four sections we most want found.
         links: [
-          { href: `${publicSiteUrl}/services`, label: 'All puja & havan services' },
-          { href: `${publicSiteUrl}/pandits`, label: 'Find a verified Pandit' },
-          { href: `${publicSiteUrl}/temples`, label: 'Temples across India' },
-          { href: `${publicSiteUrl}/online-havan`, label: 'Online havan & puja — how it works' },
+          { href: `${publicSiteUrl}/pandits`, label: 'Pandits', note: 'Verified Pandit profiles across India' },
+          { href: `${publicSiteUrl}/services`, label: 'Services', note: 'Every puja and havan in the catalogue' },
+          { href: `${publicSiteUrl}/online-havan`, label: 'Online Puja', note: 'How an online havan or puja is really performed' },
+          { href: `${publicSiteUrl}/ai-recommender`, label: 'AI Pooja Guide', note: 'Describe your situation, get the ritual that fits' },
+          // Only when there is a directory to arrive at. The homepage hides
+          // its temples section on the same rule (frontend Home.tsx), and
+          // pointing a crawler at an empty listing is the same broken promise
+          // in a form the visitor never sees.
+          ...(temples.total > 0
+            ? [{ href: `${publicSiteUrl}/temples`, label: 'Temples', note: 'Temples across India and their pujas' }]
+            : []),
           { href: `${publicSiteUrl}/how-it-works`, label: 'How PanditSuggest works' },
           ...services.slice(0, LIST_CAP).map((r) => ({
             href: `${publicSiteUrl}/services/${r.slug}`,
@@ -203,13 +225,25 @@ const home = withShell(
  * catalogue ever grows: past a few hundred links a single page stops being a
  * useful crawl hub, and paginated hub pages would be the right answer instead.
  */
+/**
+ * The three directory listings.
+ *
+ * Each `h1` below must be the SAME WORDS as the <h1> the React page renders
+ * for that URL (frontend dictionary.en.ts, the `heroTitle1` + `heroTitleGold`
+ * pair for each). They had drifted: a crawler that ran the JavaScript read
+ * "Your trusted pandit connection" on /pandits while one that did not read
+ * "Verified Pandits Across India" — one URL with two different headings
+ * depending on who was looking. Google resolved that by ignoring the <title>
+ * and captioning the page with the visible heading, which said nothing about
+ * what the page was.
+ */
 const servicesList = withShell(
   async () => {
     const rows = await servicesRepo.list({});
     return {
-      ...seoMeta.servicesMeta(),
+      ...seoMeta.servicesMeta(rows),
       article: linkListArticle({
-        h1: 'All Puja & Havan Services',
+        h1: 'Puja & havan services, performed with devotion',
         intro: 'Every ritual in the PanditSuggest catalogue, with the verified Pandits who perform each one.',
         links: rows.slice(0, LIST_CAP).map((r) => ({
           href: `${publicSiteUrl}/services/${r.slug}`,
@@ -226,9 +260,12 @@ const templesList = withShell(
   async () => {
     const { data } = await templesRepo.list({ page: 1, perPage: LIST_CAP });
     return {
-      ...seoMeta.templesMeta(),
+      // No temples published yet -> noindex. The directory is real but
+      // empty, and the frontend hides every link into it until the first
+      // one exists (frontend/app/src/hooks/useHasTemples.ts).
+      ...seoMeta.templesMeta(data),
       article: linkListArticle({
-        h1: 'Temples Across India',
+        h1: 'Temples across India, each with its own story',
         intro: 'Temples listed on PanditSuggest, with the puja services and Pandits associated with each.',
         links: data.map((r) => ({
           href: `${publicSiteUrl}/temples/${r.slug}`,
@@ -245,9 +282,9 @@ const panditsList = withShell(
   async () => {
     const { data } = await panditsRepo.list({ page: 1, perPage: LIST_CAP });
     return {
-      ...seoMeta.panditsMeta(),
+      ...seoMeta.panditsMeta(data),
       article: linkListArticle({
-        h1: 'Verified Pandits Across India',
+        h1: 'Find a verified Pandit across India',
         intro: 'Browse verified Pandit profiles — experience, languages and the rituals each one performs.',
         links: data.map((r) => ({
           href: `${publicSiteUrl}/pandits/${r.slug}`,
@@ -286,7 +323,11 @@ const howItWorks = withShell(async () => seoMeta.howItWorksMeta());
 const blog = withShell(async () => seoMeta.blogMeta());
 const about = withShell(async () => seoMeta.aboutMeta());
 const contact = withShell(async () => seoMeta.contactMeta());
-const templeMap = withShell(async () => seoMeta.templeMapMeta());
+const templeMap = withShell(async () => {
+  // Only the count — the map's pins are fetched by the client as before.
+  const { total } = await templesRepo.list({ page: 1, perPage: 1 });
+  return seoMeta.templeMapMeta(total);
+});
 const privacy = withShell(async () => seoMeta.legalMeta('privacy'));
 const terms = withShell(async () => seoMeta.legalMeta('terms'));
 

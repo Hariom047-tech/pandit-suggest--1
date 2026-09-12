@@ -25,7 +25,7 @@ import type { Service } from "../../data/types";
 const GAP = 18;
 
 export function OnlinePujaSlider({ services }: { services: Service[] }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const track = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(true);
@@ -77,9 +77,9 @@ export function OnlinePujaSlider({ services }: { services: Service[] }) {
         {services.map((s) => (
           <div className="ohp-puja-card oh-slider__card" key={s.id}>
             {s.img
-              ? <img className="ohp-puja-img" src={s.img} alt={s.name} loading="lazy" />
+              ? <img className="ohp-puja-img" src={s.img} alt={(lang === "hi" ? s.hi?.name : null) || s.name} loading="lazy" />
               : <span className="ohp-puja-emoji">{serviceEmoji(s.icon)}</span>}
-            <h4 className="ohp-puja-name">{s.name}</h4>
+            <h4 className="ohp-puja-name">{(lang === "hi" ? s.hi?.name : null) || s.name}</h4>
             {(s.tag || s.desc) && <p className="ohp-puja-desc">{s.tag || s.desc}</p>}
             <div className="ohp-puja-meta">
               {s.dur && <span className="ohp-puja-dur"><Icon name="clock" size={13} /> {s.dur}</span>}

@@ -70,22 +70,30 @@ function deviceTypeFromUserAgent(userAgent) {
 }
 
 /**
- * Has this (pandit, event type, actor) combination already fired inside the
+ * Has this (subject, event type, actor) combination already fired inside the
  * dedup window? Actor is the user id when logged in, else the session key —
  * mirrors pandit_exposure's own per-session dedup so a page reload / React
  * StrictMode double-invoke / retry does not inflate the admin-visible count
  * (Section 35/36).
+ *
+ * The subject is a pandit or a service: a SERVICE_VIEW needs exactly the same
+ * protection, and more urgently, because the homepage now RANKS pujas by
+ * those rows — without dedup the most-refreshed page would win rather than
+ * the most-wanted puja.
  */
-async function recentlyLogged({ panditId, eventType, userId, sessionKey, windowMinutes = 60 }) {
-  if (!panditId || (!userId && !sessionKey)) return false;
+async function recentlyLogged({ panditId, serviceId, eventType, userId, sessionKey, windowMinutes = 60 }) {
+  const subject = panditId
+    ? { column: 'pandit_id', id: panditId }
+    : (serviceId ? { column: 'service_id', id: serviceId } : null);
+  if (!subject || (!userId && !sessionKey)) return false;
   try {
     const { rows } = await query(
       `SELECT 1 FROM user_activity_events
-        WHERE pandit_id = $1 AND event_type = $2::activity_event_type
+        WHERE ${subject.column} = $1 AND event_type = $2::activity_event_type
           AND ${userId ? 'user_id = $3' : 'session_key = $3'}
           AND created_at > NOW() - ($4 || ' minutes')::interval
         LIMIT 1`,
-      [panditId, eventType, userId ? userId : String(sessionKey).slice(0, 64), String(windowMinutes)],
+      [subject.id, eventType, userId ? userId : String(sessionKey).slice(0, 64), String(windowMinutes)],
     );
     return rows.length > 0;
   } catch (err) {

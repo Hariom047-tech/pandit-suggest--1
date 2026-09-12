@@ -11,6 +11,7 @@ import { SacredBackground } from "../components/ui/SacredBackground";
 import { HeroTicker } from "../components/ui/HeroTicker";
 import { useLang } from "../lib/i18n";
 import { Seo } from "../lib/Seo";
+import { useStructuredData, organizationSchema, websiteSchema, webPageSchema, breadcrumbSchema, itemListSchema } from "../lib/structuredData";
 import { useSiteImages } from "../lib/siteImages";
 
 const PER_PAGE = 9;
@@ -37,6 +38,28 @@ export default function Temples() {
     limit: 50,
   });
   const temples = useMemo(() => normTemples(rawTemples), [rawTemples]);
+
+  /* ── Structured data ──
+     This page had none at all — server-side or client-side — while every
+     detail page beneath it carries a full graph, so a crawler understood
+     each individual entry better than the catalogue listing them, and had
+     nothing telling it what this page was called. Mirrors exactly what
+     backend/src/utils/seoMeta.js injects for the same URL; the ItemList
+     describes the rows actually rendered, so it is built from the same
+     array the grid below maps over. */
+  useStructuredData([
+    organizationSchema(),
+    websiteSchema(),
+    webPageSchema({ path: "/temples", name: "Temples Across India — Puja, Havan & Pandits" }),
+    breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Temples", path: "/temples" }]),
+    temples.length
+      ? itemListSchema({
+          path: "/temples",
+          name: "Temples across India",
+          items: temples.map((r) => ({ name: r.name, path: `/temples/${r.id}` })),
+        })
+      : null,
+  ]);
 
   const cityCounts = useMemo(() => countBy(temples, "city"), [temples]);
   const usedCities = useMemo(() => {

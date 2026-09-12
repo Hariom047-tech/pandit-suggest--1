@@ -75,6 +75,15 @@ export function websiteSchema() {
     name: siteConfig.name,
     url: siteConfig.url,
     publisher: { "@id": organizationId() },
+    // The sitelinks searchbox declaration — see the matching note in
+    // backend/src/utils/seoMeta.js's websiteSchema. Must stay byte-identical
+    // to the server's version: this node overwrites that one when React
+    // mounts, and two different WebSite graphs for one @id is worse than one.
+    potentialAction: {
+      "@type": "SearchAction",
+      target: { "@type": "EntryPoint", urlTemplate: `${siteConfig.url}/search?q={search_term_string}` },
+      "query-input": "required name=search_term_string",
+    },
   };
 }
 
@@ -107,6 +116,35 @@ export function breadcrumbSchema(items: { name: string; path: string }[]) {
       position: i + 1,
       name: item.name,
       item: absoluteUrl(item.path),
+    })),
+  };
+}
+
+/**
+ * A directory page's rows, as the ItemList it visibly is.
+ *
+ * Mirrors backend/src/utils/seoMeta.js's itemListSchema — /services,
+ * /pandits and /temples were the only significant pages on the site with no
+ * JSON-LD at all, while every puja page beneath them carries seven schema
+ * types. Pass the rows the page actually renders, in the order it renders
+ * them: this describes the listing, so it must not claim items the visitor
+ * cannot see.
+ */
+export function itemListSchema({ path, name, items }: {
+  path: string;
+  name: string;
+  items: { name: string; path: string }[];
+}) {
+  return {
+    "@type": "ItemList",
+    "@id": `${absoluteUrl(path)}#itemlist`,
+    name,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      url: absoluteUrl(item.path),
     })),
   };
 }

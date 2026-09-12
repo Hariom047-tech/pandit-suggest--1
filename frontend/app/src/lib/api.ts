@@ -91,8 +91,13 @@ export const api = {
    * NEVER decides whether something is a qualified lead, it only reports the
    * press and reads back what the backend recorded.
    */
-  trackClick: (panditId: string, method: "call" | "whatsapp", source?: string) =>
-    request<ContactResult>(`/pandits/${panditId}/click`, { method: "POST", body: { method, source } }),
+  /** `service` is the puja the press happened ON, when there is one (a service
+   *  page, or a pandit card inside one). The backend has always read it —
+   *  nothing ever sent it, so every contact was recorded with no idea which
+   *  ritual it was about. It is what attributes a lead to a puja, and half of
+   *  what ranks the homepage's online-puja strip. */
+  trackClick: (panditId: string, method: "call" | "whatsapp", source?: string, service?: string) =>
+    request<ContactResult>(`/pandits/${panditId}/click`, { method: "POST", body: { method, source, service } }),
 
   // --- pandit auth ---
   panditLogin: (email: string, password: string) =>
@@ -105,6 +110,10 @@ export const api = {
       "/auth/pandit/reset-password", { method: "POST", body: { resetToken, newPassword, confirmPassword } }),
   trackView: (panditId: string) =>
     request(`/pandits/${panditId}/view`, { method: "POST", body: { sk: visitorKey() } }),
+  /** "Someone opened this puja's page." Deduped server-side per visitor per
+   *  hour, and the signal the homepage's popular-pujas strip is ordered by. */
+  trackServiceView: (serviceSlug: string) =>
+    request(`/services/${serviceSlug}/view`, { method: "POST", body: { sk: visitorKey() } }),
   /** The fair order for THIS visitor: market-aware, pooled per temple, and
    *  rotated by a session key so two devotees do not see the same pandits at
    *  the top. `sk` keeps that order stable across refreshes. */

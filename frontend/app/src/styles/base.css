@@ -526,7 +526,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .pandit-card { text-align: center; padding: 24px 20px; }
 .pandit-card .avatar-ring { margin: 0 auto 14px; }
 .pandit-card h3 { font-size: var(--fs-600); }
-.verified-dot { display: inline-flex; color: var(--gold); vertical-align: middle; }
+/* The space that used to be written into the JSX before the badge; it is a
+   margin now because VerifiedName deliberately leaves no breakable space
+   between the surname and the tick. */
+.verified-dot { display: inline-flex; color: var(--gold); vertical-align: middle; margin-left: 6px; }
 .verified-dot svg { width: 18px; height: 18px; }
 .tag-row { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin: 12px 0; }
 .contact-row { display: flex; gap: 8px; margin-top: 14px; }
@@ -1067,8 +1070,11 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   /* Home's "What is PanditSuggest" destination cards — two per row on
      mobile, same reasoning and compound-selector fix as .svc-related-grid
      above (desktop/tablet untouched, only re-targets the shared
-     single-column mobile collapse). */
-  .hp-whatis-grid.g-4 {
+     single-column mobile collapse). .g-3 is the same block with the Temples
+     card dropped (Home.tsx, while no temple is published) and wants the
+     identical mobile treatment. */
+  .hp-whatis-grid.g-4,
+  .hp-whatis-grid.g-3 {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
@@ -1272,7 +1278,11 @@ table.tbl tr:last-child td { border-bottom: 0; }
    site, same pattern most marketplace apps use to give the footer visual
    weight and separate it from page content. */
 .site-footer { background: #1a130c; color: var(--text-on-dark-2); margin-top: 0; }
-.footer-top { padding: 56px 0 30px; display: grid; grid-template-columns: 1.5fr .9fr .9fr .9fr 1.3fr; gap: 32px; }
+/* Six columns since the Havan column joined Explore: brand, Explore,
+   Types of Havan, Company, Support, newsletter. The four link columns
+   share one narrower track each — they hold short link text — while the
+   brand and newsletter blocks keep the width their content needs. */
+.footer-top { padding: 56px 0 30px; display: grid; grid-template-columns: 1.35fr .85fr .85fr .85fr .85fr 1.2fr; gap: 28px; }
 
 /* .footer-col a below (display:block, for the plain text link columns)
    also matches this link — same ancestor class — and its higher specificity

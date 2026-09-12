@@ -24,6 +24,16 @@
 
 const SITE_IMAGE_SLOTS = [
   {
+    group: 'Brand',
+    slots: [
+      {
+        key: 'brand.logo',
+        label: 'Site logo',
+        hint: 'The logo in the header and footer of every public page. Square or near-square works best — it is drawn inside a 60x60 box and scaled to fit, so a very wide image ends up small. Transparent PNG or WebP; 240px or larger so it stays sharp on a high-DPI screen. This is the ONE slot with a built-in fallback: if it is empty, the header falls back to the logo shipped in the build rather than showing no logo at all. The browser-tab favicon and the social-share preview image are still files in the build and are not changed by this.',
+      },
+    ],
+  },
+  {
     group: 'Home page',
     slots: [
       {

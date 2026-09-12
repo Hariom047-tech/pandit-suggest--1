@@ -315,6 +315,21 @@ export function useService(slug: string) {
   return useApi<ApiService>(slug ? `/services/${slug}` : null, { enabled: !!slug });
 }
 
+/** One row per online puja devotees have actually opened or contacted a pandit
+ *  about, most-used first. See the backend's services.repository popularOnline:
+ *  a 30-day window, views plus 5x contacts. Empty until traffic exists, which
+ *  is why every caller must have an order of its own to fall back to. */
+export interface ApiServicePopularity {
+  slug: string;
+  views: number;
+  enquiries: number;
+  score: number;
+}
+
+export function usePopularOnlineServices() {
+  return useApi<{ data: ApiServicePopularity[]; meta: { windowDays: number; total: number } }>("/services/popular");
+}
+
 /* ═══════ REVIEW hooks ═══════ */
 
 export function useReviews(type?: string, id?: string) {

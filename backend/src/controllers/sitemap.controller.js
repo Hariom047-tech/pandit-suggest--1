@@ -7,14 +7,14 @@ const { publicSiteUrl } = require('../config/env');
  *  deliberately absent, same as they're noindex there. */
 const STATIC_PAGES = [
   { path: '/', priority: '1.0' },
-  { path: '/temples', priority: '0.9' },
+  { path: '/temples', priority: '0.9', needsTemples: true },
   { path: '/pandits', priority: '0.9' },
   { path: '/services', priority: '0.9' },
   { path: '/blog', priority: '0.6' },
   { path: '/about', priority: '0.5' },
   { path: '/how-it-works', priority: '0.5' },
   { path: '/contact', priority: '0.5' },
-  { path: '/temple-map', priority: '0.5' },
+  { path: '/temple-map', priority: '0.5', needsTemples: true },
   { path: '/ai-recommender', priority: '0.6' },
   // High intent and its own server-rendered metadata/FAQPage since the
   // SEO pass — it was absent here purely because nothing had routed it
@@ -45,8 +45,17 @@ function urlEntry(loc, updatedAt, priority) {
 async function sitemap(req, res) {
   const { temples, services, pandits } = await repo.listIndexableUrls();
 
+  // The temple directory and map are real pages with nothing in them until
+  // an admin publishes the first temple. The frontend hides every link into
+  // them until then and redirects the routes home (frontend/app/src/hooks/
+  // useHasTemples.ts) — submitting them here would be asking Google to index
+  // exactly what we just stopped showing visitors.
+  const staticPages = temples.length
+    ? STATIC_PAGES
+    : STATIC_PAGES.filter((p) => !p.needsTemples);
+
   const entries = [
-    ...STATIC_PAGES.map((p) => urlEntry(`${publicSiteUrl}${p.path}`, null, p.priority)),
+    ...staticPages.map((p) => urlEntry(`${publicSiteUrl}${p.path}`, null, p.priority)),
     ...temples.map((t) => urlEntry(`${publicSiteUrl}/temples/${t.slug}`, t.updated_at, '0.8')),
     ...services.map((s) => urlEntry(`${publicSiteUrl}/services/${s.slug}`, s.updated_at, '0.8')),
     ...pandits.map((p) => urlEntry(`${publicSiteUrl}/pandits/${p.slug}`, p.updated_at, '0.7')),

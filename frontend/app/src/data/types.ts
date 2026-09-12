@@ -9,6 +9,8 @@ export interface Service {
   desc: string;
   samagri: string[];
   priority?: number;
+  /** The service's admin-authored content in Hindi (services.content_hi). */
+  hi?: { name?: string; shortDescription?: string; description?: string } | null;
   /** Admin "Show on home page" — decides WHICH pujas the homepage features. */
   popular?: boolean;
   /**
