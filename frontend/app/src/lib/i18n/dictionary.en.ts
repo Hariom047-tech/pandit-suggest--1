@@ -230,6 +230,7 @@ const en = {
     templeMap: "Temple Map",
     aiPoojaGuide: "AI Pooja Guide",
     havanTypes: "Types of Havan",
+    popularPujas: "Popular Pujas",
     aboutUs: "About Us",
     howItWorks: "How It Works",
     spiritualBlog: "Spiritual Blog",

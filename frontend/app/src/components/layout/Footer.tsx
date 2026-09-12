@@ -39,21 +39,33 @@ const EXPLORE: [string, string][] = [
   ["/services", "nav.services"],
   ["/online-havan", "nav.onlinePuja"],
   ["/ai-recommender", "nav.aiRecommender"],
+  // Moved out of the Company column: "how it works" is something a devotee
+  // deciding whether to use the site wants, not corporate background.
+  ["/how-it-works", "footer.howItWorks"],
   ["/temple-map", "nav.templeMap"],
 ];
 const EXPLORE_TEMPLE_PATHS = new Set(["/temples", "/temple-map"]);
 
 const COMPANY: [string, string][] = [
   ["/about", "footer.aboutUs"],
-  ["/how-it-works", "footer.howItWorks"],
   ["/blog", "footer.spiritualBlog"],
   ["/contact", "footer.contact"],
 ];
 
+/**
+ * Folded into the Company column rather than standing as a fourth column of
+ * three links. Every comparable platform keeps one such block, not two:
+ * Astrotalk has a single "Corporate Info", Sri Mandir a single "Company".
+ * The space it frees is what the two catalogue columns use.
+ *
+ * The Pandit Dashboard row is the supply side, and every platform in this
+ * market puts it in the footer — Astrotalk carries "Astrologer Login" and
+ * "Astrologer Registration", 99Pandit a whole "For Pandits App" block.
+ */
 const SUPPORT: [string, string][] = [
-  ["/dashboard", "footer.panditDashboard"],
   ["/contact#faq", "footer.faq"],
   ["/about#verify", "footer.verificationProcess"],
+  ["/dashboard", "footer.panditDashboard"],
 ];
 
 interface FooterLink { href: string; label: string }
@@ -104,13 +116,41 @@ export function Footer() {
    * full list is one click away at /services.
    */
   const { data: rawServices } = useServices();
-  const havans = useMemo(() => {
-    const rows = normServices(rawServices).filter((s) => /havan/i.test(s.name));
-    return rows.slice(0, 6).map((s) => ({
-      href: `/services/${s.id}`,
-      label: (lang === "hi" ? s.hi?.name : null) || s.name,
-    }));
-  }, [rawServices, lang]);
+  const catalogue = useMemo(() => normServices(rawServices), [rawServices]);
+  const label = (s: { name: string; hi?: { name?: string } | null }) =>
+    (lang === "hi" ? s.hi?.name : null) || s.name;
+
+  const havans = useMemo(
+    () => catalogue
+      .filter((s) => /havan/i.test(s.name))
+      .map((s) => ({ href: `/services/${s.id}`, label: label(s) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [catalogue, lang],
+  );
+
+  /**
+   * Named pujas, not another hub link.
+   *
+   * This is the one pattern every mature platform in this market shares, and
+   * the one this footer had none of: Astrotalk lists muhurats and remedies by
+   * occasion, 99Pandit a "Popular Searches" block of real puja pages. A
+   * footer full of category hubs gives a reader — and a crawler — one link to
+   * /services and nothing about the thirty-two pages underneath it.
+   *
+   * Which ones is the admin's existing choice, not a second list to maintain:
+   * the same "Show on home page" + "Home position" ordering the homepage grid
+   * uses (pages/Home.tsx). Havans are excluded because they have their own
+   * column right beside this one, and the same puja twice is a wasted row.
+   */
+  const popularPujas = useMemo(
+    () => catalogue
+      .filter((s) => s.popular && !/havan/i.test(s.name))
+      .sort((a, b) => (a.homePosition ?? 0) - (b.homePosition ?? 0) || a.name.localeCompare(b.name))
+      .slice(0, 6)
+      .map((s) => ({ href: `/services/${s.id}`, label: label(s) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [catalogue, lang],
+  );
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -161,8 +201,11 @@ export function Footer() {
         {/* Renders nothing at all until the catalogue has loaded and has a
             havan in it — FooterAccordion returns null for an empty list. */}
         <FooterAccordion title={t("footer.havanTypes")} links={havans} />
-        <FooterAccordion title={t("footer.company")} links={COMPANY.map(([href, k]) => ({ href, label: t(k) }))} />
-        <FooterAccordion title={t("footer.support")} links={SUPPORT.map(([href, k]) => ({ href, label: t(k) }))} />
+        <FooterAccordion title={t("footer.popularPujas")} links={popularPujas} />
+        <FooterAccordion
+          title={t("footer.company")}
+          links={[...COMPANY, ...SUPPORT].map(([href, k]) => ({ href, label: t(k) }))}
+        />
 
         <div className="footer-col footer-col--newsletter">
           <h4>{t("footer.weeklyMail")}</h4>

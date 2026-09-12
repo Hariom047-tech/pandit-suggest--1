@@ -217,6 +217,7 @@ const hi: Dictionary = {
     templeMap: "मंदिर मानचित्र",
     aiPoojaGuide: "AI पूजा गाइड",
     havanTypes: "हवन के प्रकार",
+    popularPujas: "लोकप्रिय पूजा",
     aboutUs: "हमारे बारे में",
     howItWorks: "यह कैसे काम करता है",
     spiritualBlog: "आध्यात्मिक ब्लॉग",
