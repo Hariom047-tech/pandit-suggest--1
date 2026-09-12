@@ -12,8 +12,8 @@ import { VerifiedName } from "../components/ui/VerifiedName";
 import { WriteReview } from "../components/ui/WriteReview";
 import "../styles/pandit-profile.css";
 import { useToast } from "../components/ui/Toast";
-import { usePandit, usePandits, useReviews } from "../hooks/useData";
-import { normPandit, normPandits, normReviews, withPanditHonorific } from "../lib/normalize";
+import { usePandit, usePandits, useReviews, useServices } from "../hooks/useData";
+import { normPandit, normPandits, normReviews, normServices, withPanditHonorific } from "../lib/normalize";
 import { Loading, ErrorState } from "../components/ui/DataState";
 import { api, useFairRanking, useReportExposure } from "../lib/api";
 import { usePanditContact } from "../lib/usePanditContact";
@@ -76,6 +76,25 @@ export default function PanditProfile() {
     const associated = (rawPandit as { associatedTemples?: { slug: string; name: string }[] } | null)?.associatedTemples || [];
     return new Map(associated.map((tp) => [tp.slug, tp.name]));
   }, [rawPandit]);
+
+  /**
+   * The real name of each service this pandit performs.
+   *
+   * The chips below were built by title-casing the slug —
+   * "shatru-nash-protection-baglamukhi-puja" became "Shatru Nash Protection
+   * Baglamukhi Puja", where the catalogue calls it "Shatru Nash & Protection
+   * Puja". Longer, wrongly punctuated, and English even for a Hindi reader.
+   * This is the same fix the associated-temples list above already had; the
+   * services list was simply missed.
+   *
+   * Falls back to the slug guess for a slug the catalogue does not cover, so
+   * a service that has since been deactivated still reads as words.
+   */
+  const { data: rawCatalogue } = useServices();
+  const serviceNameBySlug = useMemo(() => {
+    const rows = normServices(rawCatalogue);
+    return new Map(rows.map((r) => [r.id, (lang === "hi" ? r.hi?.name : null) || r.name]));
+  }, [rawCatalogue, lang]);
 
   // Relevance first (same city or a shared service — and never the profile
   // being viewed), then fair rotation within that relevant band, the same
@@ -220,8 +239,18 @@ export default function PanditProfile() {
                   {p.services.length > 0 && (
                     <div className="card card-pad info-card">
                       <h3>{t("panditProfile.servicesOffered")}</h3>
-                      <div className="tag-row" style={{ justifyContent: "flex-start" }}>
-                        {p.services.map((s) => <Link className="tag" to={`/services/${s}`} key={s}>{s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</Link>)}
+                      {/* A grid, not a wrapping pill row: thirteen pills of
+                          wildly different widths made this card taller than
+                          the photo above it, and each one landed on its own
+                          line on a phone. Two even columns (three from tablet
+                          up) cap the height and let a long name wrap inside
+                          its own cell instead of pushing the next one down. */}
+                      <div className="svc-chips">
+                        {p.services.map((s) => (
+                          <Link className="svc-chip" to={`/services/${s}`} key={s}>
+                            {serviceNameBySlug.get(s) || s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                          </Link>
+                        ))}
                       </div>
                     </div>
                   )}
