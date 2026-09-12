@@ -6,6 +6,7 @@ import { normBlogPosts } from "../lib/normalize";
 import { EmptyState } from "../components/ui/ReviewCard";
 import { motion } from "framer-motion";
 import { Seo } from "../lib/Seo";
+import { useLang } from "../lib/i18n";
 
 function PostCard({ p, featured = false, index = 0 }: { p: any; featured?: boolean; index?: number }) {
   return (
@@ -33,6 +34,7 @@ function PostCard({ p, featured = false, index = 0 }: { p: any; featured?: boole
 }
 
 export default function Blog() {
+  const { t } = useLang();
   const { data: rawPosts } = useBlogPosts();
   const posts = useMemo(() => normBlogPosts(rawPosts), [rawPosts]);
 
@@ -57,14 +59,14 @@ export default function Blog() {
         <img src="/assets/img/mandala.svg" className="watermark watermark--tl" alt="" />
         <img src="/assets/img/lotus.svg" className="watermark watermark--tr" alt="" style={{ width: 220 }} />
         <div className="shell" style={{ position: "relative", zIndex: 1 }}>
-          <nav className="crumbs" aria-label="Breadcrumb"><Link to="/">Home</Link> <span>/</span> Blog</nav>
-          <h1 className="section-title" style={{ marginTop: 10 }}>Spiritual Blog</h1>
+          <nav className="crumbs" aria-label="Breadcrumb"><Link to="/">{t("common.home")}</Link> <span>/</span> {t("blog.crumb")}</nav>
+          <h1 className="section-title" style={{ marginTop: 10 }}>{t("blog.title")}</h1>
           <svg className="ornament" viewBox="0 0 190 16" aria-hidden="true"><path d="M6 8h64M120 8h64" fill="none" stroke="#d4a017" strokeWidth="1.6" /><path d="M84 8l11-6 11 6-11 6z" fill="none" stroke="#d4a017" strokeWidth="1.6" /></svg>
-          <p className="section-sub">Rituals explained without mystique, festival guides you can act on, and honest notes on how this platform works.</p>
+          <p className="section-sub">{t("blog.sub")}</p>
 
           <form className="search-row" role="search" style={{ maxWidth: 520 }} onSubmit={(e) => e.preventDefault()}>
-            <label className="sr-only" htmlFor="blogSearch">Search articles</label>
-            <input className="input" id="blogSearch" placeholder="Search articles" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <label className="sr-only" htmlFor="blogSearch">{t("blog.searchLabel")}</label>
+            <input className="input" id="blogSearch" placeholder={t("blog.searchLabel")} value={query} onChange={(e) => setQuery(e.target.value)} />
             <button className="btn btn-gold" type="submit">Search</button>
           </form>
         </div>
@@ -83,7 +85,7 @@ export default function Blog() {
               </div>
             </>
           ) : (
-            <EmptyState msg="No article matched that search." />
+            <EmptyState msg={t("blog.empty")} />
           )}
         </div>
       </section>
@@ -93,10 +95,10 @@ export default function Blog() {
           <div className="cta-band">
             <img src="/assets/img/mandala.svg" className="watermark watermark--br" alt="" />
             <div>
-              <h2>One ritual, explained weekly</h2>
-              <p>Practical puja and ceremony guides — one topic explained in full, every Monday morning.</p>
+              <h2>{t("blog.ctaTitle")}</h2>
+              <p>{t("blog.ctaSub")}</p>
             </div>
-            <Link className="btn btn-outline btn-lg" to="/contact">Subscribe</Link>
+            <Link className="btn btn-outline btn-lg" to="/contact">{t("blog.subscribe")}</Link>
           </div>
         </div>
       </section>

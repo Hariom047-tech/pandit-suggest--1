@@ -8,6 +8,7 @@ import { Loading, ErrorState } from "../components/ui/DataState";
 import { EmptyState } from "../components/ui/ReviewCard";
 import { Pager, paginate } from "../components/ui/Pager";
 import { Seo } from "../lib/Seo";
+import { useLang } from "../lib/i18n";
 import { useStructuredData, organizationSchema, websiteSchema, webPageSchema, breadcrumbSchema } from "../lib/structuredData";
 
 const PER_PAGE = 24;
@@ -23,6 +24,7 @@ const PER_PAGE = 24;
  * matching Pandit, paginated (docs/SEO_ARCHITECTURE.md).
  */
 export default function ServicePandits() {
+  const { t, lang } = useLang();
   const { id } = useParams();
   const { data: rawService, loading, error } = useService(id || "");
   // 600: same reasoning as every other full-batch pandit fetch on this site
@@ -31,6 +33,8 @@ export default function ServicePandits() {
   const [page, setPage] = useState(1);
 
   const s = useMemo(() => (rawService ? normService(rawService) : null), [rawService]);
+  // The service's Hindi name for a Hindi reader, same rule ServiceCard uses.
+  const displayName = (lang === "hi" ? s?.hi?.name : null) || s?.name || "";
   const allPandits = useMemo(() => normPandits(rawPandits), [rawPandits]);
 
   // Same fair-rotation engine as every other pandit listing on the site —
@@ -80,7 +84,7 @@ export default function ServicePandits() {
       />
       <div className="shell">
         <h1 className="section-title section-title--left" style={{ fontSize: "clamp(1.5rem,2.6vw,2rem)" }}>
-          Pandits who perform {s.name}
+          {t("servicePandits.title", { name: displayName })}
         </h1>
         <p className="muted" style={{ marginTop: 8 }}>{pandits.length} verified Pandits</p>
 
@@ -94,7 +98,7 @@ export default function ServicePandits() {
             </div>
           </>
         ) : (
-          <EmptyState msg="No pandit has listed this service yet. Try the directory or send an enquiry." />
+          <EmptyState msg={t("servicePandits.empty")} />
         )}
       </div>
     </div>
