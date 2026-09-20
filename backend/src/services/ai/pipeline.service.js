@@ -22,7 +22,9 @@ const { extractIntent, toMemory, needsClarification, searchText } = require('./i
 const { retrieve, inferProblemCategories } = require('./retrieval.service');
 const { loadVocabulary, matchServices, matchTemples, scopeNote } = require('./matching.service');
 const { recommendPandits } = require('./ranking.service');
-const { generate, crisisResponse, fallbackResponse, recommendationOffer } = require('./response.service');
+const {
+  generate, crisisResponse, greetingResponse, fallbackResponse, recommendationOffer,
+} = require('./response.service');
 const { AI_ENABLED } = require('./config');
 const repo = require('../../repositories/ai.repository');
 
@@ -91,16 +93,71 @@ async function runTurn({ message, conversationId, user = null, sessionKey = null
     return { ...crisis, conversationId: conversation.id, messageId: saved.id };
   }
 
+  /* 3b · greeting short-circuit ------------------------------------------- */
+  /*
+   * Placed after crisis and before retrieval, and deliberately in that order:
+   * "I want to end it all" must never be read as a greeting, and a plain hello
+   * must never reach the clarification gate, which used to answer it with
+   * "Could you tell me a little more about what has been happening?".
+   *
+   * Nothing is retrieved, no model is called, and memory is left untouched so
+   * the devotee's next message starts clean.
+   */
+  if (intent.isGreeting) {
+    const greeting = greetingResponse(intent.language);
+    const savedGreeting = await repo.addMessage(conversation.id, userId, {
+      role: 'assistant', content: greeting.answer, intent,
+    }, sessionKey);
+    await repo.recordQueryAnalytics({
+      conversationId: conversation.id, queryText: message, language: intent.language,
+      detectedIntent: 'greeting', latencyMs: Date.now() - started,
+    });
+    return { ...greeting, conversationId: conversation.id, messageId: savedGreeting.id };
+  }
+
   /* 4 · retrieval --------------------------------------------------------- */
   // Short follow-ups are searched together with what the conversation already
   // established — "career ke liye" alone retrieves nothing useful.
   const queryText = searchText(message, memory);
   const retrieval = await retrieve(queryText, intent);
-  const categories = inferProblemCategories(retrieval.chunks);
+  const retrievedCategories = inferProblemCategories(retrieval.chunks);
+
+  /*
+   * A "haan" is consent to the offer just made — it is NOT a new problem.
+   *
+   * Re-deriving the problem from the word "haan" is re-deriving it from
+   * nothing: searchText() pads the query with remembered context, but the
+   * padding competes with the rest of the corpus and the top category comes
+   * back arbitrary. Live, a devotee who described a business loss, was offered
+   * pandits, and replied "haan batao" was answered about repeated accidents —
+   * and shown the pandits for THAT, which is worse than the wrong words.
+   *
+   * So on a consent turn the remembered category wins outright. Only if there
+   * is nothing remembered does retrieval get a say.
+   */
+  const isConsentTurn = Boolean(memory.offeredRecommendations && intent.isAffirmative);
+
+  /*
+   * matchServices() reads THIS list, not `inferredCategory` below — so a
+   * category known only to the intent pre-filter used to reach the analytics
+   * and the prompt but never the catalogue, and a correctly understood problem
+   * still produced no service and therefore no pandit. Appended rather than
+   * prepended: what retrieval actually found stays the stronger signal, and
+   * this only adds the rung retrieval was too short a query to reach.
+   */
+  const preFilterCategory = intent.problemCategory
+    && !retrievedCategories.some((c) => c.slug === intent.problemCategory)
+    ? [{ slug: intent.problemCategory, weight: 0.5 }]
+    : [];
+
+  const categories = isConsentTurn && memory.problemCategory
+    ? [{ slug: memory.problemCategory, weight: 1 }]
+    : [...retrievedCategories, ...preFilterCategory];
 
   // Memory is updated with whatever retrieval confirmed, so the next turn
   // ("Nalkheda") resolves against this turn's problem.
-  const inferredCategory = intent.problemCategory || categories[0]?.slug || null;
+  const inferredCategory = (isConsentTurn && memory.problemCategory)
+    || intent.problemCategory || retrievedCategories[0]?.slug || null;
   const enriched = { ...intent, problemCategory: inferredCategory };
 
   /* 5 · clarification gate ------------------------------------------------ */
@@ -206,10 +263,7 @@ async function runTurn({ message, conversationId, user = null, sessionKey = null
    * for is the same insult as re-asking a question they already answered — so
    * an explicit request, or a yes to our previous offer, shows the cards now.
    */
-  const showCards = Boolean(
-    enriched.wantsRecommendations
-    || (memory.offeredRecommendations && enriched.isAffirmative),
-  );
+  const showCards = Boolean(enriched.wantsRecommendations || isConsentTurn);
   /*
    * isExplicitRequest is deliberately NOT in that list. Naming a deity and a
    * ritual ("Maa Baglamukhi puja karani hai") makes the INTENT explicit, but it

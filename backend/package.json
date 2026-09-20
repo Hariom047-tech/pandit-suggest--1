@@ -36,7 +36,9 @@
     "verify:wiring": "node scripts/verify-distribution-wiring.js",
     "trace:distribution": "node scripts/trace-distribution.js",
     "bench:distribution": "node scripts/benchmark-distribution.js",
-    "audit:rotation": "node scripts/audit-rotation-metrics.js"
+    "audit:rotation": "node scripts/audit-rotation-metrics.js",
+    "media:variants": "node scripts/backfill-image-variants.js",
+    "ai:mappings": "node scripts/seed-ai-mappings.js"
   },
   "engines": {
     "node": ">=18"

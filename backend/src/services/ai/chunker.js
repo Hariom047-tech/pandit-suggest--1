@@ -228,7 +228,13 @@ function chunkBaglamukhi(doc) {
     ['sadhanaGuide', 'Sadhana guide', 'anushthan'],
     ['theology', 'Theology', 'deity'],
     ['dosAndDonts', 'Kya karein, kya na karein', 'faq'],
-    ['resultTimelines', 'Result timelines', 'faq'],
+    /*
+     * 'resultTimelines' is intentionally absent. It is a table of how soon a
+     * ritual "works" — courtCase 40-90 din, businessLoss 30-60 din,
+     * nazarDosh 7-15 din. Retrieved into context that is an outcome promise
+     * with a delivery date, which response.service.js's GUARANTEE_PATTERNS
+     * exists to keep out of answers and which the platform must not make.
+     */
   ]) {
     const section = doc[key];
     if (!section) continue;
@@ -469,7 +475,27 @@ function chunkGita(doc) {
  */
 const SOURCES = [
   { file: 'custom/problems-solutions.json', chunk: chunkProblems },
-  { file: 'custom/real-experiences.json', chunk: chunkTestimonials },
+  /*
+   * custom/real-experiences.json is DELIBERATELY NOT INDEXED.
+   *
+   * Its 110 entries are named individuals with a city, an age, a five-star
+   * rating and `verified: true` on 72 of them — sourced, by their own `source`
+   * field, from Quora, Reddit, YouTube comments and "temple review pattern".
+   * PanditSuggest has verified none of them, and the file's own disclaimer
+   * concedes they are "patterns", not accounts. Indexing them would put
+   * outcome claims — "8 saal ka case 2 mahine mein solve ho gaya" — into the
+   * model's retrieved context, where they would come back out as what
+   * devotees can expect.
+   *
+   * This is the same line the platform already drew twice: the homepage's
+   * fabricated activity ticker and its "500+ Verified Pandits" stat were both
+   * removed for being untrue (see components/hero/HeroAstrotalk.tsx). An AI
+   * repeating the same invented social proof is that mistake with a louder
+   * voice, so the file stays on disk and out of the index.
+   *
+   * chunkTestimonials() is kept and still tested — real, consented devotee
+   * stories can be indexed the day there are any.
+   */
   { file: 'custom/baglamukhi-knowledge.json', chunk: chunkBaglamukhi },
   { file: 'custom/puja-vidhi-guide.json', chunk: chunkPujaVidhi },
   { file: 'custom/diy-remedies.json', chunk: chunkRemedies },

@@ -224,6 +224,36 @@ function crisisResponse(language) {
   };
 }
 
+/**
+ * A hello, answered as a hello.
+ *
+ * Canned rather than model-generated for the same reasons as crisisResponse:
+ * it must be instant, it costs nothing, and it must never drift into
+ * recommending a puja to someone who has said only "namaste". It names what
+ * this assistant can do and asks one open question — nothing more.
+ */
+function greetingResponse(language) {
+  if (language === 'en') {
+    return {
+      answer: 'Namaste \u{1F64F} Welcome to PanditSuggest. '
+        + 'I can help you understand which puja, havan or anushthan suits your situation, '
+        + 'and find a verified Pandit ji for it. What would you like guidance on?',
+      followUpQuestion: null,
+      isGreeting: true,
+      recommendations: { services: [], temples: [], pandits: [] },
+    };
+  }
+  return {
+    answer: 'Namaste \u{1F64F} PanditSuggest mein aapka swagat hai. '
+      + 'Main aapki sthiti ke anusaar puja, havan ya anushthan samajhne mein, '
+      + 'aur uske liye verified Pandit ji dhoondhne mein madad kar sakta hoon. '
+      + 'Bataiye, aap kis baare mein margdarshan chahte hain?',
+    followUpQuestion: null,
+    isGreeting: true,
+    recommendations: { services: [], temples: [], pandits: [] },
+  };
+}
+
 /** Disclaimer appended for sensitive domains, in the devotee's language. */
 function disclaimerFor(domains, language) {
   if (!domains?.length) return '';
@@ -350,6 +380,7 @@ async function generate(ctx) {
 
 module.exports = {
   generate,
+  greetingResponse,
   validateOutput,
   neutraliseInjection,
   sanitizePandit,

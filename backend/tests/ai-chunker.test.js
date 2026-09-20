@@ -16,7 +16,9 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const { SOURCES, chunkFile, splitLong, groupSmall } = require('../src/services/ai/chunker');
+const {
+  SOURCES, chunkFile, splitLong, groupSmall, chunkTestimonials,
+} = require('../src/services/ai/chunker');
 const { estimateTokens, CHUNK_MAX_TOKENS } = require('../src/services/ai/config');
 
 const KB = path.join(__dirname, '..', 'src', 'data', 'knowledge');
@@ -103,14 +105,54 @@ test('every problem category reaches the taxonomy', () => {
   }
 });
 
-test('testimonials keep problem, action and result together', () => {
-  const chunks = chunkFile('custom/real-experiences.json', load('custom/real-experiences.json'));
+test('real-experiences.json is NOT indexed', () => {
+  // Deliberate policy, not an oversight — see the note in SOURCES. The file's
+  // 110 entries are named people with ages, cities, five-star ratings and
+  // `verified: true`, sourced from Quora/Reddit/YouTube. Grounding a devotee
+  // -facing answer on them would be the fabricated social proof this platform
+  // already removed from its homepage twice.
+  assert.strictEqual(
+    SOURCES.some((s) => s.file.endsWith('real-experiences.json')), false,
+    'real-experiences.json must not be in SOURCES',
+  );
+  assert.deepStrictEqual(chunkFile('custom/real-experiences.json', load('custom/real-experiences.json')), []);
+});
+
+test('the testimonial adapter still works, for the day there are real ones', () => {
+  // Kept and covered on purpose: consented, verified devotee stories can be
+  // indexed by putting a file back into SOURCES, with no new chunking code.
+  const chunks = chunkTestimonials(load('custom/real-experiences.json'));
   assert.strictEqual(chunks.length, 110);
   const sample = chunks[0];
   assert.match(sample.content, /Samasya:/);
   assert.match(sample.content, /Kya kiya:/);
   assert.match(sample.content, /Kya hua:/);
   assert.strictEqual(sample.documentType, 'testimonial');
+});
+
+test('the resultTimelines table is not indexed', () => {
+  /*
+   * baglamukhi-knowledge.json carries a `resultTimelines` map — courtCase
+   * "40-90 din", businessLoss "30-60 din", nazarDosh "7-15 din". Retrieved
+   * into the model's context that is an outcome promise with a delivery date,
+   * which response.service.js's GUARANTEE_PATTERNS exists to keep out of
+   * answers. chunkBaglamukhi skips the section; this holds it skipped.
+   *
+   * Asserted on the section heading rather than by pattern-matching day
+   * ranges in prose: the file legitimately says "havan karwana hai toh 2-3 din
+   * pehle booking karein", and a test that fails on booking advice would be
+   * turned off rather than fixed.
+   */
+  const doc = load('custom/baglamukhi-knowledge.json');
+  assert.ok(doc.resultTimelines, 'fixture no longer has the section this guards');
+
+  const chunks = chunkFile('custom/baglamukhi-knowledge.json', doc);
+  for (const c of chunks) {
+    assert.ok(!/result\s*timelines/i.test(c.heading || ''), `${c.sourceRef} indexed the timeline table`);
+    assert.ok(!/result\s*timelines/i.test(c.sourceRef), `${c.sourceRef} indexed the timeline table`);
+  }
+  // The one value that only appears in that table.
+  assert.ok(!chunks.some((c) => c.content.includes('40-90 din')));
 });
 
 test('both temples named "Baglamukhi Mandir" survive', () => {

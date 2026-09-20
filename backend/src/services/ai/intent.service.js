@@ -102,6 +102,41 @@ function safetyCheck(text) {
 const norm = (s) => (s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
 
 /**
+ * Hinglish filler. Present in almost every sentence a devotee types, so it
+ * carries no information about WHICH problem they have.
+ *
+ * Without this the category pre-filter below scored on grammar rather than
+ * meaning, and picked the wrong category on ordinary input. Measured on
+ * production, "mere business me kaam acha nahi chal raha loss ho raha hai":
+ *
+ *   santan-issues  "Bachha nahi ho raha hai"             bachha✗ nahi✓ raha✓  = 0.67  ← won
+ *   business-loss  "Business mein bahut loss ho raha hai" business✓ mein✗ bahut✗ loss✓ raha✓ = 0.60
+ *
+ * A business query was classified santan-issues — two of santan's three
+ * scoring words were "nahi" and "raha". Short example phrases are the most
+ * affected, because one filler word is a third of their score.
+ */
+const HINGLISH_STOPWORDS = new Set([
+  'nahi', 'nhi', 'raha', 'rahi', 'rahe', 'hota', 'hoti', 'hote', 'jata', 'jati', 'jate',
+  'hain', 'hai', 'mein', 'mera', 'meri', 'mere', 'apna', 'apni', 'koi', 'kuch', 'bahut',
+  'bilkul', 'hamesha', 'aksar', 'roz', 'karna', 'karne', 'karta', 'karti', 'liye', 'wala',
+  'wali', 'kar', 'kya', 'kaise', 'phir', 'fir', 'lekin', 'par', 'aur', 'toh', 'bhi', 'mujhe',
+  'humein', 'hume', 'aata', 'aati', 'aate', 'gaya', 'gayi', 'gaye', 'diya', 'lagta', 'lagti',
+]);
+
+/**
+ * The words in an example phrase that actually identify a problem.
+ *
+ * Whole words, not substrings — the old `hay.includes(w)` matched "raha"
+ * inside "rahasya" and any short word inside a longer one, on top of the
+ * filler problem above. `containsPhrase` already applies the same rule for
+ * temple and city names.
+ */
+function phraseSignal(phrase) {
+  return norm(phrase).split(' ').filter((w) => w.length > 3 && !HINGLISH_STOPWORDS.has(w));
+}
+
+/**
  * Whole-word containment. Substring matching would match "Datia" inside
  * "Datiana" and, worse, match a two-letter city name inside half the corpus.
  */
@@ -123,6 +158,50 @@ function bestMatch(haystack, candidates, getText) {
   return best;
 }
 
+/**
+ * A message that is ONLY a greeting.
+ *
+ * "hello" used to run the full pipeline: nothing was retrieved, confidence
+ * came back low, and the clarification gate answered a hello with "Could you
+ * tell me a little more about what has been happening?" — which reads as though
+ * the assistant thinks something is wrong before the devotee has said anything.
+ *
+ * Anchored to the WHOLE message, so "namaste, business me dikkat hai" is a
+ * problem description that happens to open politely, not a greeting.
+ */
+const GREETING_ONLY = new RegExp(
+  '^\\s*(?:'
+  + 'hi|hey+|hello+|helo|yo|'
+  + 'namaste|namaskar|namaskaram|pranam|pranaam|'
+  + 'ram ram|jai shree ram|jai shri ram|jai sri ram|jai mata di|jai maa|'
+  + 'jai baglamukhi|har har mahadev|radhe radhe|jai jinendra|'
+  + 'good (?:morning|afternoon|evening)|'
+  + 'salaam|assalam(?:u)? ?alaikum'
+  + ')'
+  + '(?:\\s+(?:ji|sir|madam|bhai|guru ?ji|pandit ?ji|there))*'
+  + '[\\s!.,\u0964]*$',
+  'i',
+);
+
+function isGreetingOnly(text) {
+  const t = String(text || '').trim();
+  // A long message is never "just hello", whatever it starts with.
+  return t.length > 0 && t.length <= 40 && GREETING_ONLY.test(t);
+}
+
+/**
+ * An Indic greeting is itself the language signal.
+ *
+ * detectLanguage() counts Hinglish marker words, and "jai mata di" contains
+ * none of them — so a devotee opening with "namaste" or "radhe radhe" was
+ * greeted back in English. Two or three words carry no grammar to detect, but
+ * the choice of greeting is unambiguous on its own.
+ */
+const INDIC_GREETING = new RegExp(
+  '^\\s*(?:namaste|namaskar|namaskaram|pranam|pranaam|ram ram|jai |har har mahadev'
+  + '|radhe radhe|jai jinendra|salaam|assalam)', 'i',
+);
+
 const SERVICE_TYPE_PATTERNS = [
   [/\b(havan|hawan|homa|yagya|yagna|yajna)\b|हवन|यज्ञ/i, 'havan'],
   [/\b(anushthan|anusthan|sadhana)\b|अनुष्ठान/i, 'anushthan'],
@@ -141,7 +220,16 @@ const WANTS_RECOMMENDATIONS = new RegExp(
   '\\b('
   + 'pandit|panditji|pujari|acharya|'
   + 'suggest|recommend|batao|bta|btao|bataiye|dikhao|dikha|'
-  + 'kaun|kon|kaunsa|konsa|kaunse|konse|best|acha|accha|'
+  /*
+   * 'acha'/'accha' used to be listed here, for "koi acha pandit batao". It is
+   * also the most ordinary adjective in the language, so it fired on plain
+   * problem descriptions: "mere business me kaam ACHA nahi chal raha loss ho
+   * raha hai" was read as an explicit request for pandit cards, which skipped
+   * the offer step entirely and pushed cards at someone who had just described
+   * a loss. A real request for a good pandit still matches on 'pandit',
+   * 'batao', 'suggest' or 'dikhao' in the same sentence.
+   */
+  + 'kaun|kon|kaunsa|konsa|kaunse|konse|best|'
   + 'seva|service|puja karvana|havan karvana|karvana hai|contact'
   + ')\\b|पंडित|सुझाव|बताइये|बताओ', 'i',
 );
@@ -252,7 +340,8 @@ function isVague(hay, { temple, deity, problemCategory }) {
 function extractIntent(text, vocab = {}, memory = {}) {
   const raw = (text || '').trim();
   const hay = norm(raw);
-  const language = detectLanguage(raw);
+  // An Indic greeting overrides the marker count — see INDIC_GREETING.
+  const language = INDIC_GREETING.test(raw) ? 'hinglish' : detectLanguage(raw);
   const safety = safetyCheck(raw);
 
   const temple = bestMatch(hay, vocab.temples, (t) => t.name);
@@ -267,15 +356,33 @@ function extractIntent(text, vocab = {}, memory = {}) {
   /* Category guess from the taxonomy's own example phrases. This is a cheap
      pre-filter, not the answer — retrieval decides. But when someone types a
      phrase almost verbatim from the KB it is worth a strong metadata boost. */
+  const hayWords = new Set(hay.split(' '));
   let problemCategory = null;
   let bestOverlap = 0;
+  let bestSpecificity = 0;
   for (const cat of vocab.categories || []) {
     for (const phrase of cat.examplePhrases || []) {
-      const words = norm(phrase).split(' ').filter((w) => w.length > 3);
+      const words = phraseSignal(phrase);
       if (!words.length) continue;
-      const hits = words.filter((w) => hay.includes(w)).length / words.length;
-      if (hits > bestOverlap && hits >= 0.5) {
+      const matched = words.filter((w) => hayWords.has(w));
+      const hits = matched.length / words.length;
+      if (hits < 0.5) continue;
+      /*
+       * Ties are common and were being broken by whatever order the rows came
+       * back in. "ghar me kalesh h" matched ghar-mein-kalesh's "Roz kalesh
+       * rehta hai" (kalesh of kalesh+rehta) and family-illness's own phrase at
+       * exactly 0.5 each, and family-illness won — so a household-conflict
+       * question was answered about recurring illness, and matched to the
+       * services for it.
+       *
+       * Broken on total matched characters: the longer word is the more
+       * distinctive one. "kalesh" (6) beats "ghar" (4), which is the right
+       * answer and the reason the tie existed at all.
+       */
+      const specificity = matched.reduce((n, w) => n + w.length, 0);
+      if (hits > bestOverlap || (hits === bestOverlap && specificity > bestSpecificity)) {
         bestOverlap = hits;
+        bestSpecificity = specificity;
         problemCategory = cat.slug;
       }
     }
@@ -309,6 +416,7 @@ function extractIntent(text, vocab = {}, memory = {}) {
     // A bare "haan" — or several reinforcing words like "ha please karo" —
     // answering our offer.
     isAffirmative: isPureAffirmative(raw),
+    isGreeting: isGreetingOnly(raw),
   };
 
   return mergeMemory(intent, memory);
@@ -414,6 +522,23 @@ function needsClarification(intent, retrieval, opts = {}) {
       : 'Aap kis cheez ke liye puja dekh rahe hain — business, career, health, vivah, ghar ki shanti, ya koi aur samasya?';
   }
 
+  /*
+   * The taxonomy already recognised this problem, so there is nothing to ask.
+   *
+   * The confidence gate below is a RETRIEVAL score, and retrieval scores badly
+   * on the short SMS-style Hinglish people actually type — "ghar me kalesh h",
+   * "job nhi lg rhi", "shadi nhi hori" were every one of them answered with
+   * "Thoda aur bataiye" while the category pre-filter had already matched them
+   * to ghar-mein-kalesh, job-problems and marriage-delays against the
+   * taxonomy's own example phrases. Asking someone to restate a problem the
+   * system has already identified is the loop this function exists to prevent.
+   *
+   * Safe because the pre-filter now scores on meaning rather than grammar:
+   * Hinglish filler is stripped before the overlap is computed, so "pata nahi
+   * kya ho raha hai" still matches nothing at all.
+   */
+  if (intent.problemCategory) return null;
+
   if (retrieval && !retrieval.shouldRecommend) {
     return intent.language === 'en'
       ? 'Could you tell me a little more about what has been happening?'
@@ -445,6 +570,7 @@ function searchText(message, memory = {}) {
 }
 
 module.exports = {
+  isGreetingOnly,
   extractIntent,
   detectLanguage,
   safetyCheck,
