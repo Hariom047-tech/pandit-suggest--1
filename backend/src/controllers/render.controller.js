@@ -126,7 +126,12 @@ async function homeBootstrap() {
     // client primes it under that path — a payload that merely resembled the
     // endpoint would desync the moment either side changed.
     data: { homeHero, siteImages, services: { data: services, meta: { total: services.length } } },
-    preload: homeHero.map((h) => h.image_url),
+    // { url, sizes } rather than a bare URL: injectBootstrap turns this into
+    // a preload of the AVIF ladder, and `sizes` MUST be character-for-
+    // character what the component renders, or the browser preloads one rung
+    // and paints another. Mirrors SIZES.heroCircle in
+    // frontend/app/src/lib/img.ts, which HeroAstrotalk passes to <Img>.
+    preload: homeHero.map((h) => ({ url: h.image_url, sizes: '(max-width: 760px) 160px, 280px' })),
   };
 }
 
@@ -141,13 +146,75 @@ async function homeBootstrap() {
  * they are far larger than a hero URL — inlining them would slow down the
  * very HTML the hero is waiting on.
  */
-function directoryBootstrap(heroSlot) {
+function directoryBootstrap(heroSlot, heroSizes = null) {
   return async () => {
     const siteImages = await siteImagesRepo.getPublicMap();
+    const url = siteImages[heroSlot]?.url;
     return {
       data: { siteImages },
-      preload: [siteImages[heroSlot]?.url],
+      // A slot whose page still renders a plain <img> passes no `sizes`, and
+      // injectBootstrap falls back to preloading the master — which is the
+      // right thing there, because the master is exactly what that page
+      // fetches. Only a page whose hero went through <Img> gets the ladder
+      // form, so the preload can never disagree with the render.
+      preload: [heroSizes ? { url, sizes: heroSizes } : url],
     };
+  };
+}
+
+/**
+ * /services embeds its own catalogue, unlike the other two directories.
+ *
+ * directoryBootstrap's comment above explains why a listing is normally NOT
+ * inlined, and that reasoning still holds for /pandits and /temples: their
+ * rows are paginated, filtered server-side, and far larger than the page they
+ * would be delaying. /services is the one directory where none of that is
+ * true. It is a fixed catalogue of ~26 rows, the page loads all of them at
+ * once and filters client-side (Services.tsx `filtered`), and since
+ * services.repository's LIST_SELECT was narrowed to the card projection the
+ * whole thing is a fraction of what it was.
+ *
+ * What this buys is the reason Phase 2 exists at all. The card images could
+ * not begin downloading until the end of a strictly serial chain — HTML, then
+ * the JS bundle, then GET /api/services, and only THEN were 26 image URLs
+ * known. Every card image started roughly a second into the page load, no
+ * matter how small it had become. With the rows already in the HTML, React's
+ * first render has them and the images start with it.
+ *
+ * Primed under "/services" because that is the exact path useServices() asks
+ * for (hooks/useData.ts) — the same contract homeBootstrap already relies on,
+ * and the reason the shape here must stay identical to the endpoint's own
+ * body rather than merely resembling it.
+ */
+async function servicesListBootstrap() {
+  const [siteImages, services, serviceCategories] = await Promise.all([
+    siteImagesRepo.getPublicMap(),
+    servicesRepo.list({}),
+    servicesRepo.homeCategories(),
+  ]);
+  return {
+    data: {
+      siteImages,
+      services: { data: services, meta: { total: services.length } },
+      // The "Most Booked" strip. Embedded for LAYOUT, not weight: it is four
+      // rows, but it renders a ~170px-tall section directly above the main
+      // catalogue, and arriving late as its own request meant that section
+      // appeared about a second in and shoved everything below it down the
+      // page. Measured at 0.383 CLS on a phone — a single shift, and on its
+      // own more than three times Google's 0.1 "good" threshold. In the
+      // bootstrap it is part of the first render, so nothing moves.
+      serviceCategories,
+    },
+    // Only the hero. The cards below it are lazy-loaded and far enough down
+    // that preloading them would compete with the one image the visitor is
+    // actually looking at. Mirrors SIZES.pageHero in
+    // frontend/app/src/lib/img.ts — Services.tsx renders this slot through
+    // <Img> with exactly that value, and a preload that disagrees fetches a
+    // rung the render then ignores.
+    preload: [{
+      url: siteImages['services.hero']?.url,
+      sizes: '(max-width: 768px) 200px, (max-width: 1024px) 260px, 320px',
+    }],
   };
 }
 
@@ -253,7 +320,7 @@ const servicesList = withShell(
       }),
     };
   },
-  directoryBootstrap('services.hero'),
+  servicesListBootstrap,
 );
 
 const templesList = withShell(
@@ -314,6 +381,31 @@ const onlineHavan = withShell(async () => ({
     faqs: ONLINE_HAVAN.FAQS,
   }),
 }));
+/**
+ * /online-havan/pandits — who will actually perform it, which is where that
+ * page's "Talk to a Pandit Ji" leads. `online: true` is the pandit's own
+ * profile-level opt-in (pandits.accepts_online), the same rule the React page
+ * filters on, so the noscript list and the rendered grid name the same people.
+ */
+const onlinePandits = withShell(async () => {
+  const { data } = await panditsRepo.list({ page: 1, perPage: LIST_CAP, online: true });
+  return {
+    ...seoMeta.onlinePanditsMeta(data),
+    article: linkListArticle({
+      h1: 'Pandit Jis available for online puja & havan',
+      intro: 'Verified Pandit Jis who perform puja and havan for devotees who cannot be present — '
+        + 'your sankalp taken at the kund, with you on a live call.',
+      links: data.map((r) => ({
+        href: `${publicSiteUrl}/pandits/${r.slug}`,
+        label: r.name,
+        note: [r.city, r.state].filter(Boolean).join(', '),
+      })),
+      footerNote: 'You speak to the Pandit Ji directly on WhatsApp or call. Nothing is booked through '
+        + 'PanditSuggest and no commission is taken on your puja.',
+    }),
+  };
+});
+
 const howItWorks = withShell(async () => seoMeta.howItWorksMeta());
 
 // The six static pages and the per-service pandit list, which until now were
@@ -360,4 +452,5 @@ module.exports = {
   servicesList, templesList, panditsList,
   aiRecommender, howItWorks, onlineHavan,
   blog, about, contact, templeMap, privacy, terms, servicePandits,
+  onlinePandits,
 };

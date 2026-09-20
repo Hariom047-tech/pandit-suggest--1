@@ -67,7 +67,7 @@ async function countTrusted() {
   return rows[0].total;
 }
 
-async function list({ q, city, service, lang, minExp, minRating, verified, sort, page, perPage, market }) {
+async function list({ q, city, service, lang, minExp, minRating, verified, online, sort, page, perPage, market }) {
   const where = ['u.status = \'active\'', 'p.deleted_at IS NULL', 'u.deleted_at IS NULL', 'p.is_paused = FALSE'];
   const params = [];
 
@@ -93,6 +93,13 @@ async function list({ q, city, service, lang, minExp, minRating, verified, sort,
   if (minExp) { params.push(minExp); where.push(`p.experience_years >= $${params.length}`); }
   if (minRating) { params.push(minRating); where.push(`p.avg_rating >= $${params.length}`); }
   if (verified === true || verified === 'true') where.push("p.verification_status = 'verified'");
+  // The pandit's own profile-level opt-in to remote work — the coarse flag
+  // described in db/07-online-puja.sql, NOT pandit_services.offers_online
+  // (which is per ritual and is what forServiceOnline() below gates on).
+  // This filter answers "who works online at all", which is the question
+  // /online-havan/pandits asks; narrowing that to one ritual is the
+  // `service` filter above, applied on top.
+  if (online === true || online === 'true') where.push('p.accepts_online = TRUE');
   const marketCond = marketCondition(params, market);
   if (marketCond) where.push(marketCond);
 

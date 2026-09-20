@@ -20,6 +20,7 @@ const Services = lazy(() => import("./pages/Services"));
 const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
 const ServicePandits = lazy(() => import("./pages/ServicePandits"));
 const OnlineHavan = lazy(() => import("./pages/OnlineHavan"));
+const OnlinePandits = lazy(() => import("./pages/OnlinePandits"));
 const TempleMap = lazy(() => import("./pages/TempleMap"));
 const AiRecommender = lazy(() => import("./pages/AiRecommender"));
 const Blog = lazy(() => import("./pages/Blog"));
@@ -122,6 +123,9 @@ export default function App() {
               {/* Reached from the "Online puja / havan available" card on a
                   service page and from the Online filter on /services. */}
               <Route path="online-havan" element={<OnlineHavan />} />
+              {/* Where that page's "Talk to a Pandit Ji" lands: the Pandit
+                  Jis who work remotely, not the services catalogue again. */}
+              <Route path="online-havan/pandits" element={<OnlinePandits />} />
               <Route path="search" element={<Search />} />
               <Route path="temple-map" element={<TempleRoute><TempleMap /></TempleRoute>} />
               <Route path="ai-recommender" element={<AiRecommender />} />

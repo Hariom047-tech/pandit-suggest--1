@@ -25,6 +25,50 @@ const BASE_SELECT = `
   FROM services s JOIN service_categories sc ON sc.id = s.category_id
 `;
 
+/**
+ * The catalogue projection — what a LISTING needs, and nothing else.
+ *
+ * BASE_SELECT above returns the whole service document, which is right for
+ * one service on its own page and very wrong for 26 of them at once. Measured
+ * on production, GET /api/services was 367KB, and the fields a card cannot
+ * render accounted for almost all of it:
+ *
+ *   content_hi  118KB   the full Hindi document, of which a card reads .name
+ *   faqs         23KB   detail page only
+ *   process      21KB   detail page only
+ *   benefits     19KB   detail page only
+ *   samagri      16KB   detail page only
+ *
+ * Those are not merely unused by the cards — normService() in
+ * frontend/app/src/lib/normalize.ts DISCARDS benefits, process, faqs,
+ * meta_title, meta_description, recommended_muhurat and recommended_tithi
+ * outright, so no caller of this list could read them even if it wanted to.
+ * ServiceDetail.tsx gets every one of them from getBySlug() below, which is
+ * unchanged and still returns the full document.
+ *
+ * The 367KB mattered twice over: it sat on the critical path between the JS
+ * bundle and the first card image URL on /services, and the homepage inlines
+ * this exact payload into its HTML (render.controller.js homeBootstrap),
+ * which is why that document was 384KB of markup.
+ *
+ * content_hi is narrowed rather than dropped: `hi.name` is what makes a card
+ * read Hindi to a Hindi reader, and shortDescription/description back the tag
+ * and blurb. Those three are the only content_hi keys anything outside
+ * ServiceDetail.tsx reads.
+ */
+const LIST_SELECT = `
+  SELECT s.id, s.slug, s.name, s.icon_name AS icon, sc.slug AS cat, s.estimated_duration AS dur,
+         s.description AS desc, s.short_description, s.is_popular, s.image_url,
+         s.is_online_available, s.online_note, s.display_order,
+         CASE WHEN s.content_hi IS NULL THEN NULL ELSE jsonb_build_object(
+           'name',             s.content_hi->'name',
+           'shortDescription', s.content_hi->'shortDescription',
+           'description',      s.content_hi->'description'
+         ) END AS content_hi,
+         (SELECT COUNT(*) FROM pandit_services ps WHERE ps.service_id = s.id AND ps.is_active = TRUE)::int AS pandit_count
+  FROM services s JOIN service_categories sc ON sc.id = s.category_id
+`;
+
 async function list({ q, cat, online }) {
   const where = ['s.is_active = TRUE'];
   const params = [];
@@ -34,7 +78,7 @@ async function list({ q, cat, online }) {
   if (online === 'true' || online === true) where.push('s.is_online_available = TRUE');
 
   const whereSql = `WHERE ${where.join(' AND ')}`;
-  const { rows } = await query(`${BASE_SELECT} ${whereSql} ORDER BY s.name`, params);
+  const { rows } = await query(`${LIST_SELECT} ${whereSql} ORDER BY s.name`, params);
   return rows;
 }
 

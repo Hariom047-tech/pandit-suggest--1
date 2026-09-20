@@ -93,8 +93,15 @@ export default function OnlineHavan() {
     [services, fromService],
   );
 
-  /** Back to the pandits for the puja they came from, or the online list. */
-  const panditsHref = fromService ? `/services/${fromService}/pandits` : "/services?online=1";
+  /** Every "Talk to a Pandit Ji" on this page goes to the Pandit Jis who
+   *  actually work remotely (/online-havan/pandits), carrying the puja the
+   *  devotee arrived with so that listing opens already narrowed to it.
+   *  It used to be the services grid (`/services?online=1`) or that puja's
+   *  full pandit list — both of which answer "which puja?" to a reader who
+   *  has just spent the whole page deciding that, and is now asking who. */
+  const panditsHref = fromService
+    ? `/online-havan/pandits?service=${fromService}`
+    : "/online-havan/pandits";
 
   useStructuredData([
     organizationSchema(),

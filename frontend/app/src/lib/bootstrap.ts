@@ -31,6 +31,8 @@ interface BootstrapPayload {
   siteImages?: unknown;
   /** GET /api/services — the homepage service tiles. */
   services?: unknown;
+  /** GET /api/services/categories — the /services "Most Booked" strip. */
+  serviceCategories?: unknown;
 }
 
 declare global {
@@ -53,6 +55,7 @@ function hydrate() {
   if (payload.homeHero) primeCache("/home-hero", payload.homeHero);
   if (payload.siteImages) primeCache("/site-images", payload.siteImages);
   if (payload.services) primeCache("/services", payload.services);
+  if (payload.serviceCategories) primeCache("/services/categories", payload.serviceCategories);
 }
 
 hydrate();

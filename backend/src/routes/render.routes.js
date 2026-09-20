@@ -21,6 +21,7 @@ router.get('/_render/pandits-list', asyncHandler(ctrl.panditsList));
 router.get('/_render/ai-recommender', asyncHandler(ctrl.aiRecommender));
 router.get('/_render/how-it-works', asyncHandler(ctrl.howItWorks));
 router.get('/_render/online-havan', asyncHandler(ctrl.onlineHavan));
+router.get('/_render/online-havan/pandits', asyncHandler(ctrl.onlinePandits));
 router.get('/_render/blog', asyncHandler(ctrl.blog));
 router.get('/_render/about', asyncHandler(ctrl.about));
 router.get('/_render/contact', asyncHandler(ctrl.contact));

@@ -76,6 +76,10 @@ const LEAD_REJECTION = Object.freeze({
 const SOURCE_SURFACE_MAP = {
   home: 'HOME',
   pandit_directory: 'PANDIT_DIRECTORY',
+  // /online-havan/pandits — a directory listing like the main one, narrowed
+  // to the pandits who work remotely. Unmapped it would fall into OTHER,
+  // which is where a surface's leads go to stop being countable.
+  online_pandits: 'PANDIT_DIRECTORY',
   temple_detail: 'TEMPLE_DETAIL',
   service_detail: 'SERVICE_DETAIL',
   search: 'SEARCH',

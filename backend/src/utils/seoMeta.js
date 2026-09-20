@@ -632,9 +632,42 @@ function servicePanditsMeta(service) {
   };
 }
 
+/** Mirrors OnlinePandits.tsx's <Seo>/useStructuredData — /online-havan/pandits,
+ *  where the "Talk to a Pandit Ji" CTA on /online-havan lands.
+ *  @param {{slug: string, name: string}[]} [rows] the pandits the page lists
+ *  (accepts_online). Empty makes it noindex, the same rule servicePanditsMeta
+ *  uses: a listing with nobody on it is a thin page and belongs behind
+ *  /online-havan, not beside it in the index. */
+function onlinePanditsMeta(rows = []) {
+  const path = '/online-havan/pandits';
+  const title = 'Pandit Jis available for online puja & havan';
+  const description = 'Verified Pandit Jis who perform puja and havan for devotees who cannot be present '
+    + '— your sankalp taken at the kund, on a live call. Speak to them directly on WhatsApp or call; '
+    + 'PanditSuggest takes no commission.';
+  return {
+    title: withSiteName(title), description, canonicalPath: path, ogImage: DEFAULT_OG_IMAGE,
+    noindex: rows.length === 0,
+    structuredData: [
+      organizationSchema(), websiteSchema(),
+      webPageSchema({ path, name: title }),
+      breadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: 'Services', path: '/services' },
+        { name: 'Online Havan', path: '/online-havan' },
+        { name: 'Pandits', path },
+      ]),
+      ...(rows.length ? [itemListSchema({
+        path,
+        name: 'Pandits available for online puja & havan',
+        items: rows.map((r) => ({ name: r.name, path: `/pandits/${r.slug}` })),
+      })] : []),
+    ],
+  };
+}
+
 module.exports = {
   homeMeta, templeMeta, serviceMeta, panditMeta, absoluteUrl,
   servicesMeta, templesMeta, panditsMeta, aiRecommenderMeta, howItWorksMeta,
-  onlineHavanMeta,
+  onlineHavanMeta, onlinePanditsMeta,
   blogMeta, aboutMeta, contactMeta, templeMapMeta, legalMeta, servicePanditsMeta,
 };

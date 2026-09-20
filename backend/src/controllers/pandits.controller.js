@@ -59,7 +59,7 @@ async function count(req, res) {
  *  one batch, or a city/temple filter silently looks near-empty. */
 async function list(req, res) {
   const paging = readPaging(req.query, 12, 1000);
-  const { city, service, lang, minExp, minRating, verified, sort, q } = req.query;
+  const { city, service, lang, minExp, minRating, verified, online, sort, q } = req.query;
   const { market } = browsingMarketFor(req, typeof req.query.country === 'string' ? req.query.country : null);
   const { data, total } = await repo.list({
     q,
@@ -69,6 +69,8 @@ async function list(req, res) {
     minExp: minExp ? parseInt(minExp, 10) : undefined,
     minRating: minRating ? parseFloat(minRating) : undefined,
     verified,
+    // ?online=1 — only pandits who have opted in to performing remotely.
+    online: online === '1' || online === 'true',
     sort,
     page: paging.page,
     perPage: paging.perPage,

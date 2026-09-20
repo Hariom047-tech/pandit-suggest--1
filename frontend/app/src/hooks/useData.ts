@@ -227,6 +227,9 @@ export interface PanditFilters {
   minExp?: number;
   minRating?: number;
   verified?: boolean;
+  /** Only pandits who have opted in to performing rituals remotely
+   *  (pandits.accepts_online) — what /online-havan/pandits lists. */
+  online?: boolean;
   tier?: string;
   sort?: string;
   page?: number;

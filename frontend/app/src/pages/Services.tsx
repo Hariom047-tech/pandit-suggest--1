@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from "react";
+import { Img } from "../components/ui/Img";
+import { SIZES } from "../lib/img";
 import { Link, useSearchParams } from "react-router-dom";
 import { Icon } from "../lib/icons";
 import { useServices, useServiceCategories } from "../hooks/useData";
@@ -163,13 +165,26 @@ export default function Services() {
                     <div className="sp-hero__check"><Icon name="check" size={14} /></div>
                     {t("services.heroCheck3")}
                   </li>
+                  <li>
+                    <div className="sp-hero__check"><Icon name="check" size={14} /></div>
+                    {t("services.heroCheck4")}
+                  </li>
                 </ul>
               </div>
               {/* The glow is a halo painted behind the photo — with no photo
                   to sit behind, the whole block is dropped. */}
               {heroImg && (
                 <div className="sp-hero__img-wrap">
-                  <img src={heroImg} alt={siteImg.alt("services.hero", "Pandit performing puja")} className="sp-hero__img" />
+                  {/* fetchPriority high + no lazy: this is the page's LCP
+                      candidate, and the server already preloads the matching
+                      AVIF rung (render.controller.js servicesList). */}
+                  <Img
+                    src={heroImg}
+                    alt={siteImg.alt("services.hero", "Pandit performing puja")}
+                    className="sp-hero__img"
+                    sizes={SIZES.pageHero}
+                    priority
+                  />
                   <div className="sp-hero__glow" />
                 </div>
               )}
@@ -196,7 +211,9 @@ export default function Services() {
                   onClick={() => selectCategory(mb.cat)}
                   aria-pressed={categoryFilter === mb.cat}
                 >
-                  <img src={mb.img} alt={mb.label} className="sp-booked-card__img" loading="lazy" />
+                  {/* All four sit above the fold on a desktop viewport and
+                      were measured starting late because of loading="lazy". */}
+                  <Img src={mb.img} alt={mb.label} className="sp-booked-card__img" sizes={SIZES.serviceCard} priority />
                   <div className="sp-booked-card__overlay" />
                   <span className="sp-booked-card__badge">⭐ {t("services.popular")}</span>
                   <div className="sp-booked-card__bottom">
@@ -268,7 +285,7 @@ export default function Services() {
 
             {filtered.length ? (
               <div className="sp-all-grid">
-                {filtered.map((s) => (
+                {filtered.map((s, i) => (
                   <Link
                     to={`/services/${s.id}`}
                     className="sp-all-card"
@@ -278,11 +295,15 @@ export default function Services() {
                         the card renders text on its gradient overlay rather
                         than a broken <img>. */}
                     {(s.img ? s.img.replace('.jpg', '_new.jpg') : serviceFallback(s.name)) && (
-                      <img
+                      <Img
                         src={s.img ? s.img.replace('.jpg', '_new.jpg') : serviceFallback(s.name)}
                         alt={svcName(s)}
                         className="sp-all-card__img"
-                        loading="lazy"
+                        sizes={SIZES.serviceCard}
+                        /* The grid is 4 columns on desktop and 2 on a phone,
+                           so the first four cards are the most that can be
+                           on screen at once — beyond that lazy is right. */
+                        priority={i < 4}
                         onError={(e) => {
                           const fb = serviceFallback(s.name);
                           if (fb) (e.target as HTMLImageElement).src = fb;
