@@ -115,7 +115,10 @@ export default function Contact() {
             <div className="card card-pad">
               <h3 style={{ fontSize: "1.16rem" }}>{t("contact.arePandit")}</h3>
               <p className="muted" style={{ marginTop: 8 }}>{t("contact.arePanditText")}</p>
-              <Link className="btn btn-gold btn-block btn-sm" to="/dashboard" style={{ marginTop: 14 }}>{t("contact.openDashboard")}</Link>
+              {/* /pandit-login, not /dashboard — see the note in Footer.tsx's SUPPORT list.
+                  This card is addressed to pandits ("Aap Pandit ji hain?"), and
+                  /dashboard is the devotee's own account page. */}
+              <Link className="btn btn-gold btn-block btn-sm" to="/pandit-login" style={{ marginTop: 14 }}>{t("contact.openDashboard")}</Link>
             </div>
             <div className="card card-pad">
               <h3 style={{ fontSize: "1.16rem" }}>{t("contact.templeTrust")}</h3>

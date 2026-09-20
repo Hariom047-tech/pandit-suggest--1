@@ -4,6 +4,8 @@ import { Icon } from "../../lib/icons";
 import { usePandits, useStats, useHomeHero, usePanditCount } from "../../hooks/useData";
 import { normPandits } from "../../lib/normalize";
 import { CountUp } from "../ui/CountUp";
+import { Img } from "../ui/Img";
+import { SIZES, rungAtLeast } from "../../lib/img";
 import { useLang } from "../../lib/i18n";
 import "./HeroAstrotalk.css";
 import "../ui/DataState.css";
@@ -100,8 +102,19 @@ export function HeroAstrotalk() {
               <span className="hero-astro__badge-dot" />
               {trustedLabel ? `${trustedLabel} ` : ""}{t("home.heroBadge")}
               <div className="hero-astro__badge-avatars">
+                {/* ~26px each. Too small for srcset to be worth the markup —
+                    every rung overshoots — so they take the narrowest rung
+                    directly: 14KB in place of the 274KB master. */}
                 {circles.map((c, i) => (
-                  <img key={c.key} src={c.src} alt="" style={{ zIndex: 3 - i }} />
+                  <img
+                    key={c.key}
+                    src={rungAtLeast(c.src, 320)}
+                    alt=""
+                    /* Measured at 113px from the top of the document — above
+                       the fold on every viewport, so never lazy. */
+                    decoding="async"
+                    style={{ zIndex: 3 - i }}
+                  />
                 ))}
               </div>
             </div>
@@ -137,7 +150,19 @@ export function HeroAstrotalk() {
                     const pos = order[i]; // 0: center, 1: left, 2: right
                     return (
                       <div key={c.key} className={`hero-astro__circle pos-${pos}`}>
-                        <img src={c.src} alt={c.alt} fetchPriority={pos === 0 ? "high" : undefined} />
+                        <Img
+                          src={c.src}
+                          alt={c.alt}
+                          sizes={SIZES.heroCircle}
+                          /* All three are on screen immediately, so all three
+                             are eager; only the centre one competes for high
+                             priority. "auto" rather than undefined on the
+                             sides is load-bearing — <Img> reads an absent
+                             fetchPriority as "fall back to priority", which
+                             would promote all three. */
+                          priority
+                          fetchPriority={pos === 0 ? "high" : "auto"}
+                        />
                       </div>
                     );
                   })

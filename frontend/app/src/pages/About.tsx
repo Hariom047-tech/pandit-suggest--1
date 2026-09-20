@@ -178,7 +178,11 @@ export default function About() {
               {hasTemples && (
                 <Link className="btn btn-outline btn-lg" to="/temples">{t("about.exploreTemples")}</Link>
               )}
-              <Link className="btn btn-outline btn-lg" to="/dashboard">{t("about.listAsPandit")}</Link>
+              {/* "List as a Pandit" -> the pandit sign-in/registration screen.
+                  It pointed at /dashboard, which is the DEVOTEE's account page,
+                  so a pandit wanting to join landed in a visitor's profile.
+                  Same fix as Footer.tsx and Contact.tsx. */}
+              <Link className="btn btn-outline btn-lg" to="/pandit-login">{t("about.listAsPandit")}</Link>
             </div>
           </div>
         </div>

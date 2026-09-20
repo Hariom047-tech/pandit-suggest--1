@@ -95,6 +95,25 @@
   color: var(--gold-deep);
 }
 
+/* Hindi headline: two lines, same as English's own line count intent.
+   The <br/> in HeroAstrotalk.tsx already splits this into two lines
+   ("भारत का सबसे भरोसेमंद" / "पंडित कनेक्शन प्लेटफ़ॉर्म"), but Devanagari sets
+   much wider than the Latin copy at the same size — the second line ran
+   ~674px against the 627px text column, so each half wrapped again and the
+   headline landed on four lines. Sized so the longest line fits the column
+   with headroom to spare, at every width where the hero is still two
+   columns.
+
+   Scoped to min-width 901px on purpose: below that the grid collapses to a
+   single full-width column (the heading has ~850px and fits unaided), and
+   the 600px rule's 1.85rem mobile size would otherwise lose to this
+   higher-specificity :lang() selector. English is untouched. */
+@media (min-width: 901px) {
+  :root:lang(hi) .hero-astro__title {
+    font-size: clamp(2.2rem, 4.4vw, 3.3rem);
+  }
+}
+
 .hero-astro__list {
   list-style: none;
   padding: 0;
@@ -163,15 +182,24 @@
   border: 4px solid #fff;
   background: var(--cream);
   box-shadow: 0 16px 40px rgba(0,0,0,0.12);
-  /* Was a framer-motion `layout` animation (Phase 12, docs/SEO_ARCHITECTURE.md)
-     — the exact same position/size interpolation as a plain CSS transition
-     on the properties .pos-0/1/2 actually change, at a fraction of the JS
-     cost, and it's the one thing keeping framer-motion in Home's eagerly-
-     loaded bundle. cubic-bezier here approximates the original spring's
-     slight overshoot rather than a flat ease. */
-  transition: top .5s cubic-bezier(.34, 1.56, .64, 1), left .5s cubic-bezier(.34, 1.56, .64, 1),
-    margin .5s cubic-bezier(.34, 1.56, .64, 1), width .5s cubic-bezier(.34, 1.56, .64, 1),
-    height .5s cubic-bezier(.34, 1.56, .64, 1), border-color .3s;
+  /* Was a framer-motion `layout` animation (Phase 12, docs/SEO_ARCHITECTURE.md),
+     then a CSS transition over top/left/margin/width/height — the properties
+     .pos-0/1/2 used to differ by. Those are all LAYOUT properties, so every
+     rotation (one every 3.5s, forever) was a real geometry change, and the
+     browser counted each one as an unexpected layout shift: measured at ~0.09
+     CLS accumulating on the homepage, on top of whatever else the page did.
+     A carousel the visitor never asked to move should cost nothing.
+
+     So every card is now the SAME box — the .pos-0 box — and the three slots
+     differ only by `transform`. A transform is composited, never re-lays-out,
+     and contributes exactly zero to CLS. Each breakpoint below therefore sets
+     the shared box once and gives each slot a translate + scale that
+     reproduces the geometry it used to have literally: the translate is the
+     distance between that slot's old CENTRE and pos-0's, and the scale is the
+     ratio of their old widths. Nothing about the look changed.
+
+     cubic-bezier approximates the original spring's slight overshoot. */
+  transition: transform .5s cubic-bezier(.34, 1.56, .64, 1), border-color .3s, opacity .3s;
 }
 
 .hero-astro__circle img {
@@ -180,32 +208,34 @@
   object-fit: cover;
 }
 
-/* Position 0: Center (Active) */
-.pos-0 {
+/* The one box all three slots share, centred on the container. Previously
+   each .pos-* declared its own width/height/margins; see the transition note
+   above for why they no longer may. 170/280 = 0.6071, and a side card's old
+   centre sat 185px either side of the middle. */
+.hero-astro__circle {
   width: 280px;
   height: 280px;
   margin-top: -140px;
   margin-left: -140px;
+}
+
+/* Position 0: Center (Active) */
+.pos-0 {
+  transform: translateX(0) scale(1);
   z-index: 3;
   border-color: var(--gold);
 }
 
 /* Position 1: Left */
 .pos-1 {
-  width: 170px;
-  height: 170px;
-  margin-top: -85px; /* Vertically centered relative to middle */
-  margin-left: -270px; /* Shifted left */
+  transform: translateX(-185px) scale(0.6071);
   z-index: 2;
   border-color: #fff;
 }
 
 /* Position 2: Right */
 .pos-2 {
-  width: 170px;
-  height: 170px;
-  margin-top: -85px; /* Vertically centered relative to middle */
-  margin-left: 100px; /* Shifted right */
+  transform: translateX(185px) scale(0.6071);
   z-index: 2; /* Both side images can have z-index 2 */
   border-color: #fff;
 }
@@ -335,18 +365,16 @@
     margin-top: 20px;
   }
   
-  .pos-0 {
+  /* Old centres relative to pos-0's: left slot (-100, -30) at 140/200 = 0.70,
+     right slot (+105, +65) at 130/200 = 0.65. This tier is deliberately
+     asymmetric and stays that way. */
+  .hero-astro__circle {
     width: 200px; height: 200px;
     margin-top: -100px; margin-left: -100px;
   }
-  .pos-1 {
-    width: 140px; height: 140px;
-    margin-top: -100px; margin-left: -170px;
-  }
-  .pos-2 {
-    width: 130px; height: 130px;
-    margin-top: 0px; margin-left: 40px;
-  }
+  .pos-0 { transform: translate(0, 0) scale(1); }
+  .pos-1 { transform: translate(-100px, -30px) scale(0.70); }
+  .pos-2 { transform: translate(105px, 65px) scale(0.65); }
   
   .hero-astro__stats-inner {
     justify-content: center;
@@ -429,24 +457,20 @@
      slots instead of swapping in an overlapping circle stack. */
   .hero-astro__visual { order: 3; margin-top: 4px; }
   .hero-astro__circles { width: 100%; max-width: 100%; height: 232px; margin: 0; }
-  .hero-astro__circle { border-radius: 44px; border-width: 3px; }
-  .pos-0 {
+  /* Squircles, not circles, at this tier. The shared box is pos-0's 152x218;
+     the side cards were 104x150, which is the same 0.70 aspect, so one
+     uniform scale of 104/152 = 0.684 reproduces both exactly. Their old
+     centres sat 116px left and 120px right of pos-0's. border-radius is NOT
+     re-declared per slot any more: 46px scaled by 0.684 is 31.5px, which is
+     the 32px the side cards used to ask for. */
+  .hero-astro__circle {
     width: 152px; height: 218px;
     margin-top: -109px; margin-left: -76px;
-    border-radius: 46px;
+    border-radius: 46px; border-width: 3px;
   }
-  .pos-1 {
-    width: 104px; height: 150px;
-    margin-top: -75px; margin-left: -168px;
-    border-radius: 32px;
-    opacity: 0.92;
-  }
-  .pos-2 {
-    width: 104px; height: 150px;
-    margin-top: -75px; margin-left: 68px;
-    border-radius: 32px;
-    opacity: 0.92;
-  }
+  .pos-0 { transform: translateX(0) scale(1); }
+  .pos-1 { transform: translateX(-116px) scale(0.684); opacity: 0.92; }
+  .pos-2 { transform: translateX(120px) scale(0.684); opacity: 0.92; }
 
   .hero-astro__ticker { order: 4; }
 }

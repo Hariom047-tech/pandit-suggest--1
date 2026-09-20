@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { rungAtLeast } from "../../lib/img";
 import { Link, NavLink } from "react-router-dom";
 import { Icon } from "../../lib/icons";
 import { useAuth } from "../../lib/Auth";
@@ -78,7 +79,13 @@ function Brand({ size }: { size?: string }) {
           text. This one said "PanditSuggest Logo", on every page, in the
           most-repeated internal link on the site, and Google used it to
           title pages it could not title any other way. */}
-      <img src={srcOr("brand.logo", BUNDLED_LOGO)} alt="" width={60} height={60} style={{ objectFit: 'contain' }} />
+      {/* rungAtLeast, not <Img>: the logo is a fixed 60px box, so there
+          is nothing for a srcset to choose between — every rung overshoots it.
+          The narrowest rung is simply the right file, and it is 7KB against
+          the 24KB master, on every page, twice (this and the footer). A
+          bundled /assets fallback has no ladder and passes through
+          untouched. */}
+      <img src={rungAtLeast(srcOr("brand.logo", BUNDLED_LOGO), 320)} alt="" width={60} height={60} decoding="async" style={{ objectFit: 'contain' }} />
       <span className="brand-name" style={size ? { fontSize: size } : undefined}>
         Pandit <span>Suggest</span>
       </span>

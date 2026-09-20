@@ -91,6 +91,22 @@ const en = {
     servicesLink: "How online havan works",
     disclaimer: "Benefits are presented as traditional devotional intentions. Nothing on this page is a guaranteed legal, medical or financial outcome, and the mantra count, nyasa and paddhati for any Baglamukhi anushthan must be decided by a qualified upasaka.",
   },
+  /** /online-havan/pandits — the Pandit Jis that page's "Talk to a Pandit Ji"
+   *  now leads to. Only this listing's own chrome; the cards are PanditCard. */
+  onlinePandits: {
+    eyebrow: "Available for online puja",
+    title: "Pandit Jis who perform puja and havan online",
+    titleFor: "Pandit Jis who perform {name} online",
+    sub: "Each of these Pandit Jis performs rituals for devotees who cannot stand at the kund themselves — your sankalp spoken there, with you on the live call. You speak to them yourself on WhatsApp or call: nothing is booked through PanditSuggest and we take no commission on your puja.",
+    count: "{count} Pandit Jis available",
+    countOne: "1 Pandit Ji available",
+    filterLabel: "Filter by puja",
+    allPujas: "All online pujas",
+    back: "How an online havan works",
+    empty: "No Pandit Ji has opted in to online puja yet. Try the full directory — most Pandit Jis will discuss a remote sankalp on a call.",
+    emptyService: "None of the Pandit Jis available online performs {name} yet. Choose another puja above, or see everyone available online.",
+    note: "Availability shown here is each Pandit Ji's own. The date, the vidhi, and whether your ritual suits a remote sankalp are settled with them on the call.",
+  },
   languages: {
     English: "English",
     Hindi: "Hindi",
@@ -423,7 +439,8 @@ const en = {
     heroTitleGold: "across India",
     heroCheck1: "Talk directly — No middlemen, 100% Dakshina goes to Pandit ji",
     heroCheck2: "Every pandit is verified — Video KYC & Vedic qualification audits",
-    heroCheck3: "500+ experienced pandits across 60+ cities, available for all rituals",
+    heroCheck3: "You choose — read the profile, watch the video intro, then call. Nobody is assigned to you",
+    heroCheck4: "The bond stays yours — the pandit ji at your griha pravesh is the one you call for every puja after",
     heroCta: "Find a Pandit",
     filtersTitle: "Filters",
     city: "City",
@@ -479,6 +496,7 @@ const en = {
     heroCheck1: "Complete vidhi with all samagri — nothing for you to arrange",
     heroCheck2: "From griha pravesh to shanti path — every ritual your family needs",
     heroCheck3: "Transparent pricing, no hidden costs — book with complete peace of mind",
+    heroCheck4: "Vidhi as the shastras prescribe, at the right muhurat — not one mantra, not one step left out",
     heroCta: "Book a Service",
     mostBooked: "Most Booked Services",
     popular: "Popular",
@@ -569,7 +587,7 @@ const en = {
     privacyNote: "We never share your details with third parties, and we do not sell contact data.",
     reachUs: "Reach us",
     hours: "+91 97555 59161 (9 AM – 7 PM IST)",
-    cities: "Varanasi · Ujjain · Bengaluru",
+    cities: "Ujjain",
     arePandit: "Aap Pandit ji hain?",
     arePanditText: "Basic listing free hai — hamesha. Profile banao, verification complete karo, devotees seedha contact karenge.",
     openDashboard: "Open Pandit Dashboard",
@@ -600,6 +618,14 @@ const en = {
     pleaseWait: "Please wait...",
     orContinueWith: "or continue with",
     passwordResetSoon: "Password reset coming soon",
+    // The OTP for a phone target is delivered over WhatsApp and nowhere
+    // else (auth.controller.js -> hyperSender.sendWhatsAppOtp), so the
+    // screen says so before the code is requested as well as after —
+    // people were waiting on an SMS that is never sent.
+    otpVerifyHint: "You will receive a 4-digit code for verification",
+    otpWhatsappHint: "Your 4-digit code will arrive on WhatsApp",
+    otpSentWhatsapp: "We have sent a 4-digit code on WhatsApp to {phone}",
+    otpSentToast: "OTP sent on WhatsApp to {phone}",
   },
   enquiry: {
     title: "Send an enquiry",

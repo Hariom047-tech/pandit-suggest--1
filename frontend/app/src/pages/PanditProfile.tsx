@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Icon } from "../lib/icons";
 import { StarRow } from "../components/ui/StarRating";
@@ -96,23 +96,44 @@ export default function PanditProfile() {
     return new Map(rows.map((r) => [r.id, (lang === "hi" ? r.hi?.name : null) || r.name]));
   }, [rawCatalogue, lang]);
 
+  // How many "similar pandits" the grid is asked for is a function of how
+  // many columns it actually has, so the section always ends on a full row
+  // instead of a ragged one: .g-3 is three columns on desktop and
+  // .grid-2up-mobile forces two below 620px (base.css / enhance.css), so
+  // four rows means 12 cards there and 8 on a phone. 620 is the same
+  // breakpoint the CSS switches on, and the same one Home/Temples/
+  // ServiceDetail already watch — keep the three in step if it ever moves.
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 620);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 620);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  const similarLimit = isMobile ? 8 : 12;
+
   // Relevance first (same city or a shared service — and never the profile
   // being viewed), then fair rotation within that relevant band, the same
   // "eligible pool -> rotate" shape as every other marketplace surface.
   const fairScores = useFairRanking();
   const similar = useMemo(() => {
     if (!p) return [];
+    // Plain === is safe here: normPandits trims city at the boundary, so the
+    // hand-entered "Nalkheda " / "Nalkheda" split never reaches this compare.
     const relevant = allPandits.filter(
       (x) => x.id !== p.id && (x.city === p.city || x.services.some((s) => p.services.includes(s))),
     );
-    if (!fairScores) return relevant.slice(0, 4);
-    const bandSize = Math.min(relevant.length, 12);
+    if (!fairScores) return relevant.slice(0, similarLimit);
+    // The band is deliberately wider than what gets shown — that gap is the
+    // rotation. It was 12 for a grid of 4; kept at the same 3x so showing
+    // three times as many cards doesn't quietly turn "rotate within the
+    // eligible pool" into "show the whole pool, sorted".
+    const bandSize = Math.min(relevant.length, similarLimit * 3);
     const band = [...relevant.slice(0, bandSize)].sort((a, b) => {
       const diff = (fairScores.get(b.id) ?? -Infinity) - (fairScores.get(a.id) ?? -Infinity);
       return diff || b.rating - a.rating;
     });
-    return band.slice(0, 4);
-  }, [p, allPandits, fairScores]);
+    return band.slice(0, similarLimit);
+  }, [p, allPandits, fairScores, similarLimit]);
   useReportExposure(similar.map((sp) => sp.id), { enabled: similar.length > 0 });
 
   function copyLink() {
@@ -370,7 +391,7 @@ export default function PanditProfile() {
           <div className="shell">
             <h2 className="section-title section-title--left" style={{ fontSize: "clamp(1.5rem,2.6vw,2rem)", marginBottom: 26 }}>{t("panditProfile.similarPanditsTitle")}</h2>
             <div className="grid g-3 grid-2up-mobile">
-              {similar.slice(0, 12).map((sp, i) => <PanditCard p={sp} key={sp.id} index={i} sourceSurface="similar_pandits" />)}
+              {similar.map((sp, i) => <PanditCard p={sp} key={sp.id} index={i} sourceSurface="similar_pandits" />)}
             </div>
             <div className="text-c" style={{ marginTop: 32 }}>
               <Link className="btn btn-outline" to="/pandits">{t("panditProfile.seeAllPandits")}</Link>

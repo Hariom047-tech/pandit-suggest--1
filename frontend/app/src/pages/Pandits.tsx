@@ -188,6 +188,10 @@ export default function Pandits() {
                   <div className="sp-hero__check"><Icon name="check" size={14} /></div>
                   {t("pandits.heroCheck3")}
                 </li>
+                <li>
+                  <div className="sp-hero__check"><Icon name="check" size={14} /></div>
+                  {t("pandits.heroCheck4")}
+                </li>
               </ul>
             </div>
             {/* The glow is a halo painted behind the photo — with no photo

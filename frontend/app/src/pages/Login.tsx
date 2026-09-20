@@ -9,6 +9,7 @@ import { allCountries } from "../data/countries";
 import { AsYouType, isValidPhoneNumber } from "libphonenumber-js";
 import type { CountryCode } from "libphonenumber-js";
 import { Seo } from "../lib/Seo";
+import { useLang } from "../lib/i18n";
 
 const googleConfigured = Boolean((import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim());
 
@@ -39,6 +40,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const { t } = useLang();
 
   /*
    * Where to land after signing in.
@@ -134,7 +136,7 @@ export default function Login() {
     try {
       await api.post("/auth/otp/request", { target: fullPhone(), targetType: "phone" });
       setOtpSent(true);
-      toast("OTP sent to " + selectedCountry.code + " " + phone);
+      toast(t("login.otpSentToast", { phone: selectedCountry.code + " " + phone }));
     } catch (err: any) {
       setError(err.message || "Could not send OTP. Please try again.");
     } finally {
@@ -263,13 +265,31 @@ export default function Login() {
 
         {/* Content Body */}
         <div style={{ padding: "30px 24px" }}>
-          <p style={{ textAlign: "center", color: "#555", fontSize: "0.95rem", marginBottom: 30, lineHeight: 1.5 }}>
+          <p style={{ textAlign: "center", color: "#555", fontSize: "0.95rem", marginBottom: needsName || otpSent ? 30 : 16, lineHeight: 1.5 }}>
             {needsName
               ? "Number verified! Bas ek aakhri step — apna naam bataiye taaki Pandit ji aapko naam se pukar sakein."
-              : otpSent 
-              ? `We have sent a 4-digit code to ${selectedCountry.code} ${phone}`
-              : "You will receive a 4 digit code for verification"}
+              : otpSent
+              ? t("login.otpSentWhatsapp", { phone: `${selectedCountry.code} ${phone}` })
+              : t("login.otpVerifyHint")}
           </p>
+
+          {/* WhatsApp is the only channel that carries this code — there is no
+              SMS fallback (auth.controller.js sends via hyperSender and 502s
+              if that fails). Saying it in words alone was easy to skim past,
+              so the channel gets its own mark in WhatsApp's own green: a
+              devotee who does not use WhatsApp needs to know that before they
+              sit waiting for a text message that will never arrive. */}
+          {!needsName && !otpSent && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              margin: "0 auto 26px", padding: "8px 14px", width: "fit-content", maxWidth: "100%",
+              background: "#e7f7ed", color: "#0b6b34", borderRadius: 999,
+              fontSize: "0.85rem", fontWeight: 600, lineHeight: 1.4, textAlign: "center",
+            }}>
+              <span style={{ display: "flex", flexShrink: 0 }}><Icon name="whatsapp" size={16} /></span>
+              <span>{t("login.otpWhatsappHint")}</span>
+            </div>
+          )}
 
           {error && (
             <div style={{ padding: "10px", background: "#fef2f2", color: "#991b1b", borderRadius: 8, marginBottom: 20, fontSize: "0.85rem", textAlign: "center" }}>

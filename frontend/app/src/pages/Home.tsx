@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from "react";
+import { Img } from "../components/ui/Img";
+import { SIZES } from "../lib/img";
 import { Link } from "react-router-dom";
 import { HeroAstrotalk } from "../components/hero/HeroAstrotalk";
 import { SacredBackground } from "../components/ui/SacredBackground";
@@ -254,10 +256,10 @@ export default function Home() {
                     "Mark as popular" drives it now, falling back to the first six
                     services so the section is never blank. */}
                 {(featuredServices.length ? featuredServices : services.slice(0, 6))
-                  .map((s) => (
+                  .map((s, i) => (
                     <Link to={`/services/${s.id}`} key={s.id} className="hp-service-tile regular">
                       {serviceTileImg(s) && (
-                        <img src={serviceTileImg(s)} alt={svcName(s)} className="hp-service-tile__img" loading="lazy" />
+                        <Img src={serviceTileImg(s)} alt={svcName(s)} className="hp-service-tile__img" sizes={SIZES.homeTile} priority={i < 3} />
                       )}
                       <div className="hp-service-tile__overlay" />
                       <div className="hp-service-tile__content">
@@ -376,7 +378,7 @@ export default function Home() {
               {onlinePujas.map((s, i) => (
                 <InViewFade className="ohp-puja-card" delay={i * 80} key={s.id}>
                   {s.img
-                    ? <img className="ohp-puja-img" src={s.img} alt={svcName(s)} loading="lazy" />
+                    ? <Img className="ohp-puja-img" src={s.img} alt={svcName(s)} sizes={SIZES.card} loading="lazy" />
                     : <span className="ohp-puja-emoji">{serviceEmoji(s.icon)}</span>}
                   {/* The name gets a fixed three-line box that CENTRES what
                       it holds (see .ohp-puja-name): one-line and three-line
@@ -551,10 +553,11 @@ export default function Home() {
             {trustImg && (
               <div className="hp-trust-art" aria-hidden="true">
                 <div className="hp-trust-art__frame">
-                  <img
+                  <Img
                     src={trustImg}
                     alt=""
                     className="hp-trust-art__img"
+                    sizes="420px"
                     loading="lazy"
                     width={420} height={420}
                   />

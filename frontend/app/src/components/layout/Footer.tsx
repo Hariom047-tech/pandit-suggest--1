@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { rungAtLeast } from "../../lib/img";
 import { siteConfig } from "../../lib/siteConfig";
 import { useMemo, useState, type FormEvent } from "react";
 import { Icon } from "../../lib/icons";
@@ -65,7 +66,14 @@ const COMPANY: [string, string][] = [
 const SUPPORT: [string, string][] = [
   ["/contact#faq", "footer.faq"],
   ["/about#verify", "footer.verificationProcess"],
-  ["/dashboard", "footer.panditDashboard"],
+  /*
+   * /pandit-login, NOT /dashboard. /dashboard is the DEVOTEE's account page —
+   * "My Profile", "My Consultations", "Saved Pandits" — so a pandit tapping
+   * "Pandit Dashboard" here landed in a visitor's account instead of their
+   * own. Header.tsx's NAV_EXTRA already points at the sign-in screen for this
+   * exact reason; the footer and the contact page had been missed.
+   */
+  ["/pandit-login", "footer.panditDashboard"],
 ];
 
 interface FooterLink { href: string; label: string }
@@ -172,7 +180,8 @@ export function Footer() {
         <div className="footer-col footer-col--brand">
           <Link className="brand" to="/" aria-label="PanditSuggest home">
             {/* alt="" — decorative, see the matching note in Header.tsx. */}
-            <img src={srcOr("brand.logo", "/assets/img/logo-header.webp")} alt="" width={60} height={60} style={{ objectFit: 'contain' }} />
+            {/* Same fixed-box reasoning as Header.tsx's Brand. */}
+            <img src={rungAtLeast(srcOr("brand.logo", "/assets/img/logo-header.webp"), 320)} alt="" width={60} height={60} loading="lazy" decoding="async" style={{ objectFit: 'contain' }} />
             <span className="brand-name" style={{ fontSize: "1.3rem" }}>Pandit <span>Suggest</span></span>
           </Link>
           <p className="muted" style={{ marginTop: 14, maxWidth: 330 }}>
