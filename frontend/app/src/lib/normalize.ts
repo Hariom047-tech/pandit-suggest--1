@@ -62,8 +62,17 @@ export function normPandit(p: ApiPandit): Pandit {
     // still honoured for any record that predates content_hi.
     nameHi: (p as any).content_hi?.name || p.name_hi,
     hi: (p as any).content_hi ?? null,
-    city: p.city || "",
-    state: p.state || "",
+    // Trimmed at the boundary, not at each use site. The stored values are
+    // hand-entered and some carry a trailing space — "Nalkheda " and
+    // "Nalkheda" are one town typed twice. Untrimmed they split it in two
+    // everywhere the string is compared or grouped: the city filter lists
+    // it twice (Pandits.tsx builds that list with `new Set`, so each
+    // spelling is its own checkbox with its own partial count), and
+    // "similar pandits" stops matching across the two. One trim here fixes
+    // every such surface at once; the column itself still wants cleaning
+    // (backend/src/db/migrations/0018-trim-user-city.sql).
+    city: (p.city || "").trim(),
+    state: (p.state || "").trim(),
     exp: p.exp ?? p.experience_years ?? 0,
     rating: num(p.rating ?? p.avg_rating),
     reviews: p.review_count ?? p.reviews ?? 0,
