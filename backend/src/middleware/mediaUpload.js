@@ -1,6 +1,6 @@
 const multer = require('multer');
 const mediaStore = require('../services/media/mediaStorage');
-const { optimizeImage } = require('../services/media/imageOptimizer');
+const { optimizeImage, buildVariants } = require('../services/media/imageOptimizer');
 
 /**
  * Factory for entity-scoped media upload middleware.
@@ -78,6 +78,17 @@ function makeMediaUpload(folder, { allowVideo = false, maxMb } = {}) {
         const mimeType = optimized ? optimized.mimeType : req.file.mimetype;
 
         const { filename, key, url } = await mediaStore.saveBuffer(folder, buffer, ext, mimeType);
+
+        // Responsive ladder beside the master (imageOptimizer.buildVariants).
+        // Awaited, not fired-and-forgotten: the admin who just uploaded this
+        // image is usually the first person to load a page showing it, and a
+        // rung that is still encoding would be a 404 inside a <picture>
+        // <source>, which the browser does NOT retry against the fallback.
+        // Costs ~2s on the upload response (measured; see VARIANT_FORMATS on
+        // why effort 2), and cannot fail the upload — buildVariants returns
+        // [] and saveVariants swallows per-rung errors.
+        await mediaStore.saveVariants(folder, filename, await buildVariants(buffer, mimeType));
+
         // filename kept for callers still doing `.urlFor(req.file.filename)`;
         // mediaUrl is the already-resolved URL, S3 or local; storageKey is the
         // raw object key (see db/26-media-storage-keys.sql).
@@ -104,6 +115,9 @@ function makeMediaUpload(folder, { allowVideo = false, maxMb } = {}) {
    *  deleted file renders as a broken element, so the row goes first. */
   function removeFile(mediaUrl) {
     mediaStore.removeByUrl(folder, mediaUrl).catch(() => {});
+    // The ladder is derived from the master's name, so nothing else would
+    // ever clean these up once the row pointing at the master is gone.
+    mediaStore.removeVariantsByUrl(folder, mediaUrl).catch(() => {});
   }
 
   return { handler, urlFor, removeFile, limitMb, isVideo: (m) => Boolean(VIDEO_TYPES[m]) };

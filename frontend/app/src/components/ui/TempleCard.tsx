@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { Img } from "./Img";
+import { SIZES } from "../../lib/img";
 import { useState } from "react";
 import type { Temple } from "../../data/types";
 import { Icon } from "../../lib/icons";
@@ -25,7 +27,7 @@ export function TempleCard({ t, index = 0 }: { t: Temple; index?: number }) {
       style={{ transitionDelay: `${Math.min(index, 6) * 50}ms` }}
     >
       <div className="thumb">
-        <img src={t.img} alt={templeName} loading="lazy" onError={onImgError("temple")} />
+        <Img src={t.img} alt={templeName} sizes={SIZES.card} loading="lazy" onError={onImgError("temple")} />
         <span className="thumb-badge badge-gold">
           <Icon name="user" size={13} /> {t.pandits} {tr("temples.pandits")}
         </span>

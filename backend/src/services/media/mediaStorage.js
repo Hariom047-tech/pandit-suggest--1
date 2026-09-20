@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { variantFilename, VARIANT_WIDTHS, VARIANT_FORMATS } = require('./imageOptimizer');
 
 /**
  * Storage backend for uploaded media (pandit/temple/service/review photos and
@@ -92,6 +93,93 @@ async function saveBuffer(folder, buffer, ext, mimeType) {
   await fs.promises.mkdir(dir, { recursive: true });
   await fs.promises.writeFile(path.join(dir, filename), buffer);
   return { filename, key, url: urlForFilename(folder, filename) };
+}
+
+/**
+ * Writes the responsive ladder for an already-saved master.
+ *
+ * Variants are NOT addressed by the database — they are derived from the
+ * master's filename by convention (see imageOptimizer.variantFilename and
+ * frontend/app/src/lib/img.ts), so nothing here returns a URL anyone needs to
+ * record. The caller supplies the master's filename and the encoded rungs;
+ * this puts each one next to it under the same folder.
+ *
+ * Best-effort by design, and that design is load-bearing: a missing rung is
+ * invisible to a visitor (the browser picks another rung, or the master),
+ * whereas a rejected promise here would fail an admin's upload for something
+ * that is purely an optimization. Every rung is attempted even if an earlier
+ * one fails, and the count of successes is returned for the backfill script's
+ * reporting.
+ *
+ * @param {string} folder
+ * @param {string} masterFilename   e.g. "a1b2c3.webp"
+ * @param {Array<{width:number, ext:string, mimeType:string, buffer:Buffer}>} variants
+ * @returns {Promise<number>} how many rungs were actually written
+ */
+async function saveVariants(folder, masterFilename, variants) {
+  if (!variants?.length) return 0;
+
+  const dir = s3Enabled() ? null : path.join(PUBLIC_ROOT, folder);
+  if (dir) await fs.promises.mkdir(dir, { recursive: true });
+
+  const results = await Promise.all(variants.map(async (v) => {
+    const filename = variantFilename(masterFilename, v.width, v.ext);
+    try {
+      if (s3Enabled()) {
+        const { PutObjectCommand } = require('@aws-sdk/client-s3');
+        await s3Client().send(new PutObjectCommand({
+          Bucket: bucketName(),
+          Key: `${folder}/${filename}`,
+          Body: v.buffer,
+          ContentType: v.mimeType,
+          // Same immutability as the master: the filename encodes both the
+          // random master id and the rung, so these bytes can never change.
+          CacheControl: 'public, max-age=31536000, immutable',
+        }));
+      } else {
+        await fs.promises.writeFile(path.join(dir, filename), v.buffer);
+      }
+      return true;
+    } catch (err) {
+      console.error(`[media] failed to store variant ${folder}/${filename}:`, err.message);
+      return false;
+    }
+  }));
+
+  return results.filter(Boolean).length;
+}
+
+/**
+ * Best-effort removal of every rung belonging to a master URL.
+ *
+ * Called alongside removeByUrl so deleting a photo does not leave its ladder
+ * orphaned in the bucket forever. The rung list is derived, not looked up, so
+ * this deletes exactly the names saveVariants could have written — including
+ * rungs that were skipped for a small source, where the delete is a harmless
+ * no-op on an object that never existed.
+ */
+async function removeVariantsByUrl(folder, mediaUrl) {
+  if (!mediaUrl) return;
+  const masterFilename = path.basename(mediaUrl.split('?')[0]);
+  if (!masterFilename) return;
+
+  const names = [];
+  for (const w of VARIANT_WIDTHS) {
+    for (const fmt of VARIANT_FORMATS) names.push(variantFilename(masterFilename, w, fmt.ext));
+  }
+
+  await Promise.all(names.map(async (filename) => {
+    if (s3Enabled()) {
+      if (!mediaUrl.startsWith(`${cdnBaseUrl()}/${folder}/`)) return;
+      const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+      await s3Client().send(new DeleteObjectCommand({
+        Bucket: bucketName(), Key: `${folder}/${filename}`,
+      })).catch(() => {});
+      return;
+    }
+    if (!mediaUrl.startsWith(`/uploads/${folder}/`)) return;
+    await fs.promises.unlink(path.join(PUBLIC_ROOT, folder, filename)).catch(() => {});
+  }));
 }
 
 /** Best-effort delete. A stray object/file left behind is harmless; failures are swallowed. */
@@ -196,6 +284,7 @@ async function generatePresignedPutUrl(key, mimeType, expiresInSeconds = 300) {
 }
 
 module.exports = {
-  s3Enabled, saveBuffer, removeByUrl, urlForFilename, urlForKey,
-  objectExists, uploadExistingFile, generatePresignedPutUrl, randomFilename,
+  s3Enabled, saveBuffer, saveVariants, removeByUrl, removeVariantsByUrl,
+  urlForFilename, urlForKey, objectExists, uploadExistingFile,
+  generatePresignedPutUrl, randomFilename,
 };

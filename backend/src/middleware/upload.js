@@ -1,7 +1,7 @@
 const multer = require('multer');
 const { IMAGE_TYPES } = require('./mediaUpload');
 const mediaStore = require('../services/media/mediaStorage');
-const { optimizeImage } = require('../services/media/imageOptimizer');
+const { optimizeImage, buildVariants } = require('../services/media/imageOptimizer');
 
 /** Review photos — up to 5 per review, images only. Buffered in memory and
  *  persisted through mediaStorage (S3 or local disk), same as mediaUpload.js. */
@@ -30,7 +30,10 @@ function reviewPhotos(fieldName, maxCount) {
           const buffer = optimized ? optimized.buffer : file.buffer;
           const ext = optimized ? optimized.ext : (IMAGE_TYPES[file.mimetype] || '');
           const mimeType = optimized ? optimized.mimeType : file.mimetype;
-          const { url } = await mediaStore.saveBuffer(FOLDER, buffer, ext, mimeType);
+          const { filename, url } = await mediaStore.saveBuffer(FOLDER, buffer, ext, mimeType);
+          // Same responsive ladder as every other upload path — see the note
+          // in mediaUpload.js on why this is awaited rather than backgrounded.
+          await mediaStore.saveVariants(FOLDER, filename, await buildVariants(buffer, mimeType));
           file.mediaUrl = url;
         }
         next();
@@ -44,6 +47,7 @@ function reviewPhotos(fieldName, maxCount) {
 /** Best-effort cleanup for a rejected review's already-uploaded photos. */
 function removePhoto(mediaUrl) {
   mediaStore.removeByUrl(FOLDER, mediaUrl).catch(() => {});
+  mediaStore.removeVariantsByUrl(FOLDER, mediaUrl).catch(() => {});
 }
 
 module.exports = { upload, reviewPhotos, removePhoto };

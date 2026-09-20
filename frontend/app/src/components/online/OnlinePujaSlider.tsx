@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Img } from "../ui/Img";
+import { SIZES } from "../../lib/img";
 import { Link } from "react-router-dom";
 import { Icon } from "../../lib/icons";
 import { useLang } from "../../lib/i18n";
@@ -77,7 +79,7 @@ export function OnlinePujaSlider({ services }: { services: Service[] }) {
         {services.map((s) => (
           <div className="ohp-puja-card oh-slider__card" key={s.id}>
             {s.img
-              ? <img className="ohp-puja-img" src={s.img} alt={(lang === "hi" ? s.hi?.name : null) || s.name} loading="lazy" />
+              ? <Img className="ohp-puja-img" src={s.img} alt={(lang === "hi" ? s.hi?.name : null) || s.name} sizes={SIZES.card} loading="lazy" />
               : <span className="ohp-puja-emoji">{serviceEmoji(s.icon)}</span>}
             <h4 className="ohp-puja-name">{(lang === "hi" ? s.hi?.name : null) || s.name}</h4>
             {(s.tag || s.desc) && <p className="ohp-puja-desc">{s.tag || s.desc}</p>}

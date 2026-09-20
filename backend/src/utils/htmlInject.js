@@ -1,3 +1,4 @@
+const { srcSetForUrl } = require('../services/media/imageOptimizer');
 /** Inserts SEO meta/OG/canonical/JSON-LD tags into a raw HTML document,
  *  right before </head> — see render.controller.js. index.html ships no
  *  static title/description of its own (Phase 3), so this is purely
@@ -85,8 +86,29 @@ function injectSeo(html, meta, siteUrl, siteName) {
  */
 function injectBootstrap(html, data, preloadUrls = []) {
   const tags = preloadUrls
-    .filter(Boolean)
-    .map((url, i) => `<link rel="preload" as="image" href="${esc(url)}"${i === 0 ? ' fetchpriority="high"' : ''}>`);
+    .filter((p) => p && (typeof p === 'string' ? p : p.url))
+    .map((p, i) => {
+      const { url, sizes } = typeof p === 'string' ? { url: p, sizes: null } : p;
+      const priority = i === 0 ? ' fetchpriority="high"' : '';
+
+      // Preload the SAME candidate set components/ui/Img.tsx will offer, not
+      // the master. Since the ladder landed, that component renders a
+      // <picture> whose AVIF <source> carries a srcset — so a preload of the
+      // bare master URL would fetch the full-size original (274KB for a
+      // typical hero image) and then the browser would go and fetch a 14KB
+      // rung anyway. Two downloads, the larger of them pure waste, which is
+      // worse than having no preload at all.
+      //
+      // `type` makes this safe rather than merely clever: a browser without
+      // AVIF ignores a preload it cannot use, and simply discovers the WebP
+      // <source> normally. imagesizes must match the component's `sizes` or
+      // the preload resolves to a different rung than the render does.
+      const srcset = sizes ? srcSetForUrl(url, '.avif') : '';
+      if (srcset) {
+        return `<link rel="preload" as="image" type="image/avif" imagesrcset="${esc(srcset)}" imagesizes="${esc(sizes)}"${priority}>`;
+      }
+      return `<link rel="preload" as="image" href="${esc(url)}"${priority}>`;
+    });
 
   // Same <-escape as the JSON-LD block above: a "</script>" substring inside
   // any string value (an admin-typed alt text) must not close this tag early.

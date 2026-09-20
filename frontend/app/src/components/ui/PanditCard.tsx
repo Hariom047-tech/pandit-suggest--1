@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { Img } from "./Img";
+import { SIZES } from "../../lib/img";
 import type { Pandit } from "../../data/types";
 // serviceName & panditDisplayName are now inline helpers
 import { Icon } from "../../lib/icons";
@@ -71,7 +73,7 @@ export function PanditCard({ p, index = 0, sourceSurface, serviceSlug }: {
         {/* Header: Avatar, Name, Tier */}
         <div className="astro-card__header">
           <div className="astro-card__avatar">
-            <img src={p.img} alt={displayName} loading="lazy" onError={onImgError("pandit")} />
+            <Img src={p.img} alt={displayName} sizes={SIZES.card} loading="lazy" onError={onImgError("pandit")} />
           </div>
 
           <div className="astro-card__header-info">
